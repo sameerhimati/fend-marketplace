@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome to Fend - Enterprise & Startup Pilot Platform{% endblock %}
+
+{% block content %}
+<div class="bg-white">
+    <div class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+                Welcome to Fend
+            </h1>
+            <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
+                Connecting enterprises with innovative startups for successful pilot programs
+            </p>
+            <div class="mt-8 flex justify-center space-x-4">
+                <a href="{% url 'organizations:register' %}" 
+                   class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Register Organization
+                </a>
+                <a href="#how-it-works" 
+                   class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

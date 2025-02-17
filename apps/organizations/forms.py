@@ -2,20 +2,26 @@ from django import forms
 from .models import Organization, PilotDefinition
 
 class OrganizationBasicForm(forms.ModelForm):
-    """First step of organization registration"""
-
-    website = forms.CharField(max_length=255)
-
     class Meta:
         model = Organization
         fields = ['name', 'type', 'website']
 
     def clean_website(self):
-        website = self.cleaned_data['website']
-        if not website.startswith(('http://', 'https://')):
-            website = 'https://' + website
+        website = self.cleaned_data.get('website', '').strip().lower()
+        if not website:
+            return website
+            
+        # Remove http:// or https:// if present
+        if website.startswith('http://'):
+            website = website[7:]
+        elif website.startswith('https://'):
+            website = website[8:]
+        
+        # Remove www. if present
+        if website.startswith('www.'):
+            website = website[4:]
+            
         return website
-
 class EnterpriseDetailsForm(forms.ModelForm):
     """Second step for enterprise organizations"""
     class Meta:

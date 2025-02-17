@@ -18,7 +18,7 @@ class Organization(models.Model):
     # Basic Organization Info
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=20, choices=ORGANIZATION_TYPES)
-    website = models.URLField(validators=[URLValidator()])
+    website = models.CharField(max_length=255)
     business_type = models.CharField(
         max_length=20, 
         choices=BUSINESS_TYPES,
@@ -53,8 +53,9 @@ class Organization(models.Model):
     def clean(self):
         from django.core.exceptions import ValidationError
         
-        # Only validate enterprise-specific fields if type is enterprise
-        if self.type == 'enterprise':
+        # Only validate enterprise-specific fields if type is enterprise 
+        # AND onboarding_completed is True (means they've gone through all steps)
+        if self.type == 'enterprise' and self.onboarding_completed:
             required_fields = [
                 'business_type',
                 'business_registration_number',

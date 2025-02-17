@@ -10,6 +10,13 @@
                 Register your Organization
             </h2>
             
+            {% if form.errors %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+                    <strong class="font-bold">Form has errors:</strong>
+                    <span class="block sm:inline">{{ form.errors }}</span>
+                </div>
+            {% endif %}
+            
             <form method="post" class="space-y-6">
                 {% csrf_token %}
                 
@@ -18,7 +25,10 @@
                         Company Name
                     </label>
                     <div class="mt-1">
-                        <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" 
+                        <input type="text" 
+                               name="{{ form.name.name }}" 
+                               id="{{ form.name.id_for_label }}" 
+                               value="{{ form.name.value|default:'' }}"
                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                required>
                     </div>
@@ -32,10 +42,13 @@
                         Organization Type
                     </label>
                     <div class="mt-1">
-                        <select name="{{ form.type.name }}" id="{{ form.type.id_for_label }}"
+                        <select name="{{ form.type.name }}" 
+                                id="{{ form.type.id_for_label }}"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                             {% for value, label in form.type.field.choices %}
-                            <option value="{{ value }}">{{ label }}</option>
+                            <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
@@ -49,7 +62,10 @@
                         Website
                     </label>
                     <div class="mt-1">
-                        <input type="url" name="{{ form.website.name }}" id="{{ form.website.id_for_label }}"
+                        <input type="text" 
+                               name="{{ form.website.name }}" 
+                               id="{{ form.website.id_for_label }}"
+                               value="{{ form.website.value|default:'' }}"
                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                required>
                     </div>
