@@ -8,17 +8,49 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="min-h-screen bg-gray-50">
-    <nav class="bg-white shadow">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-xl font-bold text-gray-800">Fend</a>
+    {% if user.is_authenticated %}
+        <!-- Authenticated Header -->
+        <nav class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <a href="{% url 'organizations:dashboard' %}" class="text-2xl font-bold text-indigo-600">Fend</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="ml-3 relative">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-gray-700">{{ user.email }}</span>
+                                <span class="text-gray-500">{{ user.organization.name }}</span>
+                                <form method="post" action="{% url 'organizations:logout' %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="px-4 py-2 text-sm text-red-600 hover:text-red-900 focus:outline-none">
+                                        Sign out
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    {% else %}
+        <!-- Unauthenticated Header -->
+        <nav class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <a href="/" class="text-2xl font-bold text-indigo-600">Fend</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    {% endif %}
 
     {% if messages %}
         {% for message in messages %}

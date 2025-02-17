@@ -22,6 +22,15 @@ ALLOWED_HOSTS = []
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
+LOGIN_URL = 'organizations:login'
+LOGIN_REDIRECT_URL = 'organizations:dashboard'
+LOGOUT_URL = 'organizations:logout'
+LOGOUT_REDIRECT_URL = 'landing'
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 24 hours in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

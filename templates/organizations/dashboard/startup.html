@@ -1,0 +1,45 @@
+{% extends 'organizations/dashboard/base_dashboard.html' %}
+
+{% block title %}Startup Dashboard - Fend{% endblock %}
+
+{% block dashboard_content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-2xl font-semibold text-gray-900">Your Dashboard</h1>
+        
+        <div class="mt-6">
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Welcome, {{ request.user.organization.name }}
+                    </h3>
+                    <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                        <!-- Opportunities Card -->
+                        <a href="{% url 'pilots:list' %}" class="block">
+                            <div class="bg-white overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-md">
+                                <div class="px-4 py-5 sm:p-6">
+                                    <h4 class="text-lg font-medium text-gray-900">Browse Opportunities</h4>
+                                    {% if available_pilots %}
+                                        <div class="mt-2 divide-y divide-gray-200">
+                                            {% for pilot in available_pilots|slice:":3" %}
+                                                <div class="py-2">
+                                                    <p class="text-sm font-medium text-indigo-600">{{ pilot.title }}</p>
+                                                    <p class="text-xs text-gray-500">By: {{ pilot.organization.name }}</p>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="mt-1 text-sm text-gray-500">
+                                            No pilot opportunities available yet
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -39,7 +39,7 @@ class Organization(models.Model):
 
     # Primary Contact Info
     primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
-    primary_contact_email = models.EmailField(null=True, blank=True)
+    # primary_contact_email = models.EmailField(null=True, blank=True)
     primary_contact_phone = models.CharField(max_length=20, null=True, blank=True)
 
     # Metadata

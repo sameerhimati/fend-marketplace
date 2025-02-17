@@ -1,5 +1,5 @@
 # fend/settings/local.py
-# from .base import *
+from .base import *
 
 # DEBUG = True
 

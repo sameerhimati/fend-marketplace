@@ -61,3 +61,45 @@ class Pilot(models.Model):
             self.compliance_requirements = self.pilot_definition.compliance_requirements
             self.is_private = self.pilot_definition.is_private
         super().save(*args, **kwargs)
+    
+    def is_editable(self):
+        """Check if pilot can be edited"""
+        return self.status in ['draft', 'published']
+
+    def is_viewable_by(self, user):
+        """Check if a user can view this pilot"""
+        if user.is_superuser:
+            return True
+        
+        user_org = user.organization
+        if user_org.type == 'enterprise':
+            return self.organization == user_org
+        elif user_org.type == 'startup':
+            return (not self.is_private and self.status == 'published')
+        return False
+
+    def can_be_edited_by(self, user):
+        """Check if a user can edit this pilot"""
+        if user.is_superuser:
+            return True
+            
+        user_org = user.organization
+        if user_org.type == 'enterprise':
+            return self.organization == user_org and self.is_editable()
+        return False
+
+    def get_formatted_requirements(self):
+        """Return requirements in a formatted way"""
+        if not self.requirements:
+            return []
+        
+        formatted = []
+        for req in self.requirements:
+            if isinstance(req, dict):
+                req_type = req.get('type', 'text')
+                content = req.get('content', '')
+                formatted.append({
+                    'type': req_type,
+                    'content': content
+                })
+        return formatted

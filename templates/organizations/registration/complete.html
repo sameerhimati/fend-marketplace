@@ -1,21 +1,51 @@
-{% extends 'organizations/base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}Registration Complete - Fend{% endblock %}
 
-{% block organization_content %}
+{% block content %}
 <div class="md:flex md:items-center md:justify-center">
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <div class="text-center">
-                <h2 class="text-3xl font-extrabold text-gray-900 mb-4">
-                    Registration Complete!
+                <svg class="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                
+                <h2 class="mt-4 text-3xl font-extrabold text-gray-900">
+                    Welcome to Fend!
                 </h2>
-                <p class="text-gray-600 mb-8">
-                    Thank you for registering your organization with Fend.
+                
+                <p class="mt-2 text-sm text-gray-600">
+                    Your account has been successfully created and you're now logged in.
                 </p>
-                <a href="/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Go to Dashboard
-                </a>
+
+                {% if request.user.organization.type == 'enterprise' %}
+                    <p class="mt-4 text-sm text-gray-600">
+                        You're all set to start creating pilot opportunities and connecting with innovative startups.
+                    </p>
+                {% else %}
+                    <p class="mt-4 text-sm text-gray-600">
+                        You're all set to start discovering pilot opportunities and connecting with enterprises.
+                    </p>
+                {% endif %}
+
+                <div class="mt-6">
+                    <a href="{% url 'organizations:dashboard' %}" 
+                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Go to Dashboard
+                    </a>
+                </div>
+
+                {% comment %}
+                <!-- Payment integration can be added here later -->
+                <div class="mt-6 border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-medium text-gray-900">Complete Your Setup</h3>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Set up your payment details to start using all features.
+                    </p>
+                    <!-- Stripe button will go here -->
+                </div>
+                {% endcomment %}
             </div>
         </div>
     </div>
