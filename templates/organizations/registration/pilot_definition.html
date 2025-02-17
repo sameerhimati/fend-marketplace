@@ -1,0 +1,118 @@
+{% extends 'organizations/base.html' %}
+
+{% block title %}Pilot Definition - Fend{% endblock %}
+
+{% block organization_content %}
+<div class="md:flex md:items-center md:justify-center">
+    <div class="mt-8 sm:mx-auto sm:w-full max-w-2xl">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-extrabold text-gray-900">
+                    Pilot Definition
+                </h2>
+                <span class="text-sm text-gray-500">(Optional)</span>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Description -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Description
+                    </label>
+                    <div class="mt-1">
+                        <textarea name="{{ form.description.name }}" 
+                                id="{{ form.description.id_for_label }}"
+                                rows="4"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Provide a detailed description of your pilot requirements..."></textarea>
+                    </div>
+                    {% if form.description.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Technical Specs Document -->
+                <div>
+                    <label for="{{ form.technical_specs_doc.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Technical Specifications Document
+                    </label>
+                    <div class="mt-1">
+                        <input type="file" name="{{ form.technical_specs_doc.name }}" 
+                               id="{{ form.technical_specs_doc.id_for_label }}"
+                               class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    </div>
+                    {% if form.technical_specs_doc.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.technical_specs_doc.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Performance Metrics -->
+                <div>
+                    <label for="{{ form.performance_metrics.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Performance Metrics
+                    </label>
+                    <div class="mt-1">
+                        <textarea name="{{ form.performance_metrics.name }}" 
+                                id="{{ form.performance_metrics.id_for_label }}"
+                                rows="4"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Define quantifiable performance metrics and KPIs..."></textarea>
+                    </div>
+                    {% if form.performance_metrics.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.performance_metrics.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Compliance Requirements -->
+                <div>
+                    <label for="{{ form.compliance_requirements.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Compliance Requirements
+                    </label>
+                    <div class="mt-1">
+                        <textarea name="{{ form.compliance_requirements.name }}" 
+                                id="{{ form.compliance_requirements.id_for_label }}"
+                                rows="4"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Specify explicit compliance requirements for production launch..."></textarea>
+                    </div>
+                    {% if form.compliance_requirements.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.compliance_requirements.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Privacy Toggle -->
+                <div class="relative flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" name="{{ form.is_private.name }}" 
+                               id="{{ form.is_private.id_for_label }}"
+                               class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="{{ form.is_private.id_for_label }}" class="font-medium text-gray-700">Make Private</label>
+                        <p class="text-gray-500">Only visible to invited participants</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button type="button" onclick="history.back()" 
+                            class="bg-gray-200 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        Back
+                    </button>
+                    <div class="space-x-4">
+                        <button type="submit" name="skip" value="true"
+                                class="bg-gray-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            Skip for Now
+                        </button>
+                        <button type="submit"
+                                class="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Complete Registration
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

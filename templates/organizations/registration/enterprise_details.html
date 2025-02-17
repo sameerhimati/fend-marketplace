@@ -1,0 +1,117 @@
+{% extends 'organizations/base.html' %}
+
+{% block title %}Enterprise Details - Fend{% endblock %}
+
+{% block organization_content %}
+<div class="md:flex md:items-center md:justify-center">
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <h2 class="mb-6 text-center text-3xl font-extrabold text-gray-900">
+                Enterprise Details
+            </h2>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="{{ form.business_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Business Type
+                    </label>
+                    <div class="mt-1">
+                        <select name="{{ form.business_type.name }}" id="{{ form.business_type.id_for_label }}"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            {% for value, label in form.business_type.field.choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if form.business_type.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.business_type.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.business_registration_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Business Registration Number
+                    </label>
+                    <div class="mt-1">
+                        <input type="text" name="{{ form.business_registration_number.name }}" 
+                               id="{{ form.business_registration_number.id_for_label }}"
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               required>
+                    </div>
+                    {% if form.business_registration_number.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.business_registration_number.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.tax_identification_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Tax Identification Number
+                    </label>
+                    <div class="mt-1">
+                        <input type="text" name="{{ form.tax_identification_number.name }}" 
+                               id="{{ form.tax_identification_number.id_for_label }}"
+                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                               required>
+                    </div>
+                    {% if form.tax_identification_number.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.tax_identification_number.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Primary Contact Information</h3>
+                    
+                    <div>
+                        <label for="{{ form.primary_contact_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Name
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" name="{{ form.primary_contact_name.name }}" 
+                                   id="{{ form.primary_contact_name.id_for_label }}"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                   required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.primary_contact_email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Email
+                        </label>
+                        <div class="mt-1">
+                            <input type="email" name="{{ form.primary_contact_email.name }}" 
+                                   id="{{ form.primary_contact_email.id_for_label }}"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                   required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.primary_contact_phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Phone
+                        </label>
+                        <div class="mt-1">
+                            <input type="tel" name="{{ form.primary_contact_phone.name }}" 
+                                   id="{{ form.primary_contact_phone.id_for_label }}"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button type="button" onclick="history.back()" 
+                            class="bg-gray-200 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        Back
+                    </button>
+                    <button type="submit" 
+                            class="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Continue to Pilot Definition
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
