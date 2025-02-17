@@ -77,9 +77,11 @@
                             Edit
                         </a>
                         {% if pilot.status == 'draft' %}
-                            <form method="post" action="#" class="inline">
+                            <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="inline">
                                 {% csrf_token %}
-                                <button type="submit" class="text-sm font-medium text-green-600 hover:text-green-900">
+                                <button type="submit" 
+                                        class="text-sm font-medium text-green-600 hover:text-green-900"
+                                        onclick="return confirm('Are you sure you want to publish this pilot? This action cannot be undone.')">
                                     Publish
                                 </button>
                             </form>

@@ -4,6 +4,9 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from .models import Pilot
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
 class PilotListView(LoginRequiredMixin, ListView):
     model = Pilot
@@ -53,3 +56,25 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
         form.instance.organization = self.request.user.organization
         form.instance.status = 'draft'  # Default to draft status
         return super().form_valid(form)
+
+@login_required
+def publish_pilot(request, pk):
+    if request.method != 'POST':
+        return redirect('pilots:detail', pk=pk)
+        
+    pilot = get_object_or_404(Pilot, pk=pk)
+    
+    # Check permissions
+    if request.user.organization != pilot.organization:
+        raise PermissionDenied
+    
+    if pilot.status != 'draft':
+        messages.error(request, "Only draft pilots can be published.")
+        return redirect('pilots:detail', pk=pk)
+    
+    # Update status to published
+    pilot.status = 'published'
+    pilot.save()
+    
+    messages.success(request, f"'{pilot.title}' has been published successfully!")
+    return redirect('pilots:detail', pk=pk)
