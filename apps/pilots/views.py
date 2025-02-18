@@ -45,7 +45,7 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
     model = Pilot
     template_name = 'pilots/pilot_form.html'
     fields = ['title', 'description', 'technical_specs_doc', 'performance_metrics', 
-              'compliance_requirements', 'is_private']
+              'compliance_requirements', 'is_private', 'price_type', 'price_min', 'price_max']
     success_url = reverse_lazy('pilots:list')
 
     def dispatch(self, request, *args, **kwargs):
@@ -58,6 +58,22 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
         form.instance.organization = self.request.user.organization
         form.instance.status = 'draft'  # Default to draft status
         return super().form_valid(form)
+
+class PilotUpdateView(LoginRequiredMixin, UpdateView):
+    model = Pilot
+    template_name = 'pilots/pilot_form.html'
+    fields = ['title', 'description', 'technical_specs_doc', 'performance_metrics', 
+              'compliance_requirements', 'is_private', 'price_type', 'price_min', 'price_max']
+    
+    def dispatch(self, request, *args, **kwargs):
+        pilot = self.get_object()
+        if not pilot.can_be_edited_by(request.user):
+            messages.error(request, "You don't have permission to edit this pilot")
+            return redirect('pilots:detail', pk=pilot.pk)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        return reverse_lazy('pilots:detail', kwargs={'pk': self.object.pk})
 
 @login_required
 def publish_pilot(request, pk):
@@ -101,6 +117,16 @@ def create_bid(request, pilot_id):
     if request.method == 'POST':
         form = PilotBidForm(request.POST)
         if form.is_valid():
+            bid_amount = form.cleaned_data['amount']
+            
+            # Validate bid amount against pilot price requirements
+            if pilot.price_type == 'fixed' and pilot.price_min and bid_amount != pilot.price_min:
+                messages.error(request, f"This pilot requires a fixed bid of ${pilot.price_min}")
+                return render(request, 'pilots/bid_form.html', {'form': form, 'pilot': pilot})
+            elif pilot.price_type == 'range' and pilot.price_min and bid_amount < pilot.price_min:
+                messages.error(request, f"Bid amount must be at least ${pilot.price_min}")
+                return render(request, 'pilots/bid_form.html', {'form': form, 'pilot': pilot})
+            
             bid = form.save(commit=False)
             bid.pilot = pilot
             bid.startup = user_org
@@ -112,7 +138,12 @@ def create_bid(request, pilot_id):
     
     return render(request, 'pilots/bid_form.html', {
         'form': form,
-        'pilot': pilot
+        'pilot': pilot,
+        'price_info': {
+            'type': pilot.price_type,
+            'min': pilot.price_min,
+            'max': pilot.price_max
+        }
     })
 
 class BidListView(LoginRequiredMixin, ListView):

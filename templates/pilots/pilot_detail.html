@@ -30,6 +30,19 @@
                         <dd class="mt-1 text-sm text-gray-900">{{ pilot.description }}</dd>
                     </div>
 
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500">Pricing</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {% if pilot.price_type == 'fixed' %}
+                                Fixed Price: ${{ pilot.price_min }}
+                            {% elif pilot.price_type == 'range' %}
+                                Price Range: ${{ pilot.price_min }} - ${{ pilot.price_max }}
+                            {% else %}
+                                Pricing: Negotiable
+                            {% endif %}
+                        </dd>
+                    </div>
+
                     {% if pilot.technical_specs_doc %}
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Technical Specifications</dt>
@@ -85,7 +98,7 @@
                 
                 {% if request.user.organization == pilot.organization %}
                     <div class="space-x-3">
-                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                        <a href="{% url 'pilots:edit' pilot.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                             Edit
                         </a>
                         {% if pilot.status == 'draft' %}

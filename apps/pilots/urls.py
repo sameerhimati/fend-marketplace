@@ -12,4 +12,5 @@ urlpatterns = [
     path('bids/', views.BidListView.as_view(), name='bid_list'),
     path('bids/<int:pk>/', views.BidDetailView.as_view(), name='bid_detail'),
     path('bids/<int:pk>/update-status/', views.update_bid_status, name='update_bid_status'),
+    path('<int:pk>/edit/', views.PilotUpdateView.as_view(), name='edit'),
 ]
