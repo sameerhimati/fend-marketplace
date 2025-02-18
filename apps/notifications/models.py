@@ -1,0 +1,18 @@
+from django.db import models
+
+class Notification(models.Model):
+    TYPES = [
+        ('bid_submitted', 'New Bid Submitted'),
+        ('bid_updated', 'Bid Status Updated'),
+        ('pilot_updated', 'Pilot Updated'),
+        ('payment_received', 'Payment Received')
+    ]
+
+    recipient = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='notifications')
+    type = models.CharField(max_length=20, choices=TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    related_pilot = models.ForeignKey('pilots.Pilot', on_delete=models.CASCADE, null=True, blank=True)
+    related_bid = models.ForeignKey('pilots.PilotBid', on_delete=models.CASCADE, null=True, blank=True)

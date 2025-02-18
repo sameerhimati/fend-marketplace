@@ -64,6 +64,18 @@
                 </dl>
             </div>
 
+            {% if request.user.organization.type == 'startup' and pilot.status == 'published' %}
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                <div class="flex flex-col items-center justify-center space-y-3">
+                    <h3 class="text-lg font-medium text-gray-900">Interested in this pilot?</h3>
+                    <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Submit a Bid
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Actions -->
             <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between">
                 <a href="{% url 'pilots:list' %}" 

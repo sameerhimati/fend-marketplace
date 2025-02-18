@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}Bid Details - Fend{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <!-- Header -->
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Bid Details</h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if is_enterprise %}
+                        From {{ bid.startup.name }}
+                        {% else %}
+                        For {{ bid.pilot.title }}
+                        {% endif %}
+                    </p>
+                </div>
+                <span class="px-2 py-1 text-xs rounded-full 
+                    {% if bid.status == 'approved' %}bg-green-100 text-green-800
+                    {% elif bid.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif bid.status == 'under_review' %}bg-blue-100 text-blue-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ bid.get_status_display }}
+                </span>
+            </div>
+            
+            <!-- Content -->
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500">Pilot</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            <a href="{% url 'pilots:detail' bid.pilot.pk %}" class="text-indigo-600 hover:text-indigo-900">
+                                {{ bid.pilot.title }}
+                            </a>
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Bid Amount</dt>
+                        <dd class="mt-1 text-sm text-gray-900">${{ bid.amount }}</dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Submitted On</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"F j, Y" }}</dd>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500">Proposal</dt>
+                        <dd class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ bid.proposal }}</dd>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ bid.get_status_display }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Actions -->
+            <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between">
+                <a href="{% url 'pilots:bid_list' %}" 
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                    ← Back to Bids
+                </a>
+                
+                {% if is_enterprise %}
+                    <div class="space-x-2">
+                        {% if bid.status != 'approved' and bid.status != 'declined' %}
+                            <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="under_review">
+                                <button type="submit" 
+                                        class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    Mark Under Review
+                                </button>
+                            </form>
+
+                            <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="approved">
+                                <button type="submit" 
+                                        class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    Approve Bid
+                                </button>
+                            </form>
+
+                            <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="declined">
+                                <button type="submit" 
+                                        class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                    Decline Bid
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

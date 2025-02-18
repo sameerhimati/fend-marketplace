@@ -46,6 +46,18 @@ class Pilot(models.Model):
     compliance_requirements = models.TextField(null=True, blank=True)
     is_private = models.BooleanField(default=False)
 
+    price_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('fixed', 'Fixed Price'),
+            ('range', 'Price Range'),
+            ('negotiable', 'Negotiable')
+        ],
+        default='negotiable'
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -103,3 +115,26 @@ class Pilot(models.Model):
                     'content': content
                 })
         return formatted
+    
+
+class PilotBid(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('under_review', 'Under Review'),
+        ('approved', 'Approved'),
+        ('declined', 'Declined')
+    ]
+
+    pilot = models.ForeignKey(Pilot, on_delete=models.CASCADE, related_name='bids')
+    startup = models.ForeignKey('organizations.Organization', on_delete=models.CASCADE, related_name='submitted_bids')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    proposal = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # For stripe integration
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    class Meta:
+        unique_together = ['pilot', 'startup']
