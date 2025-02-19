@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
+from apps.notifications.services import create_bid_notification, create_pilot_notification
 
 class PilotListView(LoginRequiredMixin, ListView):
     model = Pilot
@@ -18,8 +19,27 @@ class PilotListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user_org = self.request.user.organization
         if user_org.type == 'startup':
-            # Startups see all published, non-private pilots
-            return Pilot.objects.filter(status='published', is_private=False)
+            # Get all published, non-private pilots
+            pilots = Pilot.objects.filter(status='published', is_private=False)
+            
+            # Exclude pilots where this startup already has an approved, pending or under_review bid
+            active_bid_pilot_ids = PilotBid.objects.filter(
+                startup=user_org
+            ).exclude(
+                status='declined'
+            ).values_list('pilot_id', flat=True)
+            
+            # Exclude pilots that already have any approved bid
+            pilots_with_approved_bids = PilotBid.objects.filter(
+                status='approved'
+            ).values_list('pilot_id', flat=True)
+            
+            # Create a set of all pilots to exclude
+            excluded_pilots = set(active_bid_pilot_ids) | set(pilots_with_approved_bids)
+            
+            # Exclude those pilots
+            return pilots.exclude(id__in=excluded_pilots)
+            
         elif user_org.type == 'enterprise':
             # Enterprises see all their pilots
             return Pilot.objects.filter(organization=user_org)
@@ -40,6 +60,29 @@ class PilotDetailView(LoginRequiredMixin, DetailView):
         elif user_org.type == 'enterprise' and pilot.organization != user_org:
             raise PermissionDenied
         return pilot
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_org = self.request.user.organization
+        pilot = self.object
+        
+        # Check if this startup had a declined bid for this pilot
+        if user_org.type == 'startup':
+            declined_bid = PilotBid.objects.filter(
+                pilot=pilot,
+                startup=user_org,
+                status='declined'
+            ).first()
+            
+            if declined_bid:
+                context['previous_bid_declined'] = True
+                context['declined_bid'] = declined_bid
+        
+        # Add pilot-specific context here
+        context['is_enterprise'] = user_org == pilot.organization
+        context['can_edit'] = pilot.can_be_edited_by(self.request.user) if hasattr(pilot, 'can_be_edited_by') else False
+        
+        return context
 
 class PilotCreateView(LoginRequiredMixin, CreateView):
     model = Pilot
@@ -64,6 +107,7 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'pilots/pilot_form.html'
     fields = ['title', 'description', 'technical_specs_doc', 'performance_metrics', 
               'compliance_requirements', 'is_private', 'price_type', 'price_min', 'price_max']
+    context_object_name = 'pilot'  # Add this line
     
     def dispatch(self, request, *args, **kwargs):
         pilot = self.get_object()
@@ -74,7 +118,11 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('pilots:detail', kwargs={'pk': self.object.pk})
-
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_edit'] = True  # Add this to indicate we're editing
+        return context
 @login_required
 def publish_pilot(request, pk):
     if request.method != 'POST':
@@ -94,6 +142,14 @@ def publish_pilot(request, pk):
     pilot.status = 'published'
     pilot.save()
     
+    # Create notification for pilot publication
+    create_pilot_notification(
+        pilot=pilot,
+        notification_type='pilot_updated',
+        title=f"Pilot published: {pilot.title}",
+        message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups."
+    )
+    
     messages.success(request, f"'{pilot.title}' has been published successfully!")
     return redirect('pilots:detail', pk=pk)
 
@@ -108,10 +164,16 @@ def create_bid(request, pilot_id):
         messages.error(request, "Only startups can submit bids")
         return redirect('pilots:detail', pk=pilot_id)
     
-    # Check if startup already has a bid for this pilot
-    existing_bid = PilotBid.objects.filter(pilot=pilot, startup=user_org).first()
+    # Check if startup already has an active bid for this pilot
+    existing_bid = PilotBid.objects.filter(
+        pilot=pilot, 
+        startup=user_org
+    ).exclude(
+        status='declined'  # Allow resubmission if previous bid was declined
+    ).first()
+    
     if existing_bid:
-        messages.info(request, "You've already submitted a bid for this pilot")
+        messages.info(request, "You already have an active bid for this pilot")
         return redirect('pilots:bid_detail', pk=existing_bid.pk)
     
     if request.method == 'POST':
@@ -131,7 +193,16 @@ def create_bid(request, pilot_id):
             bid.pilot = pilot
             bid.startup = user_org
             bid.save()
+            
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_submitted',
+                title=f"New bid received: {pilot.title}",
+                message=f"{user_org.name} has submitted a new bid of ${bid.amount} for your pilot '{pilot.title}'."
+            )
+
             messages.success(request, "Your bid has been submitted successfully")
+
             return redirect('pilots:bid_detail', pk=bid.pk)
     else:
         form = PilotBidForm()
@@ -141,8 +212,8 @@ def create_bid(request, pilot_id):
         'pilot': pilot,
         'price_info': {
             'type': pilot.price_type,
-            'min': pilot.price_min,
-            'max': pilot.price_max
+            'min': pilot.price_min if pilot.price_min is not None else None,
+            'max': pilot.price_max if pilot.price_max is not None else None
         }
     })
 
@@ -164,7 +235,32 @@ class BidListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['is_enterprise'] = self.request.user.organization.type == 'enterprise'
+        user_org = self.request.user.organization
+        
+        if user_org.type == 'startup':
+            # Separate approved and other bids
+            all_bids = PilotBid.objects.filter(startup=user_org)
+            context['approved_bids'] = all_bids.filter(status='approved')
+            context['other_bids'] = all_bids.exclude(status='approved')
+        else:
+            # For enterprises, group by pilot
+            all_bids = PilotBid.objects.filter(pilot__organization=user_org)
+            context['grouped_bids'] = {}
+            
+            for bid in all_bids:
+                if bid.pilot_id not in context['grouped_bids']:
+                    context['grouped_bids'][bid.pilot_id] = {
+                        'pilot': bid.pilot,
+                        'approved_bids': [],
+                        'other_bids': []
+                    }
+                
+                if bid.status == 'approved':
+                    context['grouped_bids'][bid.pilot_id]['approved_bids'].append(bid)
+                else:
+                    context['grouped_bids'][bid.pilot_id]['other_bids'].append(bid)
+        
+        context['is_enterprise'] = user_org.type == 'enterprise'
         return context
 
 class BidDetailView(LoginRequiredMixin, DetailView):
@@ -186,7 +282,22 @@ class BidDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['is_enterprise'] = self.request.user.organization == self.object.pilot.organization
+        user_org = self.request.user.organization
+        bid = self.object
+        
+        # Determine if the current user can delete the bid
+        can_delete = False
+        
+        # Startup can delete their own bids if they're still pending
+        if user_org == bid.startup and bid.status == 'pending':
+            can_delete = True
+        
+        # Enterprise can delete/reject any pending bid on their pilot
+        elif user_org == bid.pilot.organization and bid.status == 'pending':
+            can_delete = True
+        
+        context['is_enterprise'] = user_org == bid.pilot.organization
+        context['can_delete_bid'] = can_delete
         return context
 
 class SubmittedBidsListView(LoginRequiredMixin, ListView):
@@ -232,8 +343,65 @@ def update_bid_status(request, pk):
         old_status = bid.status
         bid.status = new_status
         bid.save()
+        
+        # Create notification for bid status update
+        create_bid_notification(
+            bid=bid,
+            notification_type='bid_updated',
+            title=f"Bid status updated: {bid.pilot.title}",
+            message=f"The status of your bid for '{bid.pilot.title}' has been updated from '{valid_statuses[old_status]}' to '{valid_statuses[new_status]}'."
+        )
+        
         messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
     else:
         messages.error(request, "Invalid status")
     
     return redirect('pilots:bid_detail', pk=pk)
+
+
+@login_required
+def delete_bid(request, pk):
+    """Allow users to delete bids based on permissions"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    
+    # Determine who can delete the bid
+    can_delete = False
+    delete_reason = None
+    
+    # Startup can delete their own bids if they're still in pending status
+    if user_org == bid.startup and bid.status == 'pending':
+        can_delete = True
+        delete_reason = "withdrawn by startup"
+    
+    # Enterprise can delete/reject any pending bid on their pilot
+    elif user_org == bid.pilot.organization and bid.status == 'pending':
+        can_delete = True
+        delete_reason = "rejected by enterprise"
+    
+    if not can_delete:
+        messages.error(request, "You don't have permission to delete this bid")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    # Create notification before deleting
+    from apps.notifications.services import create_bid_notification
+    create_bid_notification(
+        bid=bid,
+        notification_type='bid_updated',
+        title=f"Bid {delete_reason}: {bid.pilot.title}",
+        message=f"A bid of ${bid.amount} for pilot '{bid.pilot.title}' has been {delete_reason}."
+    )
+    
+    # Delete the bid
+    bid.delete()
+    
+    messages.success(request, f"Bid has been successfully {delete_reason}.")
+    
+    # Redirect to appropriate page based on user type
+    if user_org.type == 'startup':
+        return redirect('pilots:bid_list')
+    else:
+        return redirect('pilots:list')

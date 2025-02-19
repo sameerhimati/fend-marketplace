@@ -16,3 +16,10 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     related_pilot = models.ForeignKey('pilots.Pilot', on_delete=models.CASCADE, null=True, blank=True)
     related_bid = models.ForeignKey('pilots.PilotBid', on_delete=models.CASCADE, null=True, blank=True)
+
+class NotificationPreferences(models.Model):
+    user = models.OneToOneField('users.User', on_delete=models.CASCADE, related_name='notification_preferences')
+    enabled = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"{self.user.email} - {'Enabled' if self.enabled else 'Disabled'}"

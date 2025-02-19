@@ -6,8 +6,46 @@
     <title>{% block title %}Fend Marketplace{% endblock %}</title>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked {
+          right: 0;
+          border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+          background-color: #68D391;
+        }
+        .toggle-checkbox {
+          right: 0;
+          z-index: 0;
+          border-color: #CBD5E0;
+          transform: translateX(0);
+        }
+        .toggle-label {
+          display: block;
+          overflow: hidden;
+          cursor: pointer;
+          background-color: #CBD5E0;
+        }
+        @keyframes message-slide-in {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes message-fade-out {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .animate-message-slide-in {
+            animation: message-slide-in 0.3s ease-out forwards;
+        }
+        .animate-message-fade-out {
+            animation: message-fade-out 0.5s ease-out forwards;
+        }
+      </style>
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="min-h-screen bg-gray-50">
+    {% include "components/messages.html" %}
+    
     {% if user.is_authenticated %}
         <!-- Authenticated Header -->
         <nav class="bg-white shadow">
@@ -35,6 +73,7 @@
                     <div class="flex items-center">
                         <div class="ml-3 relative">
                             <div class="flex items-center space-x-4">
+                                {% include "components/notification_bell.html" %}
                                 <span class="text-gray-700">{{ user.email }}</span>
                                 <span class="text-gray-500">{{ user.organization.name }}</span>
                                 <form method="post" action="{% url 'organizations:logout' %}" class="inline">
@@ -66,13 +105,7 @@
         </nav>
     {% endif %}
 
-    {% if messages %}
-        {% for message in messages %}
-        <div class="p-4 {% if message.tags %}{{ message.tags }}{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    {% endif %}
+    {% include "components/messages.html" %}
 
     <main>
         {% block content %}{% endblock %}

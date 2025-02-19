@@ -24,7 +24,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', LandingPageView.as_view(), name='landing'),
     path('pilots/', include('apps.pilots.urls')),
-    path('organizations/', include('apps.organizations.urls')),  # Add this line
+    path('organizations/', include('apps.organizations.urls')),
+    path('notifications/', include('apps.notifications.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

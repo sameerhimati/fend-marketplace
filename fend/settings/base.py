@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'apps.organizations',
     'apps.pilots',
     'apps.users',
+    'apps.notifications',
 ]
 
 # These middleware classes are required for Django to work properly

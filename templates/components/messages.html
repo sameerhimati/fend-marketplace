@@ -1,0 +1,54 @@
+{% if messages %}
+<div class="fixed top-4 left-0 right-0 z-50 flex flex-col items-center gap-2">
+  {% for message in messages %}
+    <div class="max-w-md w-full px-4 py-3 rounded-md shadow-md animate-message-slide-in
+         {% if message.tags == 'error' %}bg-red-100 text-red-800 border border-red-200
+         {% elif message.tags == 'success' %}bg-green-100 text-green-800 border border-green-200
+         {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800 border border-yellow-200
+         {% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}
+         flex items-center justify-between"
+         data-auto-dismiss="5000">
+      <span>{{ message }}</span>
+      <button type="button" class="text-gray-500 hover:text-gray-700 focus:outline-none" onclick="this.parentElement.remove()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
+    </div>
+  {% endfor %}
+</div>
+
+<style>
+  @keyframes message-slide-in {
+    0% { transform: translateY(-100%); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes message-fade-out {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .animate-message-slide-in {
+    animation: message-slide-in 0.3s ease-out forwards;
+  }
+  .animate-message-fade-out {
+    animation: message-fade-out 0.5s ease-out forwards;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.querySelectorAll('[data-auto-dismiss]');
+    messages.forEach(message => {
+      const dismissTime = parseInt(message.dataset.autoDismiss);
+      if (!isNaN(dismissTime)) {
+        setTimeout(() => {
+          message.classList.add('animate-message-fade-out');
+          setTimeout(() => {
+            message.remove();
+          }, 500);
+        }, dismissTime);
+      }
+    });
+  });
+</script>
+{% endif %}

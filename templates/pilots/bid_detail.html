@@ -68,8 +68,8 @@
                     ← Back to Bids
                 </a>
                 
-                {% if is_enterprise %}
-                    <div class="space-x-2">
+                <div class="space-x-2">
+                    {% if is_enterprise %}
                         {% if bid.status != 'approved' and bid.status != 'declined' %}
                             <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
                                 {% csrf_token %}
@@ -79,7 +79,7 @@
                                     Mark Under Review
                                 </button>
                             </form>
-
+            
                             <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="status" value="approved">
@@ -88,7 +88,7 @@
                                     Approve Bid
                                 </button>
                             </form>
-
+            
                             <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="status" value="declined">
@@ -98,8 +98,23 @@
                                 </button>
                             </form>
                         {% endif %}
-                    </div>
-                {% endif %}
+                    {% endif %}
+                    
+                    {% if can_delete_bid %}
+                    <form method="post" action="{% url 'pilots:delete_bid' bid.pk %}" class="inline"
+                          onsubmit="return confirm('Are you sure you want to delete this bid? This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            {% if user.organization == bid.startup %}
+                                Withdraw Bid
+                            {% else %}
+                                Delete Bid
+                            {% endif %}
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
