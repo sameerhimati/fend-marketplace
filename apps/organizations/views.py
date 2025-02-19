@@ -133,26 +133,76 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             return redirect('organizations:enterprise_dashboard')
         return redirect('organizations:startup_dashboard')
 
+# class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
+#     template_name = 'organizations/dashboard/enterprise.html'
+
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['active_pilots'] = Pilot.objects.filter(
+#             organization=self.request.user.organization
+#         ).order_by('-created_at')[:5]  # Get 5 most recent pilots
+#         return context
+
 class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
-    template_name = 'organizations/dashboard/enterprise.html'
+    template_name = 'pilots/pilot_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['active_pilots'] = Pilot.objects.filter(
+        # Get all pilots for this enterprise
+        context['pilots'] = Pilot.objects.filter(
             organization=self.request.user.organization
-        ).order_by('-created_at')[:5]  # Get 5 most recent pilots
+        ).order_by('-created_at')
+        context['is_dashboard'] = True  # Flag to indicate this is the dashboard view
+        context['dashboard_title'] = "Your Pilots"
         return context
+
+# class StartupDashboardView(LoginRequiredMixin, TemplateView):
+#     template_name = 'organizations/dashboard/startup.html'
+
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['available_pilots'] = Pilot.objects.filter(
+#             status='published',
+#             is_private=False
+#         ).order_by('-created_at')[:5]  # Get 5 most recent public pilots
+#         return context
 
 class StartupDashboardView(LoginRequiredMixin, TemplateView):
-    template_name = 'organizations/dashboard/startup.html'
+    template_name = 'pilots/pilot_list.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['available_pilots'] = Pilot.objects.filter(
+        # Get all available pilots for startups
+        pilots = Pilot.objects.filter(
             status='published',
             is_private=False
-        ).order_by('-created_at')[:5]  # Get 5 most recent public pilots
+        ).order_by('-created_at')
+        
+        # Exclude pilots where this startup already has an approved bid
+        user_org = self.request.user.organization
+        from apps.pilots.models import PilotBid
+        
+        # Exclude pilots where this startup already has an active bid
+        active_bid_pilot_ids = PilotBid.objects.filter(
+            startup=user_org
+        ).exclude(
+            status='declined'
+        ).values_list('pilot_id', flat=True)
+        
+        # Exclude pilots that already have any approved bid
+        pilots_with_approved_bids = PilotBid.objects.filter(
+            status='approved'
+        ).values_list('pilot_id', flat=True)
+        
+        # Create a set of all pilots to exclude
+        excluded_pilots = set(active_bid_pilot_ids) | set(pilots_with_approved_bids)
+        
+        # Apply exclusions
+        context['pilots'] = pilots.exclude(id__in=excluded_pilots)
+        context['is_dashboard'] = True  # Flag to indicate this is the dashboard view
+        context['dashboard_title'] = "Available Pilot Opportunities"
         return context
+    
 class CustomLoginView(LoginView):
     template_name = 'organizations/auth/login.html'
     
