@@ -94,11 +94,10 @@ class Pilot(models.Model):
         """Check if a user can edit this pilot"""
         if user.is_superuser:
             return True
-            
+                
         user_org = user.organization
-        if user_org.type == 'enterprise':
-            return self.organization == user_org and self.is_editable()
-        return False
+        # Allow enterprises to edit their own pilots regardless of status
+        return user_org.type == 'enterprise' and self.organization == user_org
 
     def get_formatted_requirements(self):
         """Return requirements in a formatted way"""

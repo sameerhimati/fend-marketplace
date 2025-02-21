@@ -14,4 +14,5 @@ urlpatterns = [
     path('bids/<int:pk>/update-status/', views.update_bid_status, name='update_bid_status'),
     path('<int:pk>/edit/', views.PilotUpdateView.as_view(), name='edit'),
     path('bids/<int:pk>/delete/', views.delete_bid, name='delete_bid'),
+    path('pilots/<int:pk>/delete/', views.delete_pilot, name='delete'),
 ]

@@ -405,3 +405,32 @@ def delete_bid(request, pk):
         return redirect('pilots:bid_list')
     else:
         return redirect('pilots:list')
+    
+
+@login_required
+def delete_pilot(request, pk):
+    """Delete a pilot"""
+    if request.method != 'POST':
+        return redirect('pilots:detail', pk=pk)
+        
+    pilot = get_object_or_404(Pilot, pk=pk)
+    
+    # Check permissions
+    if request.user.organization != pilot.organization:
+        messages.error(request, "You don't have permission to delete this pilot")
+        raise PermissionDenied
+    
+    # Create notification for pilot deletion
+    create_pilot_notification(
+        pilot=pilot,
+        notification_type='pilot_updated',
+        title=f"Pilot deleted: {pilot.title}",
+        message=f"The pilot '{pilot.title}' has been deleted."
+    )
+    
+    # Delete the pilot
+    pilot.delete()
+    messages.success(request, "Pilot deleted successfully")
+    
+    return redirect('pilots:list')
+

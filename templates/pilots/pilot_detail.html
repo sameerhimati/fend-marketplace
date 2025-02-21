@@ -125,11 +125,20 @@
                                 {% csrf_token %}
                                 <button type="submit" 
                                         class="text-sm font-medium text-green-600 hover:text-green-900"
-                                        onclick="return confirm('Are you sure you want to publish this pilot? This action cannot be undone.')">
+                                        onclick="return confirm('Confirm you want to publish this pilot?')">
                                     Publish
                                 </button>
                             </form>
                         {% endif %}
+
+                        <form method="post" action="{% url 'pilots:delete' pilot.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="text-sm font-medium text-red-600 hover:text-red-900"
+                                    onclick="return confirm('Are you sure you want to delete this pilot? This action cannot be undone.');">
+                                Delete
+                            </button>
+                        </form>
                     </div>
                 {% endif %}
             </div>
