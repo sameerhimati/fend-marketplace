@@ -26,6 +26,9 @@ class PricingPlan(models.Model):
     stripe_price_id = models.CharField(max_length=100)
     pilot_limit = models.IntegerField(default=0)  # 0 means unlimited
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'payments_pricingplan'
     
     def __str__(self):
         return f"{self.name} (${self.price}/{self.billing_frequency})"

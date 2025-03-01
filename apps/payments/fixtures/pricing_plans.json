@@ -1,0 +1,54 @@
+[
+  {
+    "model": "apps.payments.pricingplan",
+    "pk": 1,
+    "fields": {
+      "name": "Startup Monthly",
+      "plan_type": "startup_monthly",
+      "price": "10.00",
+      "billing_frequency": "monthly",
+      "stripe_price_id": "",
+      "pilot_limit": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "apps.payments.pricingplan",
+    "pk": 2,
+    "fields": {
+      "name": "Startup Yearly",
+      "plan_type": "startup_yearly",
+      "price": "100.00",
+      "billing_frequency": "yearly",
+      "stripe_price_id": "",
+      "pilot_limit": 0,
+      "is_active": true
+    }
+  },
+  {
+    "model": "apps.payments.pricingplan",
+    "pk": 3,
+    "fields": {
+      "name": "Enterprise Single Pilot",
+      "plan_type": "enterprise_single",
+      "price": "1000.00",
+      "billing_frequency": "one_time",
+      "stripe_price_id": "",
+      "pilot_limit": 1,
+      "is_active": true
+    }
+  },
+  {
+    "model": "apps.payments.pricingplan",
+    "pk": 4,
+    "fields": {
+      "name": "Enterprise Unlimited",
+      "plan_type": "enterprise_unlimited",
+      "price": "600.00",
+      "billing_frequency": "yearly",
+      "stripe_price_id": "",
+      "pilot_limit": 0,
+      "is_active": true
+    }
+  }
+]

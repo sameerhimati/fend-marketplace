@@ -1,8 +1,8 @@
 # apps/pilots/models.py
 from django.db import models
 from apps.organizations.models import Organization, PilotDefinition
-
-fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Transaction fee percentage")
+from django.core.exceptions import ValidationError
+from apps.payments.models import PilotTransaction
 
 class Pilot(models.Model):
     STATUS_CHOICES = (
@@ -126,6 +126,9 @@ class Pilot(models.Model):
     
 
 class PilotBid(models.Model):
+
+    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Transaction fee percentage")
+
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('under_review', 'Under Review'),
@@ -156,7 +159,6 @@ class PilotBid(models.Model):
         # Only approved bids can be completed
         if self.status != 'approved':
             return False
-        
         # Create or update transaction
         transaction, created = PilotTransaction.objects.get_or_create(
             pilot_bid=self,
