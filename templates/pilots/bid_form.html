@@ -12,7 +12,6 @@
                 
                 <form method="post" class="space-y-6">
                     {% csrf_token %}
-                    {% if price_info.type != 'negotiable' %}
                     <div class="mb-6 bg-blue-50 p-4 rounded-md">
                         <div class="flex">
                             <div class="flex-shrink-0">
@@ -22,16 +21,15 @@
                             </div>
                             <div class="ml-3 flex-1 md:flex md:justify-between">
                                 <p class="text-sm text-blue-700">
-                                    {% if price_info.type == 'fixed' %}
-                                        This pilot requires a fixed bid of <strong>${{ price_info.min }}</strong>
-                                    {% elif price_info.type == 'range' %}
-                                        Bid amount must be between <strong>${{ price_info.min }}</strong> and <strong>${{ price_info.max }}</strong>
+                                    {% if pilot.price > 0 %}
+                                        This pilot requires a minimum bid of <strong>${{ pilot.price }}</strong>
+                                    {% else %}
+                                        This pilot is listed as free, but you can still submit a bid amount if desired.
                                     {% endif %}
                                 </p>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
 
                     {% if price_info.type == 'fixed' %}
                         {% if price_info.min %}
@@ -79,7 +77,8 @@
                             <input type="number" 
                                    name="{{ form.amount.name }}" 
                                    id="{{ form.amount.id_for_label }}"
-                                   min="1"
+                                   min="{{ pilot.price }}" 
+                                   value="{{ form.amount.value|default:pilot.price }}" 
                                    step="0.01"
                                    class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
                                    placeholder="0.00"

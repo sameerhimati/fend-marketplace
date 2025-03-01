@@ -16,3 +16,14 @@ class PilotBidForm(forms.ModelForm):
                 'placeholder': 'Enter bid amount in USD'
             })
         }
+    
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        pilot = self.initial.get('pilot')
+        
+        if pilot and amount < pilot.price:
+            raise forms.ValidationError(
+                f"Your bid amount (${amount}) is less than the pilot's required price (${pilot.price})."
+            )
+        
+        return amount

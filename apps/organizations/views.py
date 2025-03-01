@@ -21,36 +21,78 @@ class OrganizationRegistrationView(CreateView):
     @transaction.atomic
     def form_valid(self, form):
         try:
-            # Create organization
-            organization = form.save()
+            # Create organization without saving to DB yet
+            organization = form.save(commit=False)
             
-            # Create and login user
+            # Store registration data in session
+            self.request.session['registration_data'] = {
+                'organization_name': organization.name,
+                'organization_type': organization.type,
+                'organization_website': organization.website,
+                'email': form.cleaned_data['email'],
+                'password': form.cleaned_data['password'],
+            }
+            
+            # Store the organization in the database without finalizing
+            organization.save()
+            self.request.session['organization_id'] = organization.id
+            
+            if organization.type == 'enterprise':
+                return redirect('organizations:enterprise_details', pk=organization.pk)
+            
+            # For startups, complete registration
+            return self.complete_registration(organization)
+            
+        except Exception as e:
+            print(f"Error in form_valid: {e}")
+            messages.error(self.request, "Error creating organization. Please try again.")
+            return self.form_invalid(form)
+    
+    def complete_registration(self, organization=None):
+        """Complete the registration process by creating user and finalizing organization"""
+        reg_data = self.request.session.get('registration_data', {})
+        
+        if not organization and 'organization_id' in self.request.session:
+            organization = get_object_or_404(Organization, pk=self.request.session['organization_id'])
+        
+        if not organization or not reg_data:
+            messages.error(self.request, "Registration data is missing. Please start over.")
+            return redirect('organizations:register')
+        
+        try:
+            # Create user
             user = User.objects.create_user(
-                username=form.cleaned_data['email'],
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password']
+                username=reg_data['email'],
+                email=reg_data['email'],
+                password=reg_data['password']
             )
             
             # Link user to organization
             user.organization = organization
             user.save()
             
-            # Log the user in
-            login(self.request, user)
-            
-            if organization.type == 'enterprise':
-                return redirect('organizations:enterprise_details', pk=organization.pk)
-            
+            # Mark organization as complete
             organization.onboarding_completed = True
             organization.save()
             
-            # First go to completion page, then auto-redirect to dashboard
-            return redirect('organizations:registration_complete')
+            # Clean up session
+            if 'registration_data' in self.request.session:
+                del self.request.session['registration_data']
+            if 'organization_id' in self.request.session:
+                del self.request.session['organization_id']
+                
+            # Log the user in now that registration is complete
+            login(self.request, user)
             
+            # Redirect to completion page
+            return redirect('organizations:registration_complete')
+        
         except Exception as e:
-            print(f"Error in form_valid: {e}")
-            messages.error(self.request, "Error creating organization. Please try again.")
-            return self.form_invalid(form)
+            print(f"Error completing registration: {e}")
+            messages.error(self.request, "Error creating user account. Please try again.")
+            if organization:
+                organization.delete()  # Clean up partial registration
+            return redirect('organizations:register')
     
     def post(self, request, *args, **kwargs):
         if 'back' in request.POST:
@@ -66,24 +108,36 @@ class EnterpriseDetailsView(UpdateView):
     form_class = EnterpriseDetailsForm
     template_name = 'organizations/registration/enterprise_details.html'
     
+    def get_initial(self):
+        """Pre-populate form with session data"""
+        initial = super().get_initial()
+        reg_data = self.request.session.get('registration_data', {})
+        
+        # Add email from registration data to avoid asking again
+        if 'email' in reg_data:
+            initial['primary_contact_email'] = reg_data['email']
+            
+        return initial
+    
     def form_valid(self, form):
         try:
             organization = form.save(commit=False)
-            organization.primary_contact_email = self.request.user.email
+            
+            # Get email from session instead of form
+            reg_data = self.request.session.get('registration_data', {})
+            organization.primary_contact_email = reg_data.get('email')
+            
             organization.save()
             return redirect('organizations:pilot_definition', pk=organization.pk)
         except Exception as e:
-            print(f"Error in enterprise details: {e}")  # Debug log
+            print(f"Error in enterprise details: {e}")
             messages.error(self.request, "Error updating enterprise details. Please try again.")
             return self.form_invalid(form)
     
-    def post(self, request, *args, **kwargs):
-        if 'back' in request.POST:
-            # Delete the incomplete organization
-            org = get_object_or_404(Organization, pk=self.kwargs['pk'])
-            org.delete()
-            return redirect('organizations:register')
-        return super().post(request, *args, **kwargs)
+    def form_invalid(self, form):
+        """Make sure we don't lose the entered values"""
+        print(f"Form errors: {form.errors}")  # Debug log
+        return super().form_invalid(form)
 
 class PilotDefinitionView(CreateView):
     model = PilotDefinition
@@ -97,13 +151,12 @@ class PilotDefinitionView(CreateView):
             pilot_definition.organization = organization
             pilot_definition.save()
             
-            organization.onboarding_completed = True
-            organization.save()
-            print(f"Pilot definition created for org: {organization.pk}")  # Debug log
-            
-            return redirect('organizations:registration_complete')
+            # Complete the registration process
+            view = OrganizationRegistrationView()
+            view.request = self.request
+            return view.complete_registration(organization)
         except Exception as e:
-            print(f"Error in pilot definition: {e}")  # Debug log
+            print(f"Error in pilot definition: {e}")
             messages.error(self.request, "Error creating pilot definition. Please try again.")
             return self.form_invalid(form)
 

@@ -46,16 +46,13 @@ class Pilot(models.Model):
     compliance_requirements = models.TextField(null=True, blank=True)
     is_private = models.BooleanField(default=False)
 
-    price_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    price_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    price_type = models.CharField(
-        max_length=20,
-        choices=[
-            ('fixed', 'Fixed Price'),
-            ('range', 'Price Range'),
-            ('negotiable', 'Negotiable')
-        ],
-        default='negotiable'
+    price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=False,  # Make it required
+        blank=False,
+        default=0,  # Default to 0
+        help_text="Enter the fixed price for this pilot (in USD)"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

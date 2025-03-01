@@ -32,13 +32,17 @@
 
                 <div>
                     <label for="{{ form.business_registration_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Business Registration Number
+                        Business Registration Number (EIN)
                     </label>
                     <div class="mt-1">
-                        <input type="text" name="{{ form.business_registration_number.name }}" 
+                        <input type="text" 
+                               name="{{ form.business_registration_number.name }}" 
                                id="{{ form.business_registration_number.id_for_label }}"
+                               pattern="\d{2}-\d{7}"
+                               placeholder="XX-XXXXXXX"
                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                required>
+                        <p class="mt-1 text-xs text-gray-500">Format: XX-XXXXXXX (9 digits total)</p>
                     </div>
                     {% if form.business_registration_number.errors %}
                     <p class="mt-2 text-sm text-red-600">{{ form.business_registration_number.errors.0 }}</p>
@@ -47,13 +51,17 @@
 
                 <div>
                     <label for="{{ form.tax_identification_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Tax Identification Number
+                        Tax Identification Number (TIN)
                     </label>
                     <div class="mt-1">
-                        <input type="text" name="{{ form.tax_identification_number.name }}" 
+                        <input type="text" 
+                               name="{{ form.tax_identification_number.name }}" 
                                id="{{ form.tax_identification_number.id_for_label }}"
+                               pattern="\d{2}-\d{7}"
+                               placeholder="XX-XXXXXXX"
                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                required>
+                        <p class="mt-1 text-xs text-gray-500">Format: XX-XXXXXXX (9 digits total)</p>
                     </div>
                     {% if form.tax_identification_number.errors %}
                     <p class="mt-2 text-sm text-red-600">{{ form.tax_identification_number.errors.0 }}</p>
@@ -70,18 +78,6 @@
                         <div class="mt-1">
                             <input type="text" name="{{ form.primary_contact_name.name }}" 
                                    id="{{ form.primary_contact_name.id_for_label }}"
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                   required>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="{{ form.primary_contact_email.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Email
-                        </label>
-                        <div class="mt-1">
-                            <input type="email" name="{{ form.primary_contact_email.name }}" 
-                                   id="{{ form.primary_contact_email.id_for_label }}"
                                    class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                    required>
                         </div>
@@ -110,6 +106,52 @@
                         Continue to Pilot Definition
                     </button>
                 </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Format the EIN/TIN inputs as user types
+                        const businessRegInput = document.getElementById('{{ form.business_registration_number.id_for_label }}');
+                        const taxIdInput = document.getElementById('{{ form.tax_identification_number.id_for_label }}');
+                        
+                        function formatEIN(input) {
+                            // Remove all non-numeric characters
+                            let value = input.value.replace(/\D/g, '');
+                            
+                            // If we have at least 2 digits, add a hyphen
+                            if (value.length > 2) {
+                                value = value.substring(0, 2) + '-' + value.substring(2);
+                            }
+                            
+                            // Limit to 10 characters (including hyphen)
+                            value = value.substring(0, 10);
+                            
+                            // Update the input value
+                            input.value = value;
+                        }
+                        
+                        // Add input event listeners to both fields
+                        if (businessRegInput) {
+                            businessRegInput.addEventListener('input', function() {
+                                formatEIN(this);
+                            });
+                        }
+                        
+                        if (taxIdInput) {
+                            taxIdInput.addEventListener('input', function() {
+                                formatEIN(this);
+                            });
+                        }
+                        
+                        // Format values on page load if they exist
+                        if (businessRegInput && businessRegInput.value) {
+                            formatEIN(businessRegInput);
+                        }
+                        
+                        if (taxIdInput && taxIdInput.value) {
+                            formatEIN(taxIdInput);
+                        }
+                    });
+                </script>
             </form>
         </div>
     </div>

@@ -44,7 +44,45 @@ class OrganizationBasicForm(forms.ModelForm):
             website = website[4:]
             
         return website
+    
 
+def clean_business_registration_number(self):
+    brn = self.cleaned_data.get('business_registration_number')
+    
+    if not brn:
+        return brn
+    
+    # Strip out non-alphanumeric characters
+    brn_clean = ''.join(e for e in brn if e.isalnum())
+    
+    # EIN format: XX-XXXXXXX (9 digits)
+    if len(brn_clean) != 9 or not brn_clean.isdigit():
+        raise forms.ValidationError(
+            "EIN must be in the format XX-XXXXXXX (9 digits total)."
+        )
+    
+    # Format as XX-XXXXXXX
+    formatted_brn = f"{brn_clean[:2]}-{brn_clean[2:]}"
+    return formatted_brn
+
+def clean_tax_identification_number(self):
+    tin = self.cleaned_data.get('tax_identification_number')
+    
+    if not tin:
+        return tin
+    
+    # Strip out non-alphanumeric characters
+    tin_clean = ''.join(e for e in tin if e.isalnum())
+    
+    # EIN format: XX-XXXXXXX (9 digits)
+    if len(tin_clean) != 9 or not tin_clean.isdigit():
+        raise forms.ValidationError(
+            "EIN must be in the format XX-XXXXXXX (9 digits total)."
+        )
+    
+    # Format as XX-XXXXXXX
+    formatted_tin = f"{tin_clean[:2]}-{tin_clean[2:]}"
+    return formatted_tin
 
 class EnterpriseDetailsForm(forms.ModelForm):
     """Second step for enterprise organizations"""
@@ -57,6 +95,25 @@ class EnterpriseDetailsForm(forms.ModelForm):
             'primary_contact_name',
             'primary_contact_phone'
         ]
+        widgets = {
+            'business_registration_number': forms.TextInput(
+                attrs={
+                    'placeholder': 'XX-XXXXXXX',
+                    'pattern': r'\d{2}-\d{7}',
+                    'title': 'Format: XX-XXXXXXX (9 digits total)'
+                }
+            ),
+            'tax_identification_number': forms.TextInput(
+                attrs={
+                    'placeholder': 'XX-XXXXXXX',
+                    'pattern': r'\d{2}-\d{7}',
+                    'title': 'Format: XX-XXXXXXX (9 digits total)'
+                }
+            ),
+        }
+    
+    clean_business_registration_number = clean_business_registration_number
+    clean_tax_identification_number = clean_tax_identification_number
 
 class PilotDefinitionForm(forms.ModelForm):
     """Optional third step for enterprise pilot definition"""

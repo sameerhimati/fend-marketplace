@@ -107,80 +107,30 @@
                     
                     <!-- Pricing Type -->
                     <div>
-                        <label for="{{ form.price_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Pricing Type
-                        </label>
-                        <div class="mt-1">
-                            <select name="{{ form.price_type.name }}" 
-                                    id="{{ form.price_type.id_for_label }}"
-                                    class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
-                                <option value="fixed" {% if form.price_type.value == 'fixed' %}selected{% endif %}>Fixed Price</option>
-                                <option value="range" {% if form.price_type.value == 'range' %}selected{% endif %}>Price Range</option>
-                                <option value="negotiable" {% if form.price_type.value == 'negotiable' or not form.price_type.value %}selected{% endif %}>Negotiable</option>
-                            </select>
-                        </div>
-                        {% if form.price_type.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.price_type.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-
-                    <!-- Price Fields (shown/hidden based on pricing type) -->
-                    <div id="fixed-price-fields" class="hidden">
-                        <label for="{{ form.price_min.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Fixed Price (USD)
+                        <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Pilot Price (USD)
                         </label>
                         <div class="mt-1 relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">$</span>
                             </div>
                             <input type="number" 
-                                name="{{ form.price_min.name }}" 
-                                id="{{ form.price_min.id_for_label }}"
+                                name="{{ form.price.name }}" 
+                                id="{{ form.price.id_for_label }}"
                                 step="0.01"
                                 min="0"
-                                value="{{ form.price_min.value|default:'' }}"
+                                value="{{ form.price.value|default:'0.00' }}"
                                 class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                                placeholder="0.00">
-                        </div>
-                    </div>
-
-                    <div id="range-price-fields" class="hidden space-y-4">
-                        <div>
-                            <label for="{{ form.price_min.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Minimum Price (USD)
-                            </label>
-                            <div class="mt-1 relative rounded-md shadow-sm">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 sm:text-sm">$</span>
-                                </div>
-                                <input type="number" 
-                                    name="{{ form.price_min.name }}" 
-                                    id="range_{{ form.price_min.id_for_label }}"
-                                    step="0.01"
-                                    min="0"
-                                    value="{{ form.price_min.value|default:'' }}"
-                                    class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                                    placeholder="0.00">
+                                placeholder="0.00"
+                                required>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">USD</span>
                             </div>
                         </div>
-                        <div>
-                            <label for="{{ form.price_max.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Maximum Price (USD)
-                            </label>
-                            <div class="mt-1 relative rounded-md shadow-sm">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 sm:text-sm">$</span>
-                                </div>
-                                <input type="number" 
-                                    name="{{ form.price_max.name }}" 
-                                    id="{{ form.price_max.id_for_label }}"
-                                    step="0.01"
-                                    min="0"
-                                    value="{{ form.price_max.value|default:'' }}"
-                                    class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                                    placeholder="0.00">
-                            </div>
-                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Enter fixed price (required). Use 0 for free pilots.</p>
+                        {% if form.price.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.price.errors.0 }}</p>
+                        {% endif %}
                     </div>
 
                     <!-- Is Private -->
@@ -208,35 +158,6 @@
                             {% if pilot.id %}Save Changes{% else %}Create Pilot{% endif %}
                         </button>
                     </div>
-
-                    <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const priceTypeSelect = document.getElementById('{{ form.price_type.id_for_label }}');
-                        const fixedPriceFields = document.getElementById('fixed-price-fields');
-                        const rangePriceFields = document.getElementById('range-price-fields');
-                        
-                        function updatePriceFields() {
-                            const selectedValue = priceTypeSelect.value;
-                            
-                            // Hide all first
-                            fixedPriceFields.classList.add('hidden');
-                            rangePriceFields.classList.add('hidden');
-                            
-                            // Show relevant fields
-                            if (selectedValue === 'fixed') {
-                                fixedPriceFields.classList.remove('hidden');
-                            } else if (selectedValue === 'range') {
-                                rangePriceFields.classList.remove('hidden');
-                            }
-                        }
-                        
-                        // Initial update
-                        updatePriceFields();
-                        
-                        // Update on change
-                        priceTypeSelect.addEventListener('change', updatePriceFields);
-                    });
-                    </script>
                 </form>
             </div>
         </div>
