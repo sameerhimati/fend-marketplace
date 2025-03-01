@@ -99,7 +99,46 @@
                             </form>
                         {% endif %}
                     {% endif %}
-                    
+
+                    {% if is_enterprise and bid.status == 'approved' %}
+                    <form method="post" action="{% url 'pilots:finalize_pilot' bid.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                onclick="return confirm('Are you sure you want to mark this pilot as completed? This will trigger the payment process.');">
+                            Mark Pilot Completed
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if not is_enterprise and bid.status == 'completed' %}
+                    <div class="bg-yellow-50 p-4 rounded-md mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-yellow-800">Payment Required</h3>
+                                <div class="mt-2 text-sm text-yellow-700">
+                                    <p>This pilot has been marked as completed. Please process payment to complete the transaction.</p>
+                                    <p class="mt-2">Amount: ${{ bid.amount }}</p>
+                                    <p>Fee ({{ bid.fee_percentage }}%): ${{ bid.transaction.fee_amount }}</p>
+                                    <p class="font-semibold">Total: ${{ bid.amount }}</p>
+                                    
+                                    <div class="mt-4">
+                                        <a href="{% url 'payments:process_transaction' bid.transaction.id %}" 
+                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                            Process Payment
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if can_delete_bid %}
                     <form method="post" action="{% url 'pilots:delete_bid' bid.pk %}" class="inline"
                           onsubmit="return confirm('Are you sure you want to delete this bid? This action cannot be undone.');">

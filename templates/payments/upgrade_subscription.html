@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Upgrade Subscription - Fend Marketplace{% endblock %}
+
+{% block content %}
+<div class="py-12 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                Upgrade Your Plan
+            </h1>
+            <p class="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
+                Choose a new plan for your organization
+            </p>
+        </div>
+
+        <div class="mt-12">
+            <form method="post" class="space-y-8">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+                    {% for plan in plans %}
+                    <div class="relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden
+                         {% if current_subscription.plan.id == plan.id %}ring-2 ring-indigo-500{% endif %}">
+                        {% if current_subscription.plan.id == plan.id %}
+                        <div class="absolute top-0 right-0 bg-indigo-500 text-white text-xs px-2 py-1">
+                            Current Plan
+                        </div>
+                        {% endif %}
+                        
+                        <div class="p-6 flex-1">
+                            <div class="flex items-center">
+                                <input type="radio" name="plan_id" id="plan-{{ plan.id }}" value="{{ plan.id }}" 
+                                       class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                       {% if current_subscription.plan.id == plan.id %}checked{% endif %}>
+                                <label for="plan-{{ plan.id }}" class="ml-3 flex flex-col">
+                                    <span class="block text-sm font-medium text-gray-900">{{ plan.name }}</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <div class="flex items-baseline">
+                                    <span class="text-4xl font-extrabold text-gray-900">${{ plan.price }}</span>
+                                    <span class="ml-1 text-xl font-semibold text-gray-500">
+                                        /{% if plan.billing_frequency == 'monthly' %}month{% elif plan.billing_frequency == 'yearly' %}year{% else %}one-time{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6">
+                                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+                                <ul class="mt-2 space-y-2">
+                                    {% if organization.type == 'startup' %}
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <p class="ml-2 text-sm text-gray-700">Access to all pilot opportunities</p>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <p class="ml-2 text-sm text-gray-700">Bidding on unlimited pilots</p>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <p class="ml-2 text-sm text-gray-700">5% transaction fee on successful pilots</p>
+                                        </li>
+                                    {% elif organization.type == 'enterprise' %}
+                                        {% if plan.plan_type == 'enterprise_single' %}
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Create 1 pilot opportunity</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Valid for 1 year</p>
+                                            </li>
+                                        {% else %}
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Create unlimited pilot opportunities</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Billed annually</p>
+                                            </li>
+                                        {% endif %}
+                                        <li class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <p class="ml-2 text-sm text-gray-700">Access to all startup proposals</p>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'payments:subscription_detail' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none mr-4">
+                        Cancel
+                    </a>
+                    <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Update Subscription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

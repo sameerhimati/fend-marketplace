@@ -26,6 +26,7 @@ urlpatterns = [
     path('pilots/', include('apps.pilots.urls')),
     path('organizations/', include('apps.organizations.urls')),
     path('notifications/', include('apps.notifications.urls')),
+    path('payments/', include('payments.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

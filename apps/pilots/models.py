@@ -2,6 +2,8 @@
 from django.db import models
 from apps.organizations.models import Organization, PilotDefinition
 
+fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Transaction fee percentage")
+
 class Pilot(models.Model):
     STATUS_CHOICES = (
         ('draft', 'Draft'),
@@ -62,13 +64,23 @@ class Pilot(models.Model):
         return self.title
 
     def save(self, *args, **kwargs):
-        # If this is a new pilot and has a pilot definition
-        if not self.pk and self.pilot_definition:
-            # Pre-populate fields from the organization's pilot definition
-            self.technical_specs_doc = self.pilot_definition.technical_specs_doc
-            self.performance_metrics = self.pilot_definition.performance_metrics
-            self.compliance_requirements = self.pilot_definition.compliance_requirements
-            self.is_private = self.pilot_definition.is_private
+        # Check if this is a new pilot being published
+        if self.pk is None and self.status == 'published':
+            # Check if organization can create a new pilot
+            if not self.organization.can_create_pilot():
+                raise ValidationError(
+                    "Your organization has reached its pilot limit or doesn't have an active subscription."
+                )
+        
+        # If status is changing from draft to published
+        if self.pk and self.status == 'published':
+            original = Pilot.objects.get(pk=self.pk)
+            if original.status == 'draft':
+                # Check if organization can create a new pilot
+                if not self.organization.can_create_pilot():
+                    raise ValidationError(
+                        "Your organization has reached its pilot limit or doesn't have an active subscription."
+                    )
         super().save(*args, **kwargs)
     
     def is_editable(self):
@@ -118,7 +130,9 @@ class PilotBid(models.Model):
         ('pending', 'Pending'),
         ('under_review', 'Under Review'),
         ('approved', 'Approved'),
-        ('declined', 'Declined')
+        ('declined', 'Declined'),
+        ('completed', 'Completed'),  # Add this status for completed pilots
+        ('paid', 'Paid')
     ]
 
     pilot = models.ForeignKey(Pilot, on_delete=models.CASCADE, related_name='bids')
@@ -134,3 +148,28 @@ class PilotBid(models.Model):
     
     class Meta:
         unique_together = ['pilot', 'startup']
+    
+    def mark_as_completed(self):
+        """Mark the bid as completed and create transaction"""
+        from payments.models import PilotTransaction
+        
+        # Only approved bids can be completed
+        if self.status != 'approved':
+            return False
+        
+        # Create or update transaction
+        transaction, created = PilotTransaction.objects.get_or_create(
+            pilot_bid=self,
+            defaults={
+                'amount': self.amount,
+                'fee_percentage': self.fee_percentage,
+                'fee_amount': (self.amount * self.fee_percentage) / 100,
+                'status': 'pending'
+            }
+        )
+        
+        # Update status
+        self.status = 'completed'
+        self.save()
+        
+        return transaction

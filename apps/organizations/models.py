@@ -1,6 +1,8 @@
 from django.db import models
 from django.core.validators import URLValidator
 from django.db.models.signals import post_save
+from apps.payments.models import Subscription
+from django.conf import settings
 from django.dispatch import receiver
 import phonenumbers
 
@@ -49,6 +51,27 @@ class Organization(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     onboarding_completed = models.BooleanField(default=False)
 
+    stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
+    has_payment_method = models.BooleanField(default=False)
+    free_trial_used = models.BooleanField(default=False)
+    
+    def has_active_subscription(self):
+        """Check if organization has an active subscription"""
+        try:
+            return self.subscription.is_active()
+        except (Subscription.DoesNotExist, AttributeError):
+            return False
+            
+    def can_create_pilot(self):
+        """Check if the organization can create new pilots"""
+        if self.type != 'enterprise':
+            return False
+        
+        try:
+            return self.subscription.can_create_pilot()
+        except (Subscription.DoesNotExist, AttributeError):
+            return False
+
     def __str__(self):
         return self.name
 
@@ -79,6 +102,32 @@ class Organization(models.Model):
                         raise ValidationError("Invalid phone number format")
             except phonenumbers.NumberParseException:
                 raise ValidationError("Invalid phone number format")
+
+@receiver(post_save, sender=Organization)
+def create_stripe_customer(sender, instance, created, **kwargs):
+    """Create a Stripe customer when a new organization is created"""
+    if created and not instance.stripe_customer_id:
+        try:
+            import stripe
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            
+            # Find a user associated with this organization
+            user = instance.members.first()
+            
+            if user:
+                customer = stripe.Customer.create(
+                    email=user.email,
+                    name=instance.name,
+                    metadata={
+                        'organization_id': instance.id,
+                        'organization_type': instance.type
+                    }
+                )
+                
+                instance.stripe_customer_id = customer.id
+                instance.save(update_fields=['stripe_customer_id'])
+        except Exception as e:
+            print(f"Error creating Stripe customer: {e}")
 
 class PilotDefinition(models.Model):
     organization = models.OneToOneField(

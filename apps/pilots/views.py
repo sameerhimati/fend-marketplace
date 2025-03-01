@@ -426,3 +426,36 @@ def delete_pilot(request, pk):
     
     return redirect('pilots:list')
 
+
+@login_required
+def finalize_pilot(request, bid_id):
+    """Mark a pilot as completed and create payment transaction"""
+    bid = get_object_or_404(PilotBid, id=bid_id)
+    
+    # Check if user is authorized (enterprise that owns the pilot)
+    if request.user.organization != bid.pilot.organization:
+        messages.error(request, "You don't have permission to complete this pilot")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    # Check if bid is in approved status
+    if bid.status != 'approved':
+        messages.error(request, "Only approved bids can be marked as completed")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    # Create transaction and mark as completed
+    transaction = bid.mark_as_completed()
+    
+    if transaction:
+        # Create a notification
+        create_bid_notification(
+            bid=bid,
+            notification_type='bid_updated',
+            title=f"Pilot completed: {bid.pilot.title}",
+            message=f"Your pilot '{bid.pilot.title}' has been marked as completed. A payment of ${bid.amount} will be processed."
+        )
+        
+        messages.success(request, "Pilot marked as completed. Payment transaction created.")
+    else:
+        messages.error(request, "Error creating completion transaction")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)

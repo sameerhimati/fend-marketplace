@@ -171,11 +171,15 @@ class RegistrationCompleteView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/registration/complete.html'
     
     def get(self, request, *args, **kwargs):
-        # If user has been on this page for more than 3 seconds, redirect to dashboard
+        # Check if the user has completed payment
+        if not request.user.organization.has_active_subscription():
+            # Redirect to payment selection
+            return redirect('payments:payment_selection')
+        
+        # If payment is complete, show completion page
         response = super().get(request, *args, **kwargs)
         response['Refresh'] = '3;url=' + reverse('organizations:dashboard')
         return response
-
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/dashboard/dashboard.html'
