@@ -154,7 +154,6 @@ class PilotBid(models.Model):
     
     def mark_as_completed(self):
         """Mark the bid as completed and create transaction"""
-        from payments.models import PilotTransaction
         
         # Only approved bids can be completed
         if self.status != 'approved':

@@ -1,6 +1,6 @@
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy, reverse
 from .models import Pilot, PilotBid
@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from apps.notifications.services import create_bid_notification, create_pilot_notification
+
 
 class PilotListView(LoginRequiredMixin, ListView):
     model = Pilot
@@ -138,19 +139,36 @@ def publish_pilot(request, pk):
         messages.error(request, "Only draft pilots can be published.")
         return redirect('pilots:detail', pk=pk)
     
-    # Update status to published
-    pilot.status = 'published'
-    pilot.save()
-    
-    # Create notification for pilot publication
-    create_pilot_notification(
-        pilot=pilot,
-        notification_type='pilot_updated',
-        title=f"Pilot published: {pilot.title}",
-        message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups."
-    )
-    
-    messages.success(request, f"'{pilot.title}' has been published successfully!")
+    # Check subscription limits before attempting to publish
+    organization = request.user.organization
+    try:
+        if not organization.can_create_pilot():
+            subscription = getattr(organization, 'subscription', None)
+            
+            if subscription and subscription.plan.pilot_limit == 1:
+                messages.error(request, "Your current plan allows only one active pilot. Please upgrade your subscription to publish more pilots or unpublish an existing pilot.")
+            else:
+                messages.error(request, "You've reached your plan's pilot limit. Please upgrade your subscription to publish more pilots.")
+                
+            return redirect('payments:subscription_detail')
+        
+        # Update status to published
+        pilot.status = 'published'
+        pilot.save()
+        
+        # Create notification for pilot publication
+        create_pilot_notification(
+            pilot=pilot,
+            notification_type='pilot_updated',
+            title=f"Pilot published: {pilot.title}",
+            message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups."
+        )
+        
+        messages.success(request, f"'{pilot.title}' has been published successfully!")
+        
+    except ValidationError as e:
+        messages.error(request, str(e))
+        
     return redirect('pilots:detail', pk=pk)
 
 @login_required

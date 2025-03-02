@@ -79,12 +79,29 @@ def create_checkout_session(request, organization, plan, subscription):
     """Create a Stripe Checkout Session for the selected plan"""
     # Create the price in Stripe if needed
     if not plan.stripe_price_id:
-        price = stripe.Price.create(
-            unit_amount=int(plan.price * 100),  # Convert to cents
-            currency="usd",
-            recurring={"interval": plan.billing_frequency} if plan.billing_frequency != 'one_time' else None,
-            product_data={"name": plan.name},
-        )
+        # Handle the billing frequency conversion to Stripe format
+        stripe_interval = None
+        if plan.billing_frequency == 'monthly':
+            stripe_interval = 'month'
+        elif plan.billing_frequency == 'yearly':
+            stripe_interval = 'year'
+        
+        # Create the Stripe price object
+        if plan.billing_frequency != 'one_time' and stripe_interval:
+            price = stripe.Price.create(
+                unit_amount=int(plan.price * 100),  # Convert to cents
+                currency="usd",
+                recurring={"interval": stripe_interval},
+                product_data={"name": plan.name},
+            )
+        else:
+            # For one-time payments
+            price = stripe.Price.create(
+                unit_amount=int(plan.price * 100),  # Convert to cents
+                currency="usd",
+                product_data={"name": plan.name},
+            )
+            
         plan.stripe_price_id = price.id
         plan.save()
     
@@ -157,6 +174,16 @@ def checkout_success(request):
         # Update the subscription
         subscription = get_object_or_404(Subscription, id=subscription_id)
         
+        # Check if this is a plan upgrade
+        upgrade_plan_id = request.session.get('upgrade_plan_id')
+        if upgrade_plan_id:
+            # Get the new plan
+            plan = get_object_or_404(PricingPlan, id=upgrade_plan_id)
+            # Update to the new plan
+            subscription.plan = plan
+            # Remove from session
+            del request.session['upgrade_plan_id']
+        
         # If subscription mode
         if session.mode == 'subscription' and session.subscription:
             stripe_subscription = stripe.Subscription.retrieve(session.subscription)
@@ -203,7 +230,7 @@ def checkout_success(request):
         organization.has_payment_method = True
         organization.save()
         
-        messages.success(request, "Your payment was successful! Welcome to Fend Marketplace.")
+        messages.success(request, "Your payment was successful! Your subscription has been updated.")
         return redirect('organizations:dashboard')
         
     except Exception as e:
@@ -213,8 +240,12 @@ def checkout_success(request):
 @login_required
 def checkout_cancel(request):
     """Handle cancelled checkout"""
-    messages.warning(request, "Your payment was cancelled. Please try again.")
-    return redirect('payments:payment_selection')
+    # Clear any pending plan upgrades
+    if 'upgrade_plan_id' in request.session:
+        del request.session['upgrade_plan_id']
+    
+    messages.warning(request, "Your payment was cancelled. Your subscription has not been changed.")
+    return redirect('payments:subscription_detail')
 
 @csrf_exempt
 def stripe_webhook(request):
@@ -430,6 +461,7 @@ def upgrade_subscription(request):
     
     try:
         current_subscription = Subscription.objects.get(organization=organization)
+        original_plan = current_subscription.plan  # Save the original plan
     except Subscription.DoesNotExist:
         return redirect('payments:payment_selection')
     
@@ -446,6 +478,9 @@ def upgrade_subscription(request):
         # Get the selected plan
         plan = get_object_or_404(PricingPlan, id=plan_id)
         
+        # Don't update the plan yet - only store the selected plan ID in session
+        request.session['upgrade_plan_id'] = plan_id
+        
         # If current subscription has a Stripe subscription ID and is not canceled
         if current_subscription.stripe_subscription_id and current_subscription.status != 'canceled':
             try:
@@ -459,7 +494,7 @@ def upgrade_subscription(request):
                     proration_behavior='always_invoice',
                 )
                 
-                # Update the local subscription
+                # On immediate success with Stripe, update the local subscription
                 current_subscription.plan = plan
                 current_subscription.save()
                 
@@ -472,11 +507,8 @@ def upgrade_subscription(request):
                     'current_subscription': current_subscription
                 })
         else:
-            # Create a new subscription
-            current_subscription.plan = plan
-            current_subscription.save()
-            
-            # Create Stripe Checkout Session
+            # For new subscriptions, don't update the plan yet
+            # Just create Stripe Checkout Session
             try:
                 checkout_session = create_checkout_session(request, organization, plan, current_subscription)
                 return redirect(checkout_session.url)

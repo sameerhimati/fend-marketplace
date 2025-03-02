@@ -15,27 +15,34 @@
         </div>
 
         <div class="mt-12">
-            <form method="post" class="space-y-8">
+            <form method="post" id="upgrade-form">
                 {% csrf_token %}
+                <input type="hidden" name="plan_id" id="selected-plan-id" value="{{ current_subscription.plan.id }}">
                 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                     {% for plan in plans %}
-                    <div class="relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden
-                         {% if current_subscription.plan.id == plan.id %}ring-2 ring-indigo-500{% endif %}">
+                    <div class="plan-card relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 {% if current_subscription.plan.id == plan.id %}border-blue-500 ring-2 ring-blue-500{% endif %}"
+                         data-plan-id="{{ plan.id }}">
                         {% if current_subscription.plan.id == plan.id %}
-                        <div class="absolute top-0 right-0 bg-indigo-500 text-white text-xs px-2 py-1">
+                        <div class="absolute top-0 right-0 bg-blue-500 text-white text-xs px-2 py-1">
                             Current Plan
                         </div>
                         {% endif %}
                         
                         <div class="p-6 flex-1">
                             <div class="flex items-center">
-                                <input type="radio" name="plan_id" id="plan-{{ plan.id }}" value="{{ plan.id }}" 
-                                       class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                                       {% if current_subscription.plan.id == plan.id %}checked{% endif %}>
-                                <label for="plan-{{ plan.id }}" class="ml-3 flex flex-col">
-                                    <span class="block text-sm font-medium text-gray-900">{{ plan.name }}</span>
-                                </label>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ plan.name }}</h3>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        {% if plan.billing_frequency == 'monthly' %}
+                                            Billed monthly
+                                        {% elif plan.billing_frequency == 'yearly' %}
+                                            Billed annually
+                                        {% else %}
+                                            One-time payment
+                                        {% endif %}
+                                    </p>
+                                </div>
                             </div>
                             
                             <div class="mt-6">
@@ -127,11 +134,12 @@
                     {% endfor %}
                 </div>
                 
-                <div class="text-center">
-                    <a href="{% url 'payments:subscription_detail' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none mr-4">
+                <div class="flex justify-center mt-8 space-x-4">
+                    <a href="{% url 'payments:subscription_detail' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
                         Cancel
                     </a>
-                    <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <button type="submit" id="upgrade-button"
+                            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         Update Subscription
                     </button>
                 </div>
@@ -139,4 +147,30 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const planCards = document.querySelectorAll('.plan-card');
+        const selectedPlanInput = document.getElementById('selected-plan-id');
+        
+        // Pre-select the current plan if it exists
+        const currentPlanId = "{{ current_subscription.plan.id }}";
+        if (currentPlanId) {
+            selectedPlanInput.value = currentPlanId;
+        }
+        
+        planCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove selected class from all cards
+                planCards.forEach(c => c.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500'));
+                
+                // Add selected class to clicked card
+                this.classList.add('border-blue-500', 'ring-2', 'ring-blue-500');
+                
+                // Update hidden input with selected plan ID
+                selectedPlanInput.value = this.dataset.planId;
+            });
+        });
+    });
+</script>
 {% endblock %}

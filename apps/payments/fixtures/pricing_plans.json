@@ -1,6 +1,6 @@
 [
   {
-    "model": "apps.payments.pricingplan",
+    "model": "payments.pricingplan",
     "pk": 1,
     "fields": {
       "name": "Startup Monthly",
@@ -13,7 +13,7 @@
     }
   },
   {
-    "model": "apps.payments.pricingplan",
+    "model": "payments.pricingplan",
     "pk": 2,
     "fields": {
       "name": "Startup Yearly",
@@ -26,7 +26,7 @@
     }
   },
   {
-    "model": "apps.payments.pricingplan",
+    "model": "payments.pricingplan",
     "pk": 3,
     "fields": {
       "name": "Enterprise Single Pilot",
@@ -39,7 +39,7 @@
     }
   },
   {
-    "model": "apps.payments.pricingplan",
+    "model": "payments.pricingplan",
     "pk": 4,
     "fields": {
       "name": "Enterprise Unlimited",

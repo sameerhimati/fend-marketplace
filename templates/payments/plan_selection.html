@@ -15,18 +15,28 @@
         </div>
 
         <div class="mt-12">
-            <form method="post" class="space-y-8">
+            <form method="post" id="payment-form">
                 {% csrf_token %}
+                <input type="hidden" name="plan_id" id="selected-plan-id" value="">
                 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                     {% for plan in plans %}
-                    <div class="relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
+                    <div class="plan-card relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200"
+                         data-plan-id="{{ plan.id }}">
                         <div class="p-6 flex-1">
                             <div class="flex items-center">
-                                <input type="radio" name="plan_id" id="plan-{{ plan.id }}" value="{{ plan.id }}" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
-                                <label for="plan-{{ plan.id }}" class="ml-3 flex flex-col">
-                                    <span class="block text-sm font-medium text-gray-900">{{ plan.name }}</span>
-                                </label>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ plan.name }}</h3>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        {% if plan.billing_frequency == 'monthly' %}
+                                            Billed monthly
+                                        {% elif plan.billing_frequency == 'yearly' %}
+                                            Billed annually
+                                        {% else %}
+                                            One-time payment
+                                        {% endif %}
+                                    </p>
+                                </div>
                             </div>
                             
                             <div class="mt-6">
@@ -118,8 +128,9 @@
                     {% endfor %}
                 </div>
                 
-                <div class="text-center">
-                    <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <div class="text-center mt-8">
+                    <button type="submit" id="continue-button" disabled
+                            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
                         Continue to Payment
                     </button>
                 </div>
@@ -127,4 +138,28 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const planCards = document.querySelectorAll('.plan-card');
+        const selectedPlanInput = document.getElementById('selected-plan-id');
+        const continueButton = document.getElementById('continue-button');
+        
+        planCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove selected class from all cards
+                planCards.forEach(c => c.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500'));
+                
+                // Add selected class to clicked card
+                this.classList.add('border-blue-500', 'ring-2', 'ring-blue-500');
+                
+                // Update hidden input with selected plan ID
+                selectedPlanInput.value = this.dataset.planId;
+                
+                // Enable continue button
+                continueButton.disabled = false;
+            });
+        });
+    });
+</script>
 {% endblock %}
