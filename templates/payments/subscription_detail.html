@@ -1,65 +1,59 @@
 {% extends 'base.html' %}
 
-{% block title %}Subscription Details - Fend Marketplace{% endblock %}
+{% block title %}Your Subscription - Fend Marketplace{% endblock %}
 
 {% block content %}
-<div class="py-12 bg-gray-50">
+<div class="py-8 bg-gray-50">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-8 flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-900">Subscription Management</h1>
+            <a href="{% url 'payments:upgrade_subscription' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                Change Plan
+            </a>
+        </div>
+
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        Subscription Details
-                    </h3>
-                    <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                        Your current subscription plan and payment history.
-                    </p>
-                </div>
-                <a href="{% url 'payments:upgrade_subscription' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                    Change Plan
-                </a>
+            <!-- Current Plan Summary Card -->
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h2 class="text-lg leading-6 font-medium text-gray-900">
+                    Current Plan
+                </h2>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                    Details about your subscription plan and status.
+                </p>
             </div>
+
+            <div class="px-4 py-6 sm:p-6 bg-indigo-50">
+                <div class="sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-xl font-bold text-indigo-800">{{ subscription.plan.name }}</h3>
+                        <div class="mt-1 flex items-center">
+                            <span class="text-2xl font-semibold text-gray-900">${{ subscription.plan.price }}</span>
+                            <span class="ml-1 text-gray-600">
+                                /{% if subscription.plan.billing_frequency == 'monthly' %}month{% elif subscription.plan.billing_frequency == 'yearly' %}year{% else %}one-time{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-4 sm:mt-0">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium
+                            {% if subscription.status == 'active' %}bg-green-100 text-green-800
+                            {% elif subscription.status == 'past_due' %}bg-red-100 text-red-800
+                            {% elif subscription.status == 'canceled' %}bg-gray-100 text-gray-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ subscription.status|title }}
+                            {% if subscription.cancel_at_period_end %}
+                            (Cancels on {{ subscription.current_period_end|date:"F j, Y" }})
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan Details -->
             <div class="border-t border-gray-200">
                 <dl>
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                        <dt class="text-sm font-medium text-gray-500">
-                            Plan
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            {{ subscription.plan.name }}
-                        </dd>
-                    </div>
-                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                        <dt class="text-sm font-medium text-gray-500">
-                            Price
-                        </dt>
-                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            ${{ subscription.plan.price }}/{% if subscription.plan.billing_frequency == 'monthly' %}month{% elif subscription.plan.billing_frequency == 'yearly' %}year{% else %}one-time{% endif %}
-                        </dd>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                        <dt class="text-sm font-medium text-gray-500">
-                            Status
-                        </dt>
-                        <dd class="mt-1 text-sm sm:mt-0 sm:col-span-2">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if subscription.status == 'active' %}bg-green-100 text-green-800
-                                {% elif subscription.status == 'past_due' %}bg-red-100 text-red-800
-                                {% elif subscription.status == 'canceled' %}bg-gray-100 text-gray-800
-                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                {{ subscription.status|title }}
-                            </span>
-                            
-                            {% if subscription.cancel_at_period_end %}
-                            <span class="ml-2 text-sm text-gray-500">
-                                (Cancels at period end)
-                            </span>
-                            {% endif %}
-                        </dd>
-                    </div>
-                    
                     {% if subscription.current_period_start and subscription.current_period_end %}
-                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                         <dt class="text-sm font-medium text-gray-500">
                             Current Period
                         </dt>
@@ -69,99 +63,155 @@
                     </div>
                     {% endif %}
                     
-                    {% if subscription.plan.pilot_limit > 0 %}
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    {% if organization.type == 'enterprise' %}
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                         <dt class="text-sm font-medium text-gray-500">
-                            Pilots Remaining
+                            Pilot Capacity
                         </dt>
                         <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            {{ subscription.remaining_pilots }} of {{ subscription.plan.pilot_limit }}
+                            {% if subscription.plan.pilot_limit == 0 %}
+                                <span class="text-green-600 font-medium">Unlimited</span> published pilots allowed
+                            {% else %}
+                                <div class="flex items-center">
+                                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                                        <dt class="text-sm font-medium text-gray-500">
+                                            Pilot Capacity
+                                        </dt>
+                                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                            {% if subscription.plan.pilot_limit == 0 %}
+                                                <span class="text-green-600 font-medium">Unlimited</span> published pilots allowed
+                                            {% else %}
+                                                <span class="font-medium">{{ subscription.remaining_pilots }}</span> of {{ subscription.plan.pilot_limit }} pilots remaining
+                                            {% endif %}
+                                        </dd>
+                                    </div>
+                                    <span>
+                                        <span class="font-medium">{{ subscription.remaining_pilots }}</span> of {{ subscription.plan.pilot_limit }} remaining
+                                    </span>
+                                </div>
+                            {% endif %}
                         </dd>
                     </div>
                     {% endif %}
+                    
+                    {% if organization.type == 'startup' %}
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">
+                            Transaction Fee
+                        </dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            5% on successful pilot completions
+                        </dd>
+                    </div>
+                    {% endif %}
+
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">
+                            Payment Method
+                        </dt>
+                        <dd class="mt-1 text-sm sm:mt-0 sm:col-span-2">
+                            {% if organization.has_payment_method %}
+                                <span class="text-green-600">✓</span> Payment method on file
+                            {% else %}
+                                <span class="text-red-600">No payment method on file</span>
+                            {% endif %}
+                        </dd>
+                    </div>
                 </dl>
             </div>
-            
-            <!-- Payment History -->
-            <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">
+
+            <!-- Action Buttons -->
+            <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
+                <div class="flex justify-between">
+                    {% if subscription.status == 'active' %}
+                    <a href="{% url 'payments:upgrade_subscription' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        Change Plan
+                    </a>
+                    
+                    {% if not subscription.cancel_at_period_end %}
+                    <form method="post" action="{% url 'payments:cancel_subscription' %}" onsubmit="return confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.')">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Cancel Subscription
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% else %}
+                    <a href="{% url 'payments:payment_selection' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        Reactivate Subscription
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment History -->
+        <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h2 class="text-lg leading-6 font-medium text-gray-900">
                     Payment History
-                </h3>
-                
-                {% if payments %}
-                <div class="mt-4 flex flex-col">
-                    <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                        <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                            <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Date
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Amount
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Type
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        {% for payment in payments %}
-                                        <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ payment.created_at|date:"F j, Y" }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${{ payment.amount }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ payment.get_payment_type_display }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    {% if payment.status == 'complete' %}bg-green-100 text-green-800
-                                                    {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                                    {% else %}bg-red-100 text-red-800{% endif %}">
-                                                    {{ payment.status|title }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
+                </h2>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                    Recent transactions for your subscription.
+                </p>
+            </div>
+
+            {% if payments %}
+            <div class="flex flex-col">
+                <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                        <div class="overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Date
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Amount
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Type
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for payment in payments %}
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ payment.created_at|date:"F j, Y" }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            ${{ payment.amount }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {{ payment.get_payment_type_display }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                {% if payment.status == 'complete' %}bg-green-100 text-green-800
+                                                {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                                {{ payment.status|title }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-                {% else %}
-                <p class="mt-2 text-sm text-gray-500">
-                    No payment history available.
-                </p>
-                {% endif %}
             </div>
-            
-            <!-- Cancel Subscription -->
-            {% if subscription.status == 'active' and not subscription.cancel_at_period_end %}
-            <div class="px-4 py-5 sm:px-6 border-t border-gray-200">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">
-                    Cancel Subscription
-                </h3>
-                <p class="mt-2 text-sm text-gray-500">
-                    Canceling your subscription will allow you to use the service until the end of your current billing period.
-                </p>
-                <form method="post" action="{% url 'payments:cancel_subscription' %}" class="mt-4">
-                    {% csrf_token %}
-                    <button type="submit" 
-                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            onclick="return confirm('Are you sure you want to cancel your subscription?');">
-                        Cancel Subscription
-                    </button>
-                </form>
+            {% else %}
+            <div class="px-4 py-5 sm:p-6 text-center text-gray-500">
+                <p>No payment history available.</p>
             </div>
             {% endif %}
         </div>

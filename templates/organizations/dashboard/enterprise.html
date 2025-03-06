@@ -48,6 +48,41 @@
                                 </div>
                             </div>
                         </a>
+
+                        <a href="{% url 'payments:subscription_detail' %}" class="block">
+                            <div class="bg-white overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-md">
+                                <div class="px-4 py-5 sm:p-6">
+                                    <h4 class="text-lg font-medium text-gray-900">Subscription</h4>
+                                    
+                                    {% if user.organization.subscription %}
+                                        <div class="mt-2">
+                                            <p class="text-sm font-medium text-indigo-600">
+                                                {{ user.organization.subscription.plan.name }}
+                                            </p>
+                                            <p class="text-xs text-gray-500">
+                                                Status: 
+                                                <span class="px-1.5 py-0.5 rounded-full text-xs
+                                                    {% if user.organization.subscription.status == 'active' %}bg-green-100 text-green-800
+                                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                                    {{ user.organization.subscription.status|title }}
+                                                </span>
+                                            </p>
+                                            <p class="mt-2 text-sm text-indigo-600 hover:text-indigo-900">
+                                                Manage Subscription →
+                                            </p>
+                                        </div>
+                                    {% else %}
+                                        <p class="mt-1 text-sm text-gray-500">
+                                            No active subscription
+                                        </p>
+                                        <p class="mt-2 text-sm text-indigo-600 hover:text-indigo-900">
+                                            Select a Plan →
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        
                     </div>
                 </div>
             </div>

@@ -403,12 +403,13 @@ def subscription_detail(request):
         payments = Payment.objects.filter(
             organization=organization,
             subscription=subscription
-        ).order_by('-created_at')
+        ).order_by('-created_at')[:10]  # Limit to last 10 payments
         
         return render(request, 'payments/subscription_detail.html', {
             'subscription': subscription,
             'payments': payments,
-            'organization': organization
+            'organization': organization,
+            'has_active_subscription': organization.has_active_subscription()
         })
     except Subscription.DoesNotExist:
         messages.warning(request, "You don't have an active subscription.")
