@@ -36,8 +36,11 @@ ENV/
 
 # Environment variables
 .env
+.env.prod
 
 # OS
 .DS_Store
 
 migrations/*
+
+ssh*
