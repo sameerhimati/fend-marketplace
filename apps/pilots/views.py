@@ -45,6 +45,22 @@ class PilotListView(LoginRequiredMixin, ListView):
             # Enterprises see all their pilots
             return Pilot.objects.filter(organization=user_org)
         return Pilot.objects.none()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add enterprise partners for showcase when no pilots are available
+        if self.request.user.organization.type == 'startup' and not context['pilots']:
+            # Get a few featured enterprise partners (limit to 6 for display)
+            from apps.organizations.models import Organization
+            enterprises = Organization.objects.filter(
+                type='enterprise',
+                onboarding_completed=True
+            ).order_by('?')[:6]  # Random selection, limited to 6
+            
+            context['enterprises'] = enterprises
+            
+        return context
 
 class PilotDetailView(LoginRequiredMixin, DetailView):
     model = Pilot
