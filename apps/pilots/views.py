@@ -142,10 +142,17 @@ def publish_pilot(request, pk):
     # Check subscription limits before attempting to publish
     organization = request.user.organization
     try:
+        if not organization.has_active_subscription():
+            messages.error(request, "You need an active subscription to publish pilots. Please complete the payment process.")
+            return redirect('payments:subscription_detail')
+            
         if not organization.can_create_pilot():
             subscription = getattr(organization, 'subscription', None)
             
-            if subscription and subscription.plan.pilot_limit == 1:
+            if subscription and subscription.status != 'active':
+                messages.error(request, "Your subscription is not active. Please complete the payment process.")
+                return redirect('payments:subscription_detail')
+            elif subscription and subscription.plan.pilot_limit == 1:
                 messages.error(request, "Your current plan allows only one active pilot. Please upgrade your subscription to publish more pilots or unpublish an existing pilot.")
             else:
                 messages.error(request, "You've reached your plan's pilot limit. Please upgrade your subscription to publish more pilots.")

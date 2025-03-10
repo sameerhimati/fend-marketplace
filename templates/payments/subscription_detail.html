@@ -69,26 +69,12 @@
                             Pilot Capacity
                         </dt>
                         <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                            {% if subscription.plan.pilot_limit == 0 %}
+                            {% if subscription.status != 'active' %}
+                                <span class="text-yellow-600">No active subscription</span>
+                            {% elif subscription.plan.pilot_limit == 0 %}
                                 <span class="text-green-600 font-medium">Unlimited</span> published pilots allowed
                             {% else %}
-                                <div class="flex items-center">
-                                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                                        <dt class="text-sm font-medium text-gray-500">
-                                            Pilot Capacity
-                                        </dt>
-                                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                            {% if subscription.plan.pilot_limit == 0 %}
-                                                <span class="text-green-600 font-medium">Unlimited</span> published pilots allowed
-                                            {% else %}
-                                                <span class="font-medium">{{ subscription.remaining_pilots }}</span> of {{ subscription.plan.pilot_limit }} pilots remaining
-                                            {% endif %}
-                                        </dd>
-                                    </div>
-                                    <span>
-                                        <span class="font-medium">{{ subscription.remaining_pilots }}</span> of {{ subscription.plan.pilot_limit }} remaining
-                                    </span>
-                                </div>
+                                <span class="font-medium">{{ subscription.remaining_pilots }}</span> of {{ subscription.plan.pilot_limit }} pilots remaining
                             {% endif %}
                         </dd>
                     </div>
@@ -124,15 +110,14 @@
             <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
                 <div class="flex justify-between">
                     {% if subscription.status == 'active' %}
-                        {% if subscription.plan.plan_type == 'startup_monthly' or subscription.plan.plan_type == 'enterprise_single' %}
-                            <a href="{% url 'payments:upgrade_subscription' %}" 
-                               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                                Upgrade Plan
-                            </a>
-                        {% else %}
-                            <!-- Higher tier plans only show a spacer to keep the layout balanced -->
-                            <div></div>
-                        {% endif %}
+                        <div>
+                            {% if subscription.plan.plan_type == 'startup_monthly' or subscription.plan.plan_type == 'enterprise_single' %}
+                                <a href="{% url 'payments:upgrade_subscription' %}" 
+                                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Upgrade Plan
+                                </a>
+                            {% endif %}
+                        </div>
                         
                         {% if not subscription.cancel_at_period_end %}
                             <form method="post" action="{% url 'payments:cancel_subscription' %}" onsubmit="return confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.')">
@@ -142,11 +127,15 @@
                                     Cancel Subscription
                                 </button>
                             </form>
+                        {% else %}
+                            <div class="text-gray-500 text-sm italic">
+                                Your subscription will cancel on {{ subscription.current_period_end|date:"F j, Y" }}
+                            </div>
                         {% endif %}
                     {% else %}
                         <a href="{% url 'payments:payment_selection' %}" 
                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                            Reactivate Subscription
+                            Activate Subscription
                         </a>
                     {% endif %}
                 </div>
