@@ -111,30 +111,37 @@
         {% else %}
         <div class="mt-6 bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">
-                    {% if request.user.organization.type == 'enterprise' %}
-                        No pilots created yet
-                    {% else %}
-                        No pilot opportunities available
-                    {% endif %}
-                </h3>
-                <div class="mt-2 max-w-xl text-sm text-gray-500">
-                    <p>
-                        {% if request.user.organization.type == 'enterprise' %}
-                            Start by creating your first pilot opportunity.
-                        {% else %}
-                            Check back later for new opportunities.
-                        {% endif %}
-                    </p>
-                </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
                 {% if request.user.organization.type == 'enterprise' %}
-                <div class="mt-5">
-                    <a href="{% url 'pilots:create' %}" 
-                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                        Create New Pilot
-                    </a>
-                </div>
+                No pilots created yet
+                {% else %}
+                No pilot opportunities available
                 {% endif %}
+            </h3>
+            <div class="mt-2 max-w-xl text-sm text-gray-500">
+                <p>
+                    {% if request.user.organization.type == 'enterprise' %}
+                    Start by creating your first pilot opportunity.
+                    {% else %}
+                    No pilot opportunities are currently available. Check back later or explore our enterprise partners.
+                    {% endif %}
+                </p>
+            </div>
+            {% if request.user.organization.type == 'enterprise' %}
+            <div class="mt-5">
+                <a href="{% url 'pilots:create' %}"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    Create New Pilot
+                </a>
+            </div>
+            {% else %}
+            <div class="mt-5">
+                <a href="{% url 'organizations:enterprise_directory' %}"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                    View Enterprise Partners
+                </a>
+            </div>
+            {% endif %}
             </div>
         </div>
         {% endif %}
