@@ -124,25 +124,30 @@
             <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
                 <div class="flex justify-between">
                     {% if subscription.status == 'active' %}
-                    <a href="{% url 'payments:upgrade_subscription' %}" 
-                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                        Change Plan
-                    </a>
-                    
-                    {% if not subscription.cancel_at_period_end %}
-                    <form method="post" action="{% url 'payments:cancel_subscription' %}" onsubmit="return confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.')">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Cancel Subscription
-                        </button>
-                    </form>
-                    {% endif %}
+                        {% if subscription.plan.plan_type == 'startup_monthly' or subscription.plan.plan_type == 'enterprise_single' %}
+                            <a href="{% url 'payments:upgrade_subscription' %}" 
+                               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                                Upgrade Plan
+                            </a>
+                        {% else %}
+                            <!-- Higher tier plans only show a spacer to keep the layout balanced -->
+                            <div></div>
+                        {% endif %}
+                        
+                        {% if not subscription.cancel_at_period_end %}
+                            <form method="post" action="{% url 'payments:cancel_subscription' %}" onsubmit="return confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.')">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    Cancel Subscription
+                                </button>
+                            </form>
+                        {% endif %}
                     {% else %}
-                    <a href="{% url 'payments:payment_selection' %}" 
-                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                        Reactivate Subscription
-                    </a>
+                        <a href="{% url 'payments:payment_selection' %}" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                            Reactivate Subscription
+                        </a>
                     {% endif %}
                 </div>
             </div>
