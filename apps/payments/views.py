@@ -157,6 +157,11 @@ def checkout_success(request):
         # Retrieve the session
         session = stripe.checkout.Session.retrieve(session_id)
         
+        # Verify payment status - only proceed if payment is complete
+        if session.payment_status != 'paid':
+            messages.warning(request, "Your payment is still being processed. Your subscription will be activated once payment is complete.")
+            return redirect('payments:subscription_detail')
+        
         # Get the subscription from metadata
         organization_id = session.metadata.get('organization_id')
         subscription_id = session.metadata.get('subscription_id')
@@ -194,13 +199,14 @@ def checkout_success(request):
             subscription.current_period_end = datetime.fromtimestamp(stripe_subscription.current_period_end)
             subscription.save()
             
-            # Create a payment record
+            # Create a payment record - use session.id if payment_intent is not available
+            payment_id = session.payment_intent or session.id
             Payment.objects.create(
                 organization=organization,
                 subscription=subscription,
                 payment_type='subscription',
                 amount=subscription.plan.price,
-                stripe_payment_id=session.payment_intent,
+                stripe_payment_id=payment_id,
                 status='complete'
             )
         
@@ -216,12 +222,13 @@ def checkout_success(request):
             subscription.save()
             
             # Create a payment record
+            payment_id = session.payment_intent or session.id
             Payment.objects.create(
                 organization=organization,
                 subscription=subscription,
                 payment_type='subscription',
                 amount=subscription.plan.price,
-                stripe_payment_id=session.payment_intent,
+                stripe_payment_id=payment_id,
                 status='complete'
             )
         
@@ -243,6 +250,16 @@ def checkout_cancel(request):
     # Clear any pending plan upgrades
     if 'upgrade_plan_id' in request.session:
         del request.session['upgrade_plan_id']
+    
+    # Get the organization's subscription and mark it inactive if it's not already active
+    organization = request.user.organization
+    try:
+        subscription = Subscription.objects.get(organization=organization)
+        if subscription.status != 'active':
+            subscription.status = 'incomplete'
+            subscription.save()
+    except Subscription.DoesNotExist:
+        pass
     
     messages.warning(request, "Your payment was cancelled. Your subscription has not been changed.")
     return redirect('payments:subscription_detail')
