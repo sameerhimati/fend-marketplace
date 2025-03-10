@@ -89,6 +89,10 @@ class Subscription(models.Model):
     
     def remaining_pilots(self):
         """Calculate remaining pilots for this subscription"""
+        # If subscription isn't active, return 0
+        if self.status != 'active':
+            return 0
+            
         if self.plan.pilot_limit == 0:  # Unlimited
             return float('inf')
         

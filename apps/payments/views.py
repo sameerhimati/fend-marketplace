@@ -496,28 +496,39 @@ def upgrade_subscription(request):
         # Get the selected plan
         plan = get_object_or_404(PricingPlan, id=plan_id)
         
+        # If it's the same plan, no need to change anything
+        if plan.id == current_subscription.plan.id:
+            messages.info(request, "You're already on this plan.")
+            return redirect('payments:subscription_detail')
+            
         # Don't update the plan yet - only store the selected plan ID in session
         request.session['upgrade_plan_id'] = plan_id
         
         # If current subscription has a Stripe subscription ID and is not canceled
         if current_subscription.stripe_subscription_id and current_subscription.status != 'canceled':
             try:
-                # Update the subscription in Stripe
-                stripe.Subscription.modify(
-                    current_subscription.stripe_subscription_id,
-                    items=[{
-                        'id': stripe.Subscription.retrieve(current_subscription.stripe_subscription_id)['items']['data'][0].id,
-                        'price': plan.stripe_price_id,
-                    }],
-                    proration_behavior='always_invoice',
-                )
-                
-                # On immediate success with Stripe, update the local subscription
-                current_subscription.plan = plan
-                current_subscription.save()
-                
-                messages.success(request, f"Your subscription has been upgraded to {plan.name}.")
-                return redirect('payments:subscription_detail')
+                # For downgrades or between subscription types, always use Stripe
+                if plan.price < current_subscription.plan.price or plan.billing_frequency != current_subscription.plan.billing_frequency:
+                    # Create checkout session for the new plan
+                    checkout_session = create_checkout_session(request, organization, plan, current_subscription)
+                    return redirect(checkout_session.url)
+                else:
+                    # For upgrades within the same billing period, update immediately in Stripe
+                    stripe.Subscription.modify(
+                        current_subscription.stripe_subscription_id,
+                        items=[{
+                            'id': stripe.Subscription.retrieve(current_subscription.stripe_subscription_id)['items']['data'][0].id,
+                            'price': plan.stripe_price_id,
+                        }],
+                        proration_behavior='always_invoice',
+                    )
+                    
+                    # On immediate success with Stripe, update the local subscription
+                    current_subscription.plan = plan
+                    current_subscription.save()
+                    
+                    messages.success(request, f"Your subscription has been upgraded to {plan.name}.")
+                    return redirect('payments:subscription_detail')
             except Exception as e:
                 messages.error(request, f"Error upgrading subscription: {str(e)}")
                 return render(request, 'payments/upgrade_subscription.html', {
@@ -525,8 +536,7 @@ def upgrade_subscription(request):
                     'current_subscription': current_subscription
                 })
         else:
-            # For new subscriptions, don't update the plan yet
-            # Just create Stripe Checkout Session
+            # For new subscriptions, create Stripe Checkout Session
             try:
                 checkout_session = create_checkout_session(request, organization, plan, current_subscription)
                 return redirect(checkout_session.url)
