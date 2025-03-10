@@ -1,131 +1,26 @@
 {% extends 'base.html' %}
 
-{% block title %}Fend - Connect Enterprises with Startups{% endblock %}
+{% block title %}Welcome to Fend - Enterprise & Startup Pilot Platform{% endblock %}
 
 {% block content %}
-<div class="py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Hero Section -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl">
-                Connect Enterprises with Innovative Startups
+<div class="bg-white">
+    <div class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+                Welcome to Fend
             </h1>
-            <p class="mt-3 max-w-2xl mx-auto text-xl text-gray-500">
-                Streamline pilot programs and discover new partnerships
+            <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
+                Connecting enterprises with innovative startups for successful pilot programs
             </p>
-        </div>
-
-        <!-- Featured Pilots Section -->
-        <div class="mb-16">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-gray-900">Featured Pilot Opportunities</h2>
-                <a href="{% url 'pilots:list' %}" class="text-indigo-600 hover:text-indigo-900 font-medium">
-                    View All Pilots →
+            <div class="mt-8 flex justify-center space-x-4">
+                <a href="{% url 'organizations:register' %}" 
+                   class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Register Organization
                 </a>
-            </div>
-
-            {% if featured_pilots %}
-            <div class="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {% for pilot in featured_pilots %}
-                <div class="bg-white shadow overflow-hidden sm:rounded-lg hover:shadow-md transition-shadow duration-200">
-                    <a href="{% url 'pilots:detail' pilot.pk %}" class="block">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg font-medium text-indigo-600 truncate">{{ pilot.title }}</h3>
-                            <p class="mt-2 text-sm text-gray-500 line-clamp-3">{{ pilot.description }}</p>
-                            <div class="mt-4 flex justify-between items-center">
-                                <span class="text-sm text-gray-500">{{ pilot.organization.name }}</span>
-                                <span class="px-2 py-1 text-xs rounded-full 
-                                    {% if pilot.status == 'published' %}bg-green-100 text-green-800{% endif %}">
-                                    {{ pilot.status|title }}
-                                </span>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div class="px-4 py-5 sm:p-6 text-center">
-                    <p class="text-gray-500">No pilot opportunities available at the moment.</p>
-                    <a href="{% url 'pilots:list' %}" class="mt-2 inline-block text-indigo-600 hover:text-indigo-900">
-                        Check back later
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Meet Our Enterprise Partners Section -->
-        <div>
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-gray-900">Meet Our Enterprise Partners</h2>
-                <a href="{% url 'organizations:enterprise_directory' %}" class="text-indigo-600 hover:text-indigo-900 font-medium">
-                    View All Partners →
+                <a href="{% url 'organizations:login' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
+                    Sign in
                 </a>
-            </div>
-            
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg p-6">
-                <div class="text-center mb-6">
-                    <p class="text-gray-600">Trusted by innovative enterprises looking for cutting-edge solutions</p>
-                </div>
-                
-                <div class="flex flex-wrap justify-center items-center gap-10 mb-6">
-                    {% for enterprise in featured_enterprises %}
-                    <div class="flex flex-col items-center">
-                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                            {% if enterprise.logo %}
-                                <img src="{{ enterprise.logo.url }}" alt="{{ enterprise.name }}" class="max-w-full max-h-12 p-2">
-                            {% else %}
-                                <div class="text-2xl font-bold text-indigo-600">{{ enterprise.name|slice:":1" }}</div>
-                            {% endif %}
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 mt-2">{{ enterprise.name }}</span>
-                        {% if enterprise.website %}
-                        <span class="text-xs text-gray-500">{{ enterprise.website }}</span>
-                        {% endif %}
-                    </div>
-                    {% empty %}
-                    <!-- Fallback if no enterprise partners are retrieved -->
-                    <div class="flex flex-col items-center">
-                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                            <div class="text-2xl font-bold text-indigo-600">E</div>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 mt-2">Example Corp</span>
-                        <span class="text-xs text-gray-500">enterprise.com</span>
-                    </div>
-                    <div class="flex flex-col items-center">
-                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                            <div class="text-2xl font-bold text-indigo-600">T</div>
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 mt-2">Tech Solutions</span>
-                        <span class="text-xs text-gray-500">techsolutions.com</span>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <div class="text-center">
-                    <a href="{% url 'organizations:enterprise_directory' %}" 
-                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                        View All Enterprise Partners
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- CTA Section -->
-        <div class="mt-16 bg-indigo-50 rounded-lg shadow-sm">
-            <div class="px-4 py-12 sm:px-6 sm:py-16 lg:px-8 text-center">
-                <h3 class="text-3xl font-extrabold text-indigo-900">Ready to get started?</h3>
-                <p class="mt-4 text-lg text-indigo-700">
-                    Join Fend today and connect with the right partners for your business.
-                </p>
-                <div class="mt-8 flex justify-center">
-                    <a href="{% url 'organizations:register' %}" 
-                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                        Register Your Organization
-                    </a>
-                </div>
             </div>
         </div>
     </div>

@@ -9,7 +9,7 @@ from .forms import OrganizationBasicForm, EnterpriseDetailsForm, PilotDefinition
 from django.views.generic import TemplateView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from apps.pilots.models import Pilot
+from apps.pilots.models import Pilot, PilotBid
 
 User = get_user_model()
 
@@ -241,19 +241,17 @@ class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
 #         return context
 
 class StartupDashboardView(LoginRequiredMixin, TemplateView):
-    template_name = 'pilots/pilot_list.html'
+    template_name = 'organizations/dashboard/startup.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get all available pilots for startups
+        user_org = self.request.user.organization
+        
+        # Get available pilots for startups
         pilots = Pilot.objects.filter(
             status='published',
             is_private=False
         ).order_by('-created_at')
-        
-        # Exclude pilots where this startup already has an approved bid
-        user_org = self.request.user.organization
-        from apps.pilots.models import PilotBid
         
         # Exclude pilots where this startup already has an active bid
         active_bid_pilot_ids = PilotBid.objects.filter(
@@ -272,8 +270,13 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
         
         # Apply exclusions
         context['pilots'] = pilots.exclude(id__in=excluded_pilots)
-        context['is_dashboard'] = True  # Flag to indicate this is the dashboard view
-        context['dashboard_title'] = "Available Pilot Opportunities"
+        
+        # Get enterprise partners
+        context['enterprises'] = Organization.objects.filter(
+            type='enterprise',
+            onboarding_completed=True
+        ).order_by('?')[:5]  # Random selection of 5 enterprises
+        
         return context
     
 class CustomLoginView(LoginView):
