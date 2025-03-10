@@ -45,14 +45,18 @@ class OrganizationBasicForm(forms.ModelForm):
             
         return website
     
-
 def clean_business_registration_number(self):
     brn = self.cleaned_data.get('business_registration_number')
+    business_type = self.cleaned_data.get('business_type')
     
     if not brn:
         return brn
     
-    # Strip out non-alphanumeric characters
+    # For international businesses, just return the value as-is
+    if business_type == 'international':
+        return brn
+    
+    # For US businesses, enforce EIN format
     brn_clean = ''.join(e for e in brn if e.isalnum())
     
     # EIN format: XX-XXXXXXX (9 digits)
@@ -91,7 +95,6 @@ class EnterpriseDetailsForm(forms.ModelForm):
         fields = [
             'business_type',
             'business_registration_number',
-            'tax_identification_number',
             'primary_contact_name',
             'primary_contact_phone'
         ]
@@ -99,21 +102,13 @@ class EnterpriseDetailsForm(forms.ModelForm):
             'business_registration_number': forms.TextInput(
                 attrs={
                     'placeholder': 'XX-XXXXXXX',
-                    'pattern': r'\d{2}-\d{7}',
-                    'title': 'Format: XX-XXXXXXX (9 digits total)'
-                }
-            ),
-            'tax_identification_number': forms.TextInput(
-                attrs={
-                    'placeholder': 'XX-XXXXXXX',
-                    'pattern': r'\d{2}-\d{7}',
-                    'title': 'Format: XX-XXXXXXX (9 digits total)'
+                    'pattern': '\d{2}-\d{7}',
+                    'title': 'Business registration number'
                 }
             ),
         }
     
     clean_business_registration_number = clean_business_registration_number
-    clean_tax_identification_number = clean_tax_identification_number
 
 class PilotDefinitionForm(forms.ModelForm):
     """Optional third step for enterprise pilot definition"""

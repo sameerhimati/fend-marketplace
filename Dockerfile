@@ -15,8 +15,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 # Run gunicorn
-<<<<<<< HEAD
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "fend.wsgi:application", "--env", "DJANGO_SETTINGS_MODULE=fend.settings.production"]
-=======
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "fend.wsgi:application", "--env", "DJANGO_SETTINGS_MODULE=fend.settings.production"]
->>>>>>> 49a0f47d9328d62f13594881f034637ba7403c39
