@@ -70,7 +70,7 @@
                         </dt>
                         <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                             {% if subscription.status != 'active' %}
-                                <span class="text-yellow-600">No active subscription</span>
+                                <span class="text-yellow-600">Your subscription is not active. Please complete the payment process to access pilot publishing.</span>
                             {% elif subscription.plan.pilot_limit == 0 %}
                                 <span class="text-green-600 font-medium">Unlimited</span> published pilots allowed
                             {% else %}
@@ -90,19 +90,6 @@
                         </dd>
                     </div>
                     {% endif %}
-
-                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                        <dt class="text-sm font-medium text-gray-500">
-                            Payment Method
-                        </dt>
-                        <dd class="mt-1 text-sm sm:mt-0 sm:col-span-2">
-                            {% if organization.has_payment_method %}
-                                <span class="text-green-600">✓</span> Payment method on file
-                            {% else %}
-                                <span class="text-red-600">No payment method on file</span>
-                            {% endif %}
-                        </dd>
-                    </div>
                 </dl>
             </div>
 

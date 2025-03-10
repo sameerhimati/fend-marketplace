@@ -31,9 +31,15 @@
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-blue-800">Pilot Limit Information</h3>
                         <div class="mt-2 text-sm text-blue-700">
-                            {% if request.user.organization.subscription %}
+                            {% if not request.user.organization.has_active_subscription %}
+                                <p>You need an active subscription to publish pilots.</p>
+                                <p class="mt-2"><a href="{% url 'payments:payment_selection' %}" class="text-blue-800 font-medium underline">Complete your payment</a> to get started.</p>
+                            {% elif request.user.organization.subscription %}
                                 {% with subscription=request.user.organization.subscription %}
-                                    {% if subscription.plan.pilot_limit == 0 %}
+                                    {% if subscription.status != 'active' %}
+                                        <p>Your subscription payment is not active. Please complete the payment process.</p>
+                                        <p class="mt-2"><a href="{% url 'payments:subscription_detail' %}" class="text-blue-800 font-medium underline">Complete your payment</a> to publish pilots.</p>
+                                    {% elif subscription.plan.pilot_limit == 0 %}
                                         <p>Your plan allows unlimited pilots.</p>
                                     {% else %}
                                         <p>Your plan allows {{ subscription.plan.pilot_limit }} active pilot(s).</p>

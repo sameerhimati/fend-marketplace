@@ -1,11 +1,11 @@
-from django.views.generic import CreateView, UpdateView, TemplateView
+from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import login, get_user_model
 from django.db import transaction
 from .models import Organization, PilotDefinition
-from .forms import OrganizationBasicForm, EnterpriseDetailsForm, PilotDefinitionForm
+from .forms import OrganizationBasicForm, EnterpriseDetailsForm, PilotDefinitionForm, OrganizationProfileForm
 from django.views.generic import TemplateView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -281,3 +281,44 @@ class CustomLoginView(LoginView):
     
     def get_success_url(self):
         return reverse_lazy('organizations:dashboard')
+    
+class EnterpriseDirectoryView(LoginRequiredMixin, ListView):
+    model = Organization
+    template_name = 'organizations/enterprise_directory.html'
+    context_object_name = 'enterprises'
+    
+    def get_queryset(self):
+        # Only show enterprises to startups
+        if self.request.user.organization.type == 'startup':
+            return Organization.objects.filter(
+                type='enterprise',
+                onboarding_completed=True
+            ).order_by('name')
+        return Organization.objects.none()
+
+class OrganizationProfileView(LoginRequiredMixin, DetailView):
+    model = Organization
+    template_name = 'organizations/profile.html'
+    context_object_name = 'organization'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add published pilots for enterprises
+        if self.object.type == 'enterprise':
+            context['published_pilots'] = self.object.pilots.filter(
+                status='published',
+                is_private=False
+            )
+        return context
+
+class ProfileEditView(LoginRequiredMixin, UpdateView):
+    model = Organization
+    form_class = OrganizationProfileForm
+    template_name = 'organizations/profile_edit.html'
+    
+    def get_object(self, queryset=None):
+        # Only allow editing own organization
+        return self.request.user.organization
+    
+    def get_success_url(self):
+        return reverse('organizations:profile', kwargs={'pk': self.object.pk})

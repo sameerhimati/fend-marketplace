@@ -41,6 +41,9 @@ class Organization(models.Model):
         blank=True
     )
 
+    description = models.TextField(blank=True, null=True, help_text="Company description")
+    logo = models.ImageField(upload_to='organization_logos/', blank=True, null=True)
+
     # Primary Contact Info
     primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
     # primary_contact_email = models.EmailField(null=True, blank=True)

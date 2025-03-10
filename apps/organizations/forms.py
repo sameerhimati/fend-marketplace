@@ -126,3 +126,11 @@ class PilotDefinitionForm(forms.ModelForm):
             'performance_metrics': forms.Textarea(attrs={'rows': 4}),
             'compliance_requirements': forms.Textarea(attrs={'rows': 4}),
         }
+
+class OrganizationProfileForm(forms.ModelForm):
+    class Meta:
+        model = Organization
+        fields = ['name', 'website', 'description', 'logo']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4}),
+        }
