@@ -45,7 +45,11 @@ class Pilot(models.Model):
         blank=True
     )
     performance_metrics = models.TextField(null=True, blank=True)
-    compliance_requirements = models.TextField(null=True, blank=True)
+    compliance_requirements = models.TextField(
+    null=True, 
+    blank=True,
+    help_text="Specify the definition of done for this pilot"
+)
     is_private = models.BooleanField(default=False)
 
     price = models.DecimalField(
