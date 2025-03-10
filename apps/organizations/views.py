@@ -271,11 +271,11 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
         # Apply exclusions
         context['pilots'] = pilots.exclude(id__in=excluded_pilots)
         
-        # Get enterprise partners
+        # Get enterprise partners - alphabetical order
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             onboarding_completed=True
-        ).order_by('?')[:5]  # Random selection of 5 enterprises
+        ).order_by('name')[:5]  # Alphabetical selection of 5 enterprises
         
         return context
     
