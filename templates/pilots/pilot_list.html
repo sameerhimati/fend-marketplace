@@ -127,59 +127,20 @@
                         {% endif %}
                     </p>
                 </div>
-                {% if request.user.organization.type == 'enterprise' %}
+                
                 <div class="mt-5">
-                    <a href="{% url 'pilots:create' %}"
-                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                        Create New Pilot
-                    </a>
+                    {% if request.user.organization.type == 'enterprise' %}
+                        <a href="{% url 'pilots:create' %}"
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                            Create New Pilot
+                        </a>
+                    {% else %}
+                        <a href="{% url 'organizations:enterprise_directory' %}"
+                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                            View Enterprise Partners
+                        </a>
+                    {% endif %}
                 </div>
-                {% else %}
-                <!-- Enterprise Partners Showcase with Logos for Startups when no pilots are available -->
-                <div class="mt-12">
-                    <div class="text-center">
-                        <h3 class="text-lg font-medium text-gray-700 mb-6">Discover Our Enterprise Partners</h3>
-                        
-                        <!-- Partner Logo Showcase -->
-                        <div class="flex flex-wrap justify-center items-center gap-8 mb-8">
-                            {% for enterprise in enterprises %}
-                                <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
-                                        {% if enterprise.logo %}
-                                            <img src="{{ enterprise.logo.url }}" alt="{{ enterprise.name }}" class="max-w-full max-h-16 p-2">
-                                        {% else %}
-                                            <div class="text-3xl font-bold text-indigo-600">{{ enterprise.name|slice:":1" }}</div>
-                                        {% endif %}
-                                    </div>
-                                    <span class="text-sm font-medium text-gray-700 mt-2">{{ enterprise.name }}</span>
-                                </div>
-                            {% empty %}
-                                <!-- Fallback if no enterprise partners are retrieved -->
-                                <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <div class="text-3xl font-bold text-indigo-600">E</div>
-                                    </div>
-                                    <span class="text-sm font-medium text-gray-700 mt-2">Example Corp</span>
-                                </div>
-                                <div class="flex flex-col items-center">
-                                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <div class="text-3xl font-bold text-indigo-600">T</div>
-                                    </div>
-                                    <span class="text-sm font-medium text-gray-700 mt-2">Tech Solutions</span>
-                                </div>
-                            {% endfor %}
-                        </div>
-                        
-                        <!-- Button to access full directory -->
-                        <div class="mt-5">
-                            <a href="{% url 'organizations:enterprise_directory' %}"
-                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
-                                View All Enterprise Partners
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
         {% endif %}
