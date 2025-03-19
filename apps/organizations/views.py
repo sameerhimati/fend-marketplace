@@ -1,5 +1,6 @@
 from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView
 from django.shortcuts import redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import login, get_user_model
@@ -181,6 +182,25 @@ class PilotDefinitionView(CreateView):
             return redirect('organizations:enterprise_details', pk=self.kwargs['pk'])
         return super().post(request, *args, **kwargs)
 
+@login_required
+def remove_logo(request):
+    """Remove the organization's logo"""
+    if request.method != 'GET':
+        return redirect('organizations:profile_edit')
+    
+    organization = request.user.organization
+    
+    # Delete the logo file
+    if organization.logo:
+        import os
+        if os.path.isfile(organization.logo.path):
+            os.remove(organization.logo.path)
+        organization.logo = None
+        organization.save()
+        
+        messages.success(request, "Logo removed successfully")
+    
+    return redirect('organizations:profile_edit')
 
 
 class RegistrationCompleteView(LoginRequiredMixin, TemplateView):
