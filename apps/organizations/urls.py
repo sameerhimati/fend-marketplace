@@ -26,4 +26,5 @@ urlpatterns = [
      path('profile/<int:pk>/', views.OrganizationProfileView.as_view(), name='profile'),
      path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
      path('profile/remove-logo/', views.remove_logo, name='remove_logo'),
+     path('startups/', views.StartupDirectoryView.as_view(), name='startup_directory'),
 ]

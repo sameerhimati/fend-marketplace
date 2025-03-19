@@ -139,6 +139,20 @@ class EnterpriseDetailsView(UpdateView):
         """Make sure we don't lose the entered values"""
         print(f"Form errors: {form.errors}")  # Debug log
         return super().form_invalid(form)
+    
+class StartupDirectoryView(LoginRequiredMixin, ListView):
+    model = Organization
+    template_name = 'organizations/startup_directory.html'
+    context_object_name = 'startups'
+    
+    def get_queryset(self):
+        # Show all startups except the current user's organization
+        return Organization.objects.filter(
+            type='startup',
+            onboarding_completed=True
+        ).exclude(
+            id=self.request.user.organization.id
+        ).order_by('name')
 
 class PilotDefinitionView(CreateView):
     model = PilotDefinition
@@ -311,13 +325,13 @@ class EnterpriseDirectoryView(LoginRequiredMixin, ListView):
     context_object_name = 'enterprises'
     
     def get_queryset(self):
-        # Only show enterprises to startups
-        if self.request.user.organization.type == 'startup':
-            return Organization.objects.filter(
-                type='enterprise',
-                onboarding_completed=True
-            ).order_by('name')
-        return Organization.objects.none()
+        # Show all enterprises except the current user's organization
+        return Organization.objects.filter(
+            type='enterprise',
+            onboarding_completed=True
+        ).exclude(
+            id=self.request.user.organization.id
+        ).order_by('name')
 
 class OrganizationProfileView(LoginRequiredMixin, DetailView):
     model = Organization
