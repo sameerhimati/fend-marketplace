@@ -33,8 +33,11 @@
                                         </p>
                                     </div>
                                     <div class="ml-4 flex-shrink-0 flex items-center space-x-4">
-                                        <span class="text-sm text-gray-500">
-                                            Status: {{ pilot.get_status_display }}
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            {% if pilot.status == 'published' %}bg-green-100 text-green-800
+                                            {% elif pilot.status == 'draft' %}bg-gray-100 text-gray-800
+                                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                            {{ pilot.status|title }}
                                         </span>
                                     </div>
                                 </div>
@@ -56,10 +59,53 @@
             </div>
         </div>
         
+        <!-- Discover Enterprise Partners Section -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-medium text-gray-900">Discover Enterprise Partners</h2>
+                <a href="{% url 'organizations:enterprise_directory' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                    View All Partners →
+                </a>
+            </div>
+            
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg px-6 py-8">
+                <!-- Enterprise Logo Showcase -->
+                <div class="flex flex-wrap justify-center items-center gap-10 mb-4">
+                    {% for enterprise in enterprises %}
+                        <div class="flex flex-col items-center">
+                            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                                {% if enterprise.logo %}
+                                    <img src="{{ enterprise.logo.url }}" alt="{{ enterprise.name }}" class="max-w-full max-h-12 p-2">
+                                {% else %}
+                                    <div class="text-2xl font-bold text-indigo-600">{{ enterprise.name|slice:":1" }}</div>
+                                {% endif %}
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 mt-2">{{ enterprise.name }}</span>
+                            {% if enterprise.website %}
+                            <span class="text-xs text-gray-500">{{ enterprise.website }}</span>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <!-- Fallback if no enterprises are retrieved -->
+                        <div class="text-center text-gray-500">
+                            No other enterprise partners available yet.
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="text-center mt-6">
+                    <a href="{% url 'organizations:enterprise_directory' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        View All Enterprise Partners
+                    </a>
+                </div>
+            </div>
+        </div>
+        
         <!-- Discover Startup Network Section -->
         <div>
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-medium text-gray-900">Discover Our Startup Network</h2>
+                <h2 class="text-xl font-medium text-gray-900">Discover Startup Network</h2>
                 <a href="{% url 'organizations:startup_directory' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
                     View All Startups →
                 </a>
@@ -84,19 +130,8 @@
                         </div>
                     {% empty %}
                         <!-- Fallback if no startups are retrieved -->
-                        <div class="flex flex-col items-center">
-                            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                                <div class="text-2xl font-bold text-indigo-600">S</div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 mt-2">Sample Startup</span>
-                            <span class="text-xs text-gray-500">startup.com</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                                <div class="text-2xl font-bold text-indigo-600">T</div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 mt-2">Tech Startup</span>
-                            <span class="text-xs text-gray-500">techstartup.com</span>
+                        <div class="text-center text-gray-500">
+                            No startups available yet.
                         </div>
                     {% endfor %}
                 </div>
