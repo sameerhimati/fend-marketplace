@@ -255,18 +255,26 @@ class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user_org = self.request.user.organization
+        
         # Get all pilots for this enterprise
         context['active_pilots'] = Pilot.objects.filter(
-            organization=self.request.user.organization
+            organization=user_org
         ).order_by('-created_at')[:5]  # Get 5 most recent pilots
+        
+        # Get other enterprises for display
+        context['enterprises'] = Organization.objects.filter(
+            type='enterprise',
+            onboarding_completed=True
+        ).exclude(
+            id=user_org.id
+        ).order_by('?')[:4]  # Random selection of 4 other enterprises
         
         # Get startups for display
         context['startups'] = Organization.objects.filter(
             type='startup',
             onboarding_completed=True
-        ).exclude(
-            id=self.request.user.organization.id
-        ).order_by('?')[:5]  # Random selection of 5 startups
+        ).order_by('?')[:4]  # Random selection of 4 startups
         
         return context
 
