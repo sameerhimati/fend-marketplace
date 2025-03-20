@@ -51,6 +51,49 @@
             </div>
         </div>
         
+        <!-- Discover Startup Network Section (NEW) -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-medium text-gray-900">Discover Startup Network</h2>
+                <a href="{% url 'organizations:startup_directory' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                    View All Startups →
+                </a>
+            </div>
+            
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg px-6 py-8">
+                <!-- Startup Logo Showcase -->
+                <div class="flex flex-wrap justify-center items-center gap-10 mb-4">
+                    {% for startup in fellow_startups %}
+                        <div class="flex flex-col items-center">
+                            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+                                {% if startup.logo %}
+                                    <img src="{{ startup.logo.url }}" alt="{{ startup.name }}" class="max-w-full max-h-12 p-2">
+                                {% else %}
+                                    <div class="text-2xl font-bold text-indigo-600">{{ startup.name|slice:":1" }}</div>
+                                {% endif %}
+                            </div>
+                            <span class="text-sm font-medium text-gray-700 mt-2">{{ startup.name }}</span>
+                            {% if startup.website %}
+                            <span class="text-xs text-gray-500">{{ startup.website }}</span>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <!-- Fallback if no startups are retrieved -->
+                        <div class="text-center text-gray-500">
+                            No other startups available yet.
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="text-center mt-6">
+                    <a href="{% url 'organizations:startup_directory' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        View All Startups
+                    </a>
+                </div>
+            </div>
+        </div>
+        
         <!-- Discover Our Enterprise Partners Section -->
         <div>
             <div class="flex justify-between items-center mb-4">
@@ -79,19 +122,8 @@
                         </div>
                     {% empty %}
                         <!-- Fallback if no enterprise partners are retrieved -->
-                        <div class="flex flex-col items-center">
-                            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                                <div class="text-2xl font-bold text-indigo-600">E</div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 mt-2">Example Corp</span>
-                            <span class="text-xs text-gray-500">enterprise.com</span>
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                                <div class="text-2xl font-bold text-indigo-600">T</div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 mt-2">Tech Solutions</span>
-                            <span class="text-xs text-gray-500">techsolutions.com</span>
+                        <div class="text-center text-gray-500">
+                            No enterprise partners available yet.
                         </div>
                     {% endfor %}
                 </div>

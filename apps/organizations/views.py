@@ -320,11 +320,19 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
         # Apply exclusions
         context['pilots'] = pilots.exclude(id__in=excluded_pilots)
         
+        # Get fellow startups for the network section - exclude current startup
+        context['fellow_startups'] = Organization.objects.filter(
+            type='startup',
+            onboarding_completed=True
+        ).exclude(
+            id=user_org.id
+        ).order_by('?')[:4]  # Random selection of 4 other startups
+        
         # Get enterprise partners - alphabetical order
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             onboarding_completed=True
-        ).order_by('name')[:5]  # Alphabetical selection of 5 enterprises
+        ).order_by('?')[:4]  # Random selection of 4 enterprises
         
         return context
     
