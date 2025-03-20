@@ -251,16 +251,23 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 #         return context
 
 class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
-    template_name = 'pilots/pilot_list.html'
+    template_name = 'organizations/dashboard/enterprise.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Get all pilots for this enterprise
-        context['pilots'] = Pilot.objects.filter(
+        context['active_pilots'] = Pilot.objects.filter(
             organization=self.request.user.organization
-        ).order_by('-created_at')
-        context['is_dashboard'] = True  # Flag to indicate this is the dashboard view
-        context['dashboard_title'] = "Your Pilots"
+        ).order_by('-created_at')[:5]  # Get 5 most recent pilots
+        
+        # Get startups for display
+        context['startups'] = Organization.objects.filter(
+            type='startup',
+            onboarding_completed=True
+        ).exclude(
+            id=self.request.user.organization.id
+        ).order_by('?')[:5]  # Random selection of 5 startups
+        
         return context
 
 # class StartupDashboardView(LoginRequiredMixin, TemplateView):

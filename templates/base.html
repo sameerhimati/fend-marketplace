@@ -65,6 +65,10 @@
                                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 My Pilots
                             </a>
+                            <a href="{% url 'organizations:startup_directory' %}" 
+                               class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Startup Network
+                            </a>
                             {% else %}
                             <a href="{% url 'pilots:list' %}" 
                                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
@@ -79,6 +83,7 @@
                                 Startup Network
                             </a>
                             {% endif %}
+                            
                             <a href="{% url 'pilots:bid_list' %}" 
                                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 {% if user.organization.type == 'enterprise' %}Received Bids{% else %}Your Bids{% endif %}
