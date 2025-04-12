@@ -1,0 +1,38 @@
+[
+    {
+      "model": "payments.tokenpackage",
+      "pk": 1,
+      "fields": {
+        "name": "Basic",
+        "token_count": 1,
+        "price": "199.00",
+        "description": "Single token for publishing one pilot opportunity",
+        "is_active": true,
+        "stripe_price_id": ""
+      }
+    },
+    {
+      "model": "payments.tokenpackage",
+      "pk": 2,
+      "fields": {
+        "name": "Standard",
+        "token_count": 5,
+        "price": "899.00",
+        "description": "5 tokens for publishing multiple pilot opportunities. Save $96!",
+        "is_active": true,
+        "stripe_price_id": ""
+      }
+    },
+    {
+      "model": "payments.tokenpackage",
+      "pk": 3,
+      "fields": {
+        "name": "Premium",
+        "token_count": 10,
+        "price": "1699.00",
+        "description": "10 tokens for publishing multiple pilot opportunities. Save $291!",
+        "is_active": true,
+        "stripe_price_id": ""
+      }
+    }
+  ]

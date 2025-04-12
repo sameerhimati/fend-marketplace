@@ -39,6 +39,7 @@ class OrganizationRegistrationView(CreateView):
             self.request.session['organization_id'] = organization.id
             
             if organization.type == 'enterprise':
+                organization.add_tokens(1)
                 return redirect('organizations:enterprise_details', pk=organization.pk)
             
             # For startups, complete registration
