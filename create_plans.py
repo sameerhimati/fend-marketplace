@@ -30,7 +30,7 @@ def create_pricing_plans():
         {
             "name": "Enterprise Monthly",
             "plan_type": "enterprise_monthly",
-            "price": 50.00,
+            "price": 100.00,
             "billing_frequency": "monthly",
             "pilot_limit": 0,  # No pilot limit - using tokens instead
             "is_active": True
@@ -38,7 +38,7 @@ def create_pricing_plans():
         {
             "name": "Enterprise Yearly",
             "plan_type": "enterprise_yearly",
-            "price": 500.00,
+            "price": 1000.00,
             "billing_frequency": "yearly",
             "pilot_limit": 0,  # No pilot limit - using tokens instead
             "is_active": True
@@ -73,24 +73,10 @@ def create_token_packages():
     # Define token packages
     packages = [
         {
-            "name": "Basic",
+            "name": "Token",
             "token_count": 1,
-            "price": 199.00,
+            "price": 100.00,
             "description": "Single token for publishing one pilot opportunity",
-            "is_active": True
-        },
-        {
-            "name": "Standard",
-            "token_count": 5,
-            "price": 899.00,
-            "description": "5 tokens for publishing multiple pilot opportunities. Save $96!",
-            "is_active": True
-        },
-        {
-            "name": "Premium",
-            "token_count": 10,
-            "price": 1699.00,
-            "description": "10 tokens for publishing multiple pilot opportunities. Save $291!",
             "is_active": True
         }
     ]

@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.payments.middleware.SubscriptionRequiredMiddleware',
+    'fend.middleware.AuthenticationFlowMiddleware',
 ]
 
 ROOT_URLCONF = 'fend.urls'
