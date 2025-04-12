@@ -678,46 +678,62 @@ def token_packages(request):
     })
 
 @login_required
-def purchase_tokens(request, package_id):
-    """Create Stripe checkout session for token purchase"""
+def purchase_tokens(request, package_id=None):
+    """Create Stripe checkout session for token purchase with quantity selection"""
     # Only enterprise users can purchase tokens
     if request.user.organization.type != 'enterprise':
         messages.error(request, "Only enterprise organizations can purchase tokens.")
         return redirect('organizations:dashboard')
     
-    # Get the selected package
-    package = get_object_or_404(TokenPackage, id=package_id, is_active=True)
+    if request.method != 'POST':
+        return redirect('payments:token_packages')
+    
+    # Get token quantity from form
+    try:
+        quantity = int(request.POST.get('token_quantity', 1))
+        if quantity < 1:
+            raise ValueError("Quantity must be at least 1")
+    except (ValueError, TypeError):
+        messages.error(request, "Please enter a valid token quantity.")
+        return redirect('payments:token_packages')
+    
+    # Fixed price per token
+    price_per_token = 100.00
+    
+    # Calculate total price
+    amount = price_per_token * quantity
     
     try:
         # Create token transaction
         transaction = TokenTransaction.objects.create(
             organization=request.user.organization,
-            package=package,
-            token_count=package.token_count,
-            amount=package.price,
+            package=None,  # No package needed with fixed price
+            token_count=quantity,
+            amount=amount,
             status='pending'
         )
         
-        # Create Stripe price if not exists
-        if not package.stripe_price_id:
-            price = stripe.Price.create(
-                unit_amount=int(package.price * 100),  # Convert to cents
-                currency="usd",
-                product_data={
-                    "name": f"Token Package: {package.name}",
-                    "description": f"{package.token_count} tokens for pilot publishing"
-                },
-            )
-            package.stripe_price_id = price.id
-            package.save()
+        # Create product and price in Stripe if needed
+        product_name = "Token"
+        product_description = "Token for publishing pilot opportunities"
+        
+        # Create price for this product
+        price = stripe.Price.create(
+            unit_amount=int(price_per_token * 100),  # Convert to cents
+            currency="usd",
+            product_data={
+                "name": product_name,
+                "description": product_description
+            },
+        )
         
         # Create checkout session
         checkout_session = stripe.checkout.Session.create(
             customer=request.user.organization.stripe_customer_id,
             payment_method_types=['card'],
             line_items=[{
-                'price': package.stripe_price_id,
-                'quantity': 1
+                'price': price.id,
+                'quantity': quantity
             }],
             mode='payment',
             success_url=request.build_absolute_uri(
@@ -729,8 +745,7 @@ def purchase_tokens(request, package_id):
             metadata={
                 'transaction_id': transaction.id,
                 'organization_id': request.user.organization.id,
-                'package_id': package.id,
-                'token_count': package.token_count
+                'token_count': quantity
             }
         )
         
@@ -743,6 +758,7 @@ def purchase_tokens(request, package_id):
     except Exception as e:
         messages.error(request, f"Error creating checkout session: {str(e)}")
         return redirect('payments:token_packages')
+    
 
 @login_required
 def token_purchase_success(request):

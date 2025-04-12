@@ -28,54 +28,37 @@
             </div>
         </div>
 
-        <div class="mt-12">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {% for package in packages %}
-                <div class="relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
-                    <div class="p-6 flex-1">
-                        <h3 class="text-xl font-semibold text-gray-900">{{ package.name }}</h3>
-                        
-                        <div class="mt-4 flex items-baseline">
-                            <span class="text-4xl font-extrabold text-indigo-600">{{ package.token_count }}</span>
-                            <span class="ml-1 text-xl font-semibold text-gray-500">tokens</span>
-                        </div>
-                        
-                        <div class="mt-2">
-                            <span class="text-3xl font-bold text-gray-900">${{ package.price }}</span>
-                        </div>
-                        
-                        {% if package.description %}
-                        <div class="mt-4 text-sm text-gray-500">
-                            {{ package.description }}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mt-4 text-sm text-gray-500">
-                            <p>Price per token: <span class="font-medium">${{ package.price_per_token|floatformat:2 }}</span></p>
+        <div class="mt-12 bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Select Token Quantity</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Each token allows you to publish one pilot opportunity. Price per token: <strong>${{ package.price_per_token }}</strong></p>
+                </div>
+                
+                <form method="post" action="{% url 'payments:purchase_tokens_custom' %}" class="mt-5">
+                    {% csrf_token %}
+                    <div class="w-full sm:max-w-xs">
+                        <label for="token_quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="number" name="token_quantity" id="token_quantity" 
+                                   class="focus:ring-indigo-500 focus:border-indigo-500 flex-grow block w-full min-w-0 rounded-none rounded-l-md sm:text-sm border-gray-300"
+                                   placeholder="1" min="1" value="1" required>
+                            <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                tokens
+                            </span>
                         </div>
                     </div>
                     
-                    <div class="p-6 bg-gray-50 border-t border-gray-200">
-                        <a href="{% url 'payments:purchase_tokens' package.id %}" 
-                           class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Purchase
-                        </a>
+                    <div class="mt-4 text-xl font-bold" id="total-price">
+                        Total: $<span id="price-display">{{ package.price_per_token }}</span>
                     </div>
-                </div>
-                {% empty %}
-                <div class="col-span-full">
-                    <div class="bg-white shadow sm:rounded-lg">
-                        <div class="px-4 py-5 sm:p-6">
-                            <h3 class="text-lg leading-6 font-medium text-gray-900">
-                                No token packages available
-                            </h3>
-                            <div class="mt-2 max-w-xl text-sm text-gray-500">
-                                <p>No token packages are currently available. Please check back later.</p>
-                            </div>
-                        </div>
+                    
+                    <div class="mt-5">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Continue to Payment
+                        </button>
                     </div>
-                </div>
-                {% endfor %}
+                </form>
             </div>
         </div>
         
@@ -86,4 +69,21 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('token_quantity');
+    const priceDisplay = document.getElementById('price-display');
+    const pricePerToken = 100;
+    
+    function updatePrice() {
+        const quantity = parseInt(quantityInput.value) || 0;
+        const total = (quantity * pricePerToken).toFixed(2);
+        priceDisplay.textContent = total;
+    }
+    
+    quantityInput.addEventListener('input', updatePrice);
+    updatePrice();
+});
+</script>
 {% endblock %}
