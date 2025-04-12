@@ -155,26 +155,18 @@ def publish_pilot(request, pk):
         messages.error(request, "Only draft pilots can be published.")
         return redirect('pilots:detail', pk=pk)
     
-    # Check subscription limits before attempting to publish
+    # Check subscription status
     organization = request.user.organization
-    try:
-        if not organization.has_active_subscription():
-            messages.error(request, "You need an active subscription to publish pilots. Please complete the payment process.")
-            return redirect('payments:subscription_detail')
-            
-        if not organization.can_create_pilot():
-            subscription = getattr(organization, 'subscription', None)
-            
-            if subscription and subscription.status != 'active':
-                messages.error(request, "Your subscription is not active. Please complete the payment process.")
-                return redirect('payments:subscription_detail')
-            elif subscription and subscription.plan.pilot_limit == 1:
-                messages.error(request, "Your current plan allows only one active pilot. Please upgrade your subscription to publish more pilots or unpublish an existing pilot.")
-            else:
-                messages.error(request, "You've reached your plan's pilot limit. Please upgrade your subscription to publish more pilots.")
-                
-            return redirect('payments:subscription_detail')
+    if not organization.has_active_subscription():
+        messages.error(request, "You need an active subscription to create pilots. Please complete the payment process.")
+        return redirect('payments:subscription_detail')
+    
+    # Check token availability
+    if not organization.has_available_tokens():
+        messages.error(request, "You don't have any tokens available. Please purchase tokens to publish this pilot.")
+        return redirect('payments:token_packages')
         
+    try:
         # Update status to published
         pilot.status = 'published'
         pilot.save()
@@ -184,10 +176,10 @@ def publish_pilot(request, pk):
             pilot=pilot,
             notification_type='pilot_updated',
             title=f"Pilot published: {pilot.title}",
-            message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups."
+            message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups. A token has been consumed."
         )
         
-        messages.success(request, f"'{pilot.title}' has been published successfully!")
+        messages.success(request, f"'{pilot.title}' has been published successfully! One token has been consumed.")
         
     except ValidationError as e:
         messages.error(request, str(e))

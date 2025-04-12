@@ -3,6 +3,7 @@ from django.db import models
 from apps.organizations.models import Organization, PilotDefinition
 from django.core.exceptions import ValidationError
 from apps.payments.models import PilotTransaction
+from time import time, timezone
 
 class Pilot(models.Model):
     STATUS_CHOICES = (
@@ -63,6 +64,47 @@ class Pilot(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Token Tracking
+    token_consumed = models.BooleanField(default=False, help_text="Whether a token was consumed for this pilot")
+    published_at = models.DateTimeField(null=True, blank=True, help_text="When the pilot was published")
+    
+    def save(self, *args, **kwargs):
+        # Check if this is a new pilot being published
+        is_new_publication = False
+        
+        if self.pk is None and self.status == 'published':
+            is_new_publication = True
+        elif self.pk:
+            # Check if status is changing from draft to published
+            original = Pilot.objects.get(pk=self.pk)
+            if original.status != 'published' and self.status == 'published':
+                is_new_publication = True
+        
+        # If new publication, validate and consume token
+        if is_new_publication:
+            # Check if organization can publish a pilot
+            if not self.organization.can_publish_pilot():
+                raise ValidationError(
+                    "Your organization doesn't have any tokens available. Please purchase tokens to publish pilots."
+                )
+            
+            # Set published_at timestamp
+            self.published_at = timezone.now()
+            
+            # Mark that this will consume a token
+            # Token will be consumed after save
+            self._consume_token = True
+            
+        super().save(*args, **kwargs)
+        
+        # After successful save, consume token if needed
+        if hasattr(self, '_consume_token') and self._consume_token:
+            if self.organization.consume_token():
+                self.token_consumed = True
+                # Update just this field without triggering full save again
+                Pilot.objects.filter(pk=self.pk).update(token_consumed=True)
+                delattr(self, '_consume_token')
 
     def __str__(self):
         return self.title
