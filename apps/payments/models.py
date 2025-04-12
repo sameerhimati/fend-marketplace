@@ -8,8 +8,8 @@ class PricingPlan(models.Model):
     PLAN_TYPES = (
         ('startup_monthly', 'Startup Monthly'),
         ('startup_yearly', 'Startup Yearly'),
-        ('enterprise_single', 'Enterprise Single Pilot'),
-        ('enterprise_unlimited', 'Enterprise Unlimited'),
+        ('enterprise_monthly', 'Enterprise Monthly'),
+        ('enterprise_yearly', 'Enterprise Yearly'),
     )
     
     name = models.CharField(max_length=100)
@@ -20,13 +20,12 @@ class PricingPlan(models.Model):
         choices=[
             ('monthly', 'Monthly'),
             ('yearly', 'Yearly'),
-            ('one_time', 'One Time')
         ]
     )
     stripe_price_id = models.CharField(max_length=100)
-    pilot_limit = models.IntegerField(default=0)  # 0 means unlimited
+    initial_tokens = models.IntegerField(default=0)  # Initial tokens provided with the plan
     is_active = models.BooleanField(default=True)
-
+    
     class Meta:
         db_table = 'payments_pricingplan'
     
@@ -43,7 +42,7 @@ class PricingPlan(models.Model):
             )
         elif organization_type == 'enterprise':
             return cls.objects.filter(
-                plan_type__in=['enterprise_single', 'enterprise_unlimited'],
+                plan_type__in=['enterprise_monthly', 'enterprise_yearly'],
                 is_active=True
             )
         return cls.objects.none()
@@ -88,29 +87,18 @@ class Subscription(models.Model):
         return self.status == 'active' and self.current_period_end > timezone.now()
     
     def remaining_pilots(self):
-        """Calculate remaining pilots for this subscription"""
-        # If subscription isn't active, return 0
-        if self.status != 'active':
-            return 0
-            
-        if self.plan.pilot_limit == 0:  # Unlimited
-            return float('inf')
-        
-        published_pilots_count = self.organization.pilots.filter(
-            status='published'
-        ).count()
-        
-        return max(0, self.plan.pilot_limit - published_pilots_count)
-    
+        """
+        Legacy method maintained for backward compatibility.
+        Pilot limits are no longer used with the token system.
+        """
+        return float('inf')  # Always return infinite pilots available
+
     def can_create_pilot(self):
-        """Check if the organization can create more pilots"""
-        if not self.is_active():
-            return False
-        
-        if self.plan.pilot_limit == 0:  # Unlimited
-            return True
-        
-        return self.remaining_pilots() > 0
+        """
+        Legacy method maintained for backward compatibility.
+        Now just checks if subscription is active.
+        """
+        return self.is_active()
     
     def cancel(self):
         """Cancel subscription in Stripe"""
@@ -184,7 +172,7 @@ class PilotTransaction(models.Model):
 class TokenPackage(models.Model):
     """Defines available token packages for purchase"""
     name = models.CharField(max_length=100)
-    price_per_token = models.DecimalField(max_digits=10, decimal_places=2)  # Single price per token
+    price_per_token = models.DecimalField(max_digits=10, decimal_places=2)  # Base price per token
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
@@ -194,6 +182,13 @@ class TokenPackage(models.Model):
     
     def __str__(self):
         return f"{self.name} (${self.price_per_token} per token)"
+    
+    def get_quantity_price(self):
+        return self.price_per_token
+    
+    def calculate_total_price(self, quantity):
+        """Calculate total price for a quantity of tokens with discount applied"""
+        return self.get_quantity_price() * quantity
     
     @classmethod
     def get_default_package(cls):
@@ -207,6 +202,11 @@ class TokenPackage(models.Model):
             }
         )
         return package
+
+    @classmethod
+    def get_available_packages(cls):
+        """Get all active token packages"""
+        return cls.objects.filter(is_active=True).order_by('price_per_token')
 
 
 class TokenTransaction(models.Model):
@@ -260,3 +260,32 @@ class TokenTransaction(models.Model):
                 title=f"Token Purchase Successful",
                 message=f"Your purchase of {self.token_count} tokens has been completed successfully."
             )
+
+class TokenConsumptionLog(models.Model):
+    """Records detailed token consumption events"""
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.CASCADE,
+        related_name='token_consumption_logs'
+    )
+    tokens_consumed = models.IntegerField(default=1)
+    action_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('pilot_publish', 'Pilot Publication'),
+            ('other', 'Other Consumption')
+        ],
+        default='pilot_publish'
+    )
+    pilot = models.ForeignKey(
+        'pilots.Pilot',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='token_consumptions'
+    )
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.organization.name} - {self.tokens_consumed} tokens on {self.created_at.strftime('%Y-%m-%d')}"

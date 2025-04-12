@@ -20,44 +20,32 @@
             {% endif %}
         </div>
 
-        {% if request.user.organization.type == 'enterprise' %}
-            <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mt-4 mb-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-blue-800">Pilot Limit Information</h3>
-                        <div class="mt-2 text-sm text-blue-700">
-                            {% if not request.user.organization.has_active_subscription %}
-                                <p>You need an active subscription to publish pilots.</p>
-                                <p class="mt-2"><a href="{% url 'payments:payment_selection' %}" class="text-blue-800 font-medium underline">Complete your payment</a> to get started.</p>
-                            {% elif request.user.organization.subscription %}
-                                {% with subscription=request.user.organization.subscription %}
-                                    {% if subscription.status != 'active' %}
-                                        <p>Your subscription payment is not active. Please complete the payment process.</p>
-                                        <p class="mt-2"><a href="{% url 'payments:subscription_detail' %}" class="text-blue-800 font-medium underline">Complete your payment</a> to publish pilots.</p>
-                                    {% elif subscription.plan.pilot_limit == 0 %}
-                                        <p>Your plan allows unlimited pilots.</p>
-                                    {% else %}
-                                        <p>Your plan allows {{ subscription.plan.pilot_limit }} active pilot(s).</p>
-                                        <p>You have {{ subscription.remaining_pilots }} remaining.</p>
-                                        {% if subscription.remaining_pilots == 0 %}
-                                            <p class="mt-2"><a href="{% url 'payments:upgrade_subscription' %}" class="text-blue-800 font-medium underline">Upgrade your plan</a> to publish more pilots.</p>
-                                        {% endif %}
+            {% if request.user.organization.type == 'enterprise' %}
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mt-4 mb-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Publish Information</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                {% if not request.user.organization.has_active_subscription %}
+                                    <p>You need an active subscription to create and publish pilots.</p>
+                                    <p class="mt-2"><a href="{% url 'payments:payment_selection' %}" class="text-blue-800 font-medium underline">Complete your payment</a> to get started.</p>
+                                {% else %}
+                                    <p>You have <strong>{{ request.user.organization.token_balance }} tokens</strong> available.</p>
+                                    <p>Each token allows you to publish one pilot opportunity.</p>
+                                    {% if request.user.organization.token_balance == 0 %}
+                                        <p class="mt-2"><a href="{% url 'payments:token_packages' %}" class="text-blue-800 font-medium underline">Purchase tokens</a> to publish pilots.</p>
                                     {% endif %}
-                                {% endwith %}
-                            {% else %}
-                                <p>You need an active subscription to publish pilots.</p>
-                                <p class="mt-2"><a href="{% url 'payments:payment_selection' %}" class="text-blue-800 font-medium underline">Select a subscription plan</a> to get started.</p>
-                            {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        {% endif %}
+            {% endif %}
 
         {% if pilots %}
         <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">

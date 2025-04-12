@@ -3,7 +3,8 @@ from django.db import models
 from apps.organizations.models import Organization, PilotDefinition
 from django.core.exceptions import ValidationError
 from apps.payments.models import PilotTransaction
-from time import time, timezone
+from time import timezone
+from datetime import timedelta
 
 class Pilot(models.Model):
     STATUS_CHOICES = (
@@ -104,6 +105,20 @@ class Pilot(models.Model):
                 self.token_consumed = True
                 # Update just this field without triggering full save again
                 Pilot.objects.filter(pk=self.pk).update(token_consumed=True)
+                
+                # Update the consumption log with the pilot reference
+                from apps.payments.models import TokenConsumptionLog
+                recent_log = TokenConsumptionLog.objects.filter(
+                    organization=self.organization,
+                    action_type='pilot_publish'
+                ).order_by('-created_at').first()
+                
+                # If found a recent log (should be the one created by consume_token)
+                if recent_log and recent_log.created_at > timezone.now() - timedelta(minutes=1):
+                    recent_log.pilot = self
+                    recent_log.notes = f"Token consumed for publishing pilot: {self.title}"
+                    recent_log.save()
+                
                 delattr(self, '_consume_token')
 
     def __str__(self):
