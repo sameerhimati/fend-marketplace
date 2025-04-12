@@ -159,7 +159,7 @@ def publish_pilot(request, pk):
     # Check subscription status
     organization = request.user.organization
     if not organization.has_active_subscription():
-        messages.error(request, "You need an active subscription to create pilots. Please complete the payment process.")
+        messages.error(request, "You need an active subscription to access pilot publishing features. Please complete the payment process.")
         return redirect('payments:subscription_detail')
     
     # Check token availability

@@ -124,26 +124,6 @@ class Pilot(models.Model):
     def __str__(self):
         return self.title
 
-    def save(self, *args, **kwargs):
-        # Check if this is a new pilot being published
-        if self.pk is None and self.status == 'published':
-            # Check if organization can create a new pilot
-            if not self.organization.can_create_pilot():
-                raise ValidationError(
-                    "Your organization has reached its pilot limit or doesn't have an active subscription."
-                )
-        
-        # If status is changing from draft to published
-        if self.pk and self.status == 'published':
-            original = Pilot.objects.get(pk=self.pk)
-            if original.status == 'draft':
-                # Check if organization can create a new pilot
-                if not self.organization.can_create_pilot():
-                    raise ValidationError(
-                        "Your organization has reached its pilot limit or doesn't have an active subscription."
-                    )
-        super().save(*args, **kwargs)
-    
     def is_editable(self):
         """Check if pilot can be edited"""
         return self.status in ['draft', 'published']
