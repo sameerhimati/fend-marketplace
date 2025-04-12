@@ -140,6 +140,7 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['is_edit'] = True  # Add this to indicate we're editing
         return context
+
 @login_required
 def publish_pilot(request, pk):
     if request.method != 'POST':

@@ -29,12 +29,12 @@
     "model": "payments.pricingplan",
     "pk": 3,
     "fields": {
-      "name": "Enterprise Single Pilot",
-      "plan_type": "enterprise_single",
-      "price": "1000.00",
-      "billing_frequency": "one_time",
+      "name": "Enterprise Monthly",
+      "plan_type": "enterprise_monthly",
+      "price": "100.00",
+      "billing_frequency": "monthly",
       "stripe_price_id": "",
-      "pilot_limit": 1,
+      "pilot_limit": 0,
       "is_active": true
     }
   },
@@ -42,9 +42,9 @@
     "model": "payments.pricingplan",
     "pk": 4,
     "fields": {
-      "name": "Enterprise Unlimited",
-      "plan_type": "enterprise_unlimited",
-      "price": "600.00",
+      "name": "Enterprise Yearly",
+      "plan_type": "enterprise_yearly",
+      "price": "1000.00",
       "billing_frequency": "yearly",
       "stripe_price_id": "",
       "pilot_limit": 0,

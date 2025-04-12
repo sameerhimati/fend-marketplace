@@ -209,28 +209,24 @@ def checkout_success(request):
                 stripe_payment_id=payment_id,
                 status='complete'
             )
-        
-        # If one-time payment mode
-        elif session.mode == 'payment':
-            subscription.status = 'active'
             
-            # Set subscription period for one-time enterprise plans (1 year)
-            if subscription.plan.plan_type == 'enterprise_single':
-                subscription.current_period_start = timezone.now()
-                subscription.current_period_end = timezone.now() + timedelta(days=365)
+            # Add initial tokens if any are included with the plan
+            if subscription.plan.initial_tokens > 0 and organization.type == 'enterprise':
+                # Don't add tokens if this is a renewal with the same plan
+                is_new_subscription = not hasattr(organization, 'previous_plan') or organization.previous_plan != subscription.plan.id
                 
-            subscription.save()
-            
-            # Create a payment record
-            payment_id = session.payment_intent or session.id
-            Payment.objects.create(
-                organization=organization,
-                subscription=subscription,
-                payment_type='subscription',
-                amount=subscription.plan.price,
-                stripe_payment_id=payment_id,
-                status='complete'
-            )
+                if is_new_subscription:
+                    previous_token_count = organization.token_balance
+                    organization.add_tokens(subscription.plan.initial_tokens)
+                    
+                    # Create notification about tokens added
+                    from apps.notifications.services import create_notification
+                    create_notification(
+                        recipient=request.user,
+                        notification_type='payment_received',
+                        title=f"Subscription Tokens Added",
+                        message=f"Your subscription includes {subscription.plan.initial_tokens} token(s), which have been added to your balance."
+                    )
         
         # Mark organization as having completed payment
         organization.onboarding_completed = True
@@ -460,17 +456,32 @@ def cancel_subscription(request):
     try:
         subscription = Subscription.objects.get(organization=organization)
         
-        # Cancel at period end
+        # Cancel at period end or immediately
+        cancel_immediately = request.POST.get('cancel_immediately') == 'true'
+        
         if subscription.stripe_subscription_id:
-            stripe.Subscription.modify(
-                subscription.stripe_subscription_id,
-                cancel_at_period_end=True
-            )
-            
-            subscription.cancel_at_period_end = True
-            subscription.save()
-            
-            messages.success(request, "Your subscription will be canceled at the end of the current billing period.")
+            if cancel_immediately:
+                # Cancel immediately with prorated refund
+                stripe.Subscription.delete(
+                    subscription.stripe_subscription_id,
+                    prorate=True
+                )
+                
+                subscription.status = 'canceled'
+                subscription.save()
+                
+                messages.success(request, "Your subscription has been canceled. A prorated refund will be processed.")
+            else:
+                # Cancel at period end
+                stripe.Subscription.modify(
+                    subscription.stripe_subscription_id,
+                    cancel_at_period_end=True
+                )
+                
+                subscription.cancel_at_period_end = True
+                subscription.save()
+                
+                messages.success(request, "Your subscription will be canceled at the end of the current billing period.")
         else:
             # If no Stripe subscription ID (e.g., for one-time payments), cancel immediately
             subscription.status = 'canceled'
@@ -484,6 +495,37 @@ def cancel_subscription(request):
         return redirect('payments:payment_selection')
     except Exception as e:
         messages.error(request, f"Error canceling subscription: {str(e)}")
+        return redirect('payments:subscription_detail')
+    
+@login_required
+def cancel_subscription_undo(request):
+    """Undo subscription cancellation"""
+    if request.method != 'POST':
+        return redirect('payments:subscription_detail')
+    
+    organization = request.user.organization
+    
+    try:
+        subscription = Subscription.objects.get(organization=organization)
+        
+        if subscription.stripe_subscription_id and subscription.cancel_at_period_end:
+            # Remove cancellation schedule
+            stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                cancel_at_period_end=False
+            )
+            
+            subscription.cancel_at_period_end = False
+            subscription.save()
+            
+            messages.success(request, "Your subscription will continue.")
+        
+        return redirect('payments:subscription_detail')
+    except Subscription.DoesNotExist:
+        messages.warning(request, "You don't have an active subscription.")
+        return redirect('payments:payment_selection')
+    except Exception as e:
+        messages.error(request, f"Error undoing cancellation: {str(e)}")
         return redirect('payments:subscription_detail')
 
 @login_required
@@ -678,7 +720,7 @@ def token_packages(request):
     })
 
 @login_required
-def purchase_tokens(request, package_id=None):
+def purchase_tokens(request):
     """Create Stripe checkout session for token purchase with quantity selection"""
     # Only enterprise users can purchase tokens
     if request.user.organization.type != 'enterprise':
@@ -697,7 +739,7 @@ def purchase_tokens(request, package_id=None):
         messages.error(request, "Please enter a valid token quantity.")
         return redirect('payments:token_packages')
     
-    # Fixed price per token
+    # Fixed price per token - $100
     price_per_token = 100.00
     
     # Calculate total price
@@ -713,11 +755,11 @@ def purchase_tokens(request, package_id=None):
             status='pending'
         )
         
-        # Create product and price in Stripe if needed
-        product_name = "Token"
-        product_description = "Token for publishing pilot opportunities"
+        # Create product and price in Stripe
+        product_name = "Pilot Tokens"
+        product_description = "Tokens for publishing pilot opportunities"
         
-        # Create price for this product
+        # Create price for this purchase
         price = stripe.Price.create(
             unit_amount=int(price_per_token * 100),  # Convert to cents
             currency="usd",

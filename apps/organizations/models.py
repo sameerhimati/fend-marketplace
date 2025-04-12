@@ -74,9 +74,18 @@ class Organization(models.Model):
             self.token_balance -= 1
             self.tokens_used += 1
             self.save(update_fields=['token_balance', 'tokens_used'])
+            
+            # Create an audit entry for token consumption
+            from apps.payments.models import TokenConsumptionLog
+            TokenConsumptionLog.objects.create(
+                organization=self,
+                tokens_consumed=1,
+                action_type='pilot_publish',
+                notes="Token consumed for pilot publication"
+            )
             return True
         return False
-    
+        
     def add_tokens(self, quantity):
         """Add tokens to the organization's balance"""
         self.token_balance += quantity
@@ -85,15 +94,12 @@ class Organization(models.Model):
         return self.token_balance
         
     def can_create_pilot(self):
-        """Check if the organization can create new pilots"""
+        """Check if the organization can create new pilots (draft only)"""
         if self.type != 'enterprise':
             return False
         
-        # Only need platform access (subscription) to create draft pilots
-        try:
-            return self.subscription.is_active()
-        except (Subscription.DoesNotExist, AttributeError):
-            return False
+        # Only need platform access (active subscription) to create draft pilots
+        return self.has_active_subscription()
             
     def can_publish_pilot(self):
         """Check if the organization can publish pilots (requires tokens)"""

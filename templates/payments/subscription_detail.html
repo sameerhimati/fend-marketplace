@@ -66,15 +66,22 @@
                     {% if organization.type == 'enterprise' %}
                     <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                         <dt class="text-sm font-medium text-gray-500">
-                            Pilot Capacity
+                            Pilot Publishing Capacity
                         </dt>
                         <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                             {% if subscription.status != 'active' %}
                                 <span class="text-yellow-600">Your subscription is not active. Please complete the payment process to access pilot publishing.</span>
-                            {% elif subscription.plan.pilot_limit == 0 %}
-                                <span class="text-green-600 font-medium">Unlimited</span> published pilots allowed
                             {% else %}
-                                <span class="font-medium">{{ subscription.remaining_pilots }}</span> of {{ subscription.plan.pilot_limit }} pilots remaining
+                                <div>
+                                    <div class="flex items-baseline">
+                                        <span class="text-lg font-medium text-indigo-600">{{ organization.token_balance }}</span>
+                                        <span class="ml-1 text-sm text-gray-500">tokens available</span>
+                                    </div>
+                                    <p class="mt-1 text-sm text-gray-500">Each token allows you to publish one pilot opportunity.</p>
+                                    {% if organization.token_balance == 0 %}
+                                        <p class="mt-2"><a href="{% url 'payments:token_packages' %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Purchase Tokens</a></p>
+                                    {% endif %}
+                                </div>
                             {% endif %}
                         </dd>
                     </div>
@@ -93,41 +100,143 @@
                 </dl>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
-                <div class="flex justify-between">
-                    {% if subscription.status == 'active' %}
-                        <div>
-                            {% if subscription.plan.plan_type == 'startup_monthly' or subscription.plan.plan_type == 'enterprise_single' %}
-                                <a href="{% url 'payments:upgrade_subscription' %}" 
-                                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                                    Upgrade Plan
-                                </a>
-                            {% endif %}
-                        </div>
-                        
-                        {% if not subscription.cancel_at_period_end %}
-                            <form method="post" action="{% url 'payments:cancel_subscription' %}" onsubmit="return confirm('Are you sure you want to cancel your subscription? You will still have access until the end of your current billing period.')">
+            {% if subscription.status == 'active' %}
+                <div class="px-4 py-5 sm:px-6 bg-gray-50 border-t border-gray-200">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Cancel Subscription
+                    </h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                        You can cancel your subscription at any time.
+                    </p>
+                    
+                    {% if not subscription.cancel_at_period_end %}
+                        <div class="mt-4 space-y-4">
+                            <form method="post" action="{% url 'payments:cancel_subscription' %}" class="inline" id="cancel-form">
                                 {% csrf_token %}
-                                <button type="submit" 
-                                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <input type="hidden" name="cancel_immediately" id="cancel-immediately" value="false">
+                                
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <input type="radio" id="cancel-end-period" name="cancel_type" value="end_period" checked 
+                                            class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                                        <label for="cancel-end-period" class="ml-3 block text-sm font-medium text-gray-700">
+                                            Cancel at the end of the billing period
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="radio" id="cancel-now" name="cancel_type" value="now" 
+                                            class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                                        <label for="cancel-now" class="ml-3 block text-sm font-medium text-gray-700">
+                                            Cancel immediately with prorated refund
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <button type="button" id="cancel-submit-btn"
+                                        class="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                     Cancel Subscription
                                 </button>
                             </form>
-                        {% else %}
-                            <div class="text-gray-500 text-sm italic">
-                                Your subscription will cancel on {{ subscription.current_period_end|date:"F j, Y" }}
-                            </div>
-                        {% endif %}
+                            
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const cancelForm = document.getElementById('cancel-form');
+                                    const cancelImmediatelyInput = document.getElementById('cancel-immediately');
+                                    const cancelNowRadio = document.getElementById('cancel-now');
+                                    const cancelEndPeriodRadio = document.getElementById('cancel-end-period');
+                                    const cancelSubmitBtn = document.getElementById('cancel-submit-btn');
+                                    
+                                    cancelSubmitBtn.addEventListener('click', function() {
+                                        if (cancelNowRadio.checked) {
+                                            cancelImmediatelyInput.value = 'true';
+                                            if (confirm('Are you sure you want to cancel your subscription immediately? You will receive a prorated refund for the unused portion.')) {
+                                                cancelForm.submit();
+                                            }
+                                        } else {
+                                            cancelImmediatelyInput.value = 'false';
+                                            if (confirm('Are you sure you want to cancel your subscription at the end of the billing period?')) {
+                                                cancelForm.submit();
+                                            }
+                                        }
+                                    });
+                                });
+                            </script>
+                        </div>
                     {% else %}
-                        <a href="{% url 'payments:payment_selection' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                            Activate Subscription
-                        </a>
+                        <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        Your subscription is scheduled to cancel on {{ subscription.current_period_end|date:"F j, Y" }}.
+                                    </p>
+                                    
+                                    <form method="post" action="{% url 'payments:cancel_subscription_undo' %}" class="mt-2">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-sm font-medium text-yellow-700 underline">
+                                            Continue subscription
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     {% endif %}
+                </div>
+            {% endif %}
+
+        <!-- Token Information Section -->
+        {% if organization.type == 'enterprise' %}
+        <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h2 class="text-lg leading-6 font-medium text-gray-900">
+                    Token Information
+                </h2>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                    Tokens are required to publish pilot opportunities.
+                </p>
+            </div>
+
+            <div class="px-4 py-5 sm:p-6">
+                <div class="sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Current Token Balance</h3>
+                        <div class="mt-2 flex items-baseline">
+                            <span class="text-3xl font-semibold text-indigo-600">{{ organization.token_balance }}</span>
+                            <span class="ml-2 text-sm text-gray-500">tokens available</span>
+                        </div>
+                    </div>
+                    <div class="mt-5 sm:mt-0">
+                        <a href="{% url 'payments:token_packages' %}" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                            Purchase Tokens
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-6 border-t border-gray-200 pt-6">
+                    <dl class="sm:divide-y sm:divide-gray-200">
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Total Purchased</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ organization.tokens_purchased }}</dd>
+                        </div>
+                        <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">Total Used</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ organization.tokens_used }}</dd>
+                        </div>
+                    </dl>
+                    <div class="mt-6">
+                        <a href="{% url 'payments:token_history' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                            View Token History →
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Payment History -->
         <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
