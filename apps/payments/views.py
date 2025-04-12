@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.pilots.models import PilotTransaction
 from apps.notifications.services import create_bid_notification, create_pilot_notification
 
-from .models import PricingPlan, Subscription, Payment
+from .models import PricingPlan, Subscription, Payment, TokenPackage, TokenTransaction
 from apps.organizations.models import Organization
 
 import stripe
@@ -286,6 +286,23 @@ def stripe_webhook(request):
         # Get metadata
         organization_id = session.metadata.get('organization_id')
         subscription_id = session.metadata.get('subscription_id')
+        transaction_id = session.metadata.get('transaction_id')
+
+        if transaction_id:
+            try:
+                transaction = TokenTransaction.objects.get(id=transaction_id)
+                
+                # Update transaction with payment intent
+                transaction.stripe_payment_id = session.payment_intent or session.id
+                
+                # Mark transaction as completed (this will add tokens to organization)
+                transaction.mark_completed()
+                
+                print(f"Token purchase completed: {transaction}")
+            except TokenTransaction.DoesNotExist:
+                print(f"Error processing token transaction: Transaction {transaction_id} not found")
+            except Exception as e:
+                print(f"Error processing token transaction: {e}")
         
         if organization_id and subscription_id:
             try:
@@ -642,3 +659,161 @@ def transaction_cancel(request, transaction_id):
     
     messages.warning(request, "Payment was cancelled. You can try again later.")
     return redirect('pilots:bid_detail', pk=transaction.pilot_bid.id)
+
+
+@login_required
+def token_packages(request):
+    """View for listing available token packages"""
+    # Only enterprise users can purchase tokens
+    if request.user.organization.type != 'enterprise':
+        messages.error(request, "Only enterprise organizations can purchase tokens.")
+        return redirect('organizations:dashboard')
+    
+    # Get all active token packages
+    packages = TokenPackage.get_available_packages()
+    
+    return render(request, 'payments/token_packages.html', {
+        'packages': packages,
+        'organization': request.user.organization
+    })
+
+@login_required
+def purchase_tokens(request, package_id):
+    """Create Stripe checkout session for token purchase"""
+    # Only enterprise users can purchase tokens
+    if request.user.organization.type != 'enterprise':
+        messages.error(request, "Only enterprise organizations can purchase tokens.")
+        return redirect('organizations:dashboard')
+    
+    # Get the selected package
+    package = get_object_or_404(TokenPackage, id=package_id, is_active=True)
+    
+    try:
+        # Create token transaction
+        transaction = TokenTransaction.objects.create(
+            organization=request.user.organization,
+            package=package,
+            token_count=package.token_count,
+            amount=package.price,
+            status='pending'
+        )
+        
+        # Create Stripe price if not exists
+        if not package.stripe_price_id:
+            price = stripe.Price.create(
+                unit_amount=int(package.price * 100),  # Convert to cents
+                currency="usd",
+                product_data={
+                    "name": f"Token Package: {package.name}",
+                    "description": f"{package.token_count} tokens for pilot publishing"
+                },
+            )
+            package.stripe_price_id = price.id
+            package.save()
+        
+        # Create checkout session
+        checkout_session = stripe.checkout.Session.create(
+            customer=request.user.organization.stripe_customer_id,
+            payment_method_types=['card'],
+            line_items=[{
+                'price': package.stripe_price_id,
+                'quantity': 1
+            }],
+            mode='payment',
+            success_url=request.build_absolute_uri(
+                reverse('payments:token_purchase_success')
+            ) + f"?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=request.build_absolute_uri(
+                reverse('payments:token_purchase_cancel')
+            ),
+            metadata={
+                'transaction_id': transaction.id,
+                'organization_id': request.user.organization.id,
+                'package_id': package.id,
+                'token_count': package.token_count
+            }
+        )
+        
+        # Update transaction with checkout ID
+        transaction.stripe_checkout_id = checkout_session.id
+        transaction.save()
+        
+        return redirect(checkout_session.url)
+    
+    except Exception as e:
+        messages.error(request, f"Error creating checkout session: {str(e)}")
+        return redirect('payments:token_packages')
+
+@login_required
+def token_purchase_success(request):
+    """Handle successful token purchase"""
+    session_id = request.GET.get('session_id')
+    if not session_id:
+        messages.error(request, "Invalid checkout session")
+        return redirect('payments:token_packages')
+    
+    try:
+        # Retrieve the session
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        # Get transaction from metadata
+        transaction_id = session.metadata.get('transaction_id')
+        
+        if not transaction_id:
+            messages.error(request, "Invalid checkout data")
+            return redirect('payments:token_packages')
+        
+        # Get the transaction
+        transaction = get_object_or_404(TokenTransaction, id=transaction_id)
+        
+        # Verify the organization matches the logged in user
+        if request.user.organization.id != transaction.organization.id:
+            messages.error(request, "You do not have permission to access this checkout")
+            return redirect('payments:token_packages')
+        
+        # If payment is complete, finalize the transaction
+        if session.payment_status == 'paid':
+            transaction.stripe_payment_id = session.payment_intent
+            transaction.mark_completed()
+            
+            messages.success(request, f"Successfully purchased {transaction.token_count} tokens!")
+        else:
+            messages.warning(request, "Your payment is still being processed. Tokens will be added once payment is complete.")
+        
+        return redirect('payments:token_history')
+        
+    except Exception as e:
+        messages.error(request, f"Error processing payment: {str(e)}")
+        return redirect('payments:token_packages')
+
+@login_required
+def token_purchase_cancel(request):
+    """Handle cancelled token purchase"""
+    messages.warning(request, "Token purchase cancelled")
+    return redirect('payments:token_packages')
+
+@login_required
+def token_history(request):
+    """View token purchase history"""
+    # Only enterprise users can view token history
+    if request.user.organization.type != 'enterprise':
+        messages.error(request, "Only enterprise organizations can view token history.")
+        return redirect('organizations:dashboard')
+    
+    # Get all token transactions for the organization
+    transactions = TokenTransaction.objects.filter(
+        organization=request.user.organization
+    ).order_by('-created_at')
+    
+    # Get pilots that consumed tokens
+    from apps.pilots.models import Pilot
+    token_pilots = Pilot.objects.filter(
+        organization=request.user.organization,
+        token_consumed=True
+    ).order_by('-published_at')
+    
+    return render(request, 'payments/token_history.html', {
+        'transactions': transactions,
+        'token_pilots': token_pilots,
+        'organization': request.user.organization
+    })

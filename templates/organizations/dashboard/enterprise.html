@@ -59,6 +59,67 @@
             </div>
         </div>
         
+        <!-- Token Management Section -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-medium text-gray-900">Token Management</h2>
+                <a href="{% url 'payments:token_history' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                    View Token History →
+                </a>
+            </div>
+            
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Your Token Balance</h3>
+                            <div class="mt-2 flex items-baseline">
+                                <span class="text-3xl font-semibold text-indigo-600">{{ request.user.organization.token_balance }}</span>
+                                <span class="ml-2 text-sm text-gray-500">tokens available</span>
+                            </div>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Each token allows you to publish one pilot opportunity
+                            </p>
+                        </div>
+                        <div class="mt-5 sm:mt-0 sm:ml-6 sm:flex-shrink-0">
+                            <a href="{% url 'payments:token_packages' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Purchase Tokens
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Token Usage Stats -->
+                    <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="px-4 py-5 sm:p-6">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Total Tokens Purchased
+                                    </dt>
+                                    <dd class="mt-1 text-3xl font-semibold text-gray-900">
+                                        {{ request.user.organization.tokens_purchased }}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                            <div class="px-4 py-5 sm:p-6">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Total Tokens Used
+                                    </dt>
+                                    <dd class="mt-1 text-3xl font-semibold text-gray-900">
+                                        {{ request.user.organization.tokens_used }}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Discover Enterprise Partners Section -->
         <div class="mb-12">
             <div class="flex justify-between items-center mb-4">

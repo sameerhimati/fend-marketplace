@@ -179,3 +179,83 @@ class PilotTransaction(models.Model):
     def calculate_fee(self):
         """Calculate the fee for this transaction"""
         return (self.amount * self.fee_percentage) / 100
+    
+
+class TokenPackage(models.Model):
+    """Defines available token packages for purchase"""
+    name = models.CharField(max_length=100)
+    token_count = models.IntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    class Meta:
+        ordering = ['price']
+    
+    def __str__(self):
+        return f"{self.name} ({self.token_count} tokens for ${self.price})"
+    
+    def price_per_token(self):
+        """Calculate price per token"""
+        if self.token_count > 0:
+            return self.price / self.token_count
+        return 0
+    
+    @classmethod
+    def get_available_packages(cls):
+        """Return all active token packages"""
+        return cls.objects.filter(is_active=True).order_by('price')
+
+
+class TokenTransaction(models.Model):
+    """Records token purchase transactions"""
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.CASCADE,
+        related_name='token_transactions'
+    )
+    package = models.ForeignKey(
+        TokenPackage,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='transactions'
+    )
+    token_count = models.IntegerField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    stripe_payment_id = models.CharField(max_length=100)
+    stripe_checkout_id = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(
+        max_length=20, 
+        choices=[
+            ('pending', 'Pending'),
+            ('completed', 'Completed'),
+            ('cancelled', 'Cancelled'),
+            ('failed', 'Failed')
+        ],
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.organization.name} - {self.token_count} tokens (${self.amount})"
+        
+    def mark_completed(self):
+        """Mark transaction as completed and add tokens to organization"""
+        if self.status != 'completed':
+            self.status = 'completed'
+            self.completed_at = timezone.now()
+            self.save()
+            
+            # Add tokens to organization
+            self.organization.add_tokens(self.token_count)
+            
+            # Create notification for successful token purchase
+            from apps.notifications.services import create_notification
+            create_notification(
+                recipient=self.organization.members.first(),  # Send to first member (likely admin)
+                notification_type='payment_received',
+                title=f"Token Purchase Successful",
+                message=f"Your purchase of {self.token_count} tokens has been completed successfully."
+            )

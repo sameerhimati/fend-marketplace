@@ -6,6 +6,8 @@ from django.conf import settings
 from django.dispatch import receiver
 import phonenumbers
 
+
+
 class Organization(models.Model):
     ORGANIZATION_TYPES = (
         ('enterprise', 'Enterprise'),
@@ -57,21 +59,54 @@ class Organization(models.Model):
     stripe_customer_id = models.CharField(max_length=100, blank=True, null=True)
     has_payment_method = models.BooleanField(default=False)
     free_trial_used = models.BooleanField(default=False)
+
+    token_balance = models.IntegerField(default=0, help_text="Current number of available tokens")
+    tokens_used = models.IntegerField(default=0, help_text="Total number of tokens used")
+    tokens_purchased = models.IntegerField(default=0, help_text="Total number of tokens purchased")
+
+    def has_available_tokens(self):
+        """Check if organization has tokens available for publishing pilots"""
+        return self.token_balance > 0
     
-    def has_active_subscription(self):
-        """Check if organization has an active subscription"""
-        try:
-            return self.subscription.is_active()
-        except (Subscription.DoesNotExist, AttributeError):
-            return False
-            
+    def consume_token(self):
+        """Consume a token for publishing a pilot. Returns True if successful."""
+        if self.token_balance > 0:
+            self.token_balance -= 1
+            self.tokens_used += 1
+            self.save(update_fields=['token_balance', 'tokens_used'])
+            return True
+        return False
+    
+    def add_tokens(self, quantity):
+        """Add tokens to the organization's balance"""
+        self.token_balance += quantity
+        self.tokens_purchased += quantity
+        self.save(update_fields=['token_balance', 'tokens_purchased'])
+        return self.token_balance
+        
     def can_create_pilot(self):
         """Check if the organization can create new pilots"""
         if self.type != 'enterprise':
             return False
         
+        # Only need platform access (subscription) to create draft pilots
         try:
-            return self.subscription.can_create_pilot()
+            return self.subscription.is_active()
+        except (Subscription.DoesNotExist, AttributeError):
+            return False
+            
+    def can_publish_pilot(self):
+        """Check if the organization can publish pilots (requires tokens)"""
+        if not self.can_create_pilot():
+            return False
+            
+        # Check if organization has tokens available
+        return self.has_available_tokens()
+    
+    def has_active_subscription(self):
+        """Check if organization has an active subscription"""
+        try:
+            return self.subscription.is_active()
         except (Subscription.DoesNotExist, AttributeError):
             return False
 
