@@ -32,6 +32,7 @@ def reverse_func(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ('organizations', '0004_add_token_fields'),
+        ('payments', '0001_initial'),
     ]
 
     operations = [

@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        #('organizations', '0005_initialize_tokens'),
+        ('organizations', '0005_initialize_tokens'),
         ('pilots', '0005_add_token_tracking'),
     ]
 
