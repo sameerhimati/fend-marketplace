@@ -172,19 +172,20 @@ class PilotTransaction(models.Model):
 class TokenPackage(models.Model):
     """Defines available token packages for purchase"""
     name = models.CharField(max_length=100)
-    price_per_token = models.DecimalField(max_digits=10, decimal_places=2)  # Base price per token
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=100)  # Base price per token
     description = models.TextField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     stripe_price_id = models.CharField(max_length=100, blank=True, null=True)
+    token_count = models.PositiveIntegerField(default=1)
     
     class Meta:
-        ordering = ['price_per_token']
+        ordering = ['price']
     
     def __str__(self):
-        return f"{self.name} (${self.price_per_token} per token)"
+        return f"{self.name} (${self.price} per token)"
     
     def get_quantity_price(self):
-        return self.price_per_token
+        return self.price
     
     def calculate_total_price(self, quantity):
         """Calculate total price for a quantity of tokens with discount applied"""
@@ -196,7 +197,7 @@ class TokenPackage(models.Model):
         package, created = cls.objects.get_or_create(
             name="Standard Token",
             defaults={
-                "price_per_token": 100.00,
+                "price": 100.00,
                 "description": "Tokens for publishing pilot opportunities",
                 "is_active": True
             }
@@ -206,7 +207,7 @@ class TokenPackage(models.Model):
     @classmethod
     def get_available_packages(cls):
         """Get all active token packages"""
-        return cls.objects.filter(is_active=True).order_by('price_per_token')
+        return cls.objects.filter(is_active=True).order_by('price')
 
 
 class TokenTransaction(models.Model):
