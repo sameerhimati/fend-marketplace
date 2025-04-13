@@ -3,7 +3,7 @@ from django.db import models
 from apps.organizations.models import Organization, PilotDefinition
 from django.core.exceptions import ValidationError
 from apps.payments.models import PilotTransaction
-from time import timezone
+from django.utils import timezone as timezone
 from datetime import timedelta
 
 class Pilot(models.Model):
@@ -90,7 +90,7 @@ class Pilot(models.Model):
                     "Your organization doesn't have any tokens available. Please purchase tokens to publish pilots."
                 )
             
-            # Set published_at timestamp
+            # Set published_at timestamp - FIX: Use django.utils.timezone
             self.published_at = timezone.now()
             
             # Mark that this will consume a token
