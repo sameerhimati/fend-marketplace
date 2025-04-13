@@ -29,6 +29,7 @@ staticfiles/
 
 # Virtual Environment
 venv/
+.venv/
 ENV/
 
 # VS Code
