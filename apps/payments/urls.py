@@ -15,6 +15,7 @@ urlpatterns = [
     path('transaction/<int:transaction_id>/success/', views.transaction_success, name='transaction_success'),
     path('transaction/<int:transaction_id>/cancel/', views.transaction_cancel, name='transaction_cancel'),
     path('tokens/', views.token_packages, name='token_packages'),
+    path('tokens/purchase/', views.purchase_tokens, name='purchase_tokens'),
     path('tokens/purchase/<int:package_id>/', views.purchase_tokens, name='purchase_tokens'),
     path('tokens/success/', views.token_purchase_success, name='token_purchase_success'),
     path('tokens/cancel/', views.token_purchase_cancel, name='token_purchase_cancel'),

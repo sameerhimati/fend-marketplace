@@ -751,10 +751,10 @@ def purchase_tokens(request):
         return redirect('payments:token_packages')
     
     # Fixed price per token - $100
-    price = 100.00
+    price_per_token = 100.00
     
     # Calculate total price
-    amount = price * quantity
+    amount = price_per_token * quantity
     
     try:
         # Create token transaction
@@ -768,16 +768,17 @@ def purchase_tokens(request):
         
         # Create product and price in Stripe
         product_name = "Pilot Tokens"
-        product_description = "Tokens for publishing pilot opportunities"
         
-        # Create price for this purchase
+        # First create product
+        product = stripe.Product.create(
+            name=product_name,
+        )
+        
+        # Then create price using the product ID
         price = stripe.Price.create(
-            unit_amount=int(price * 100),  # Convert to cents
+            unit_amount=int(price_per_token * 100),  # Convert to cents
             currency="usd",
-            product_data={
-                "name": product_name,
-                "description": product_description
-            },
+            product=product.id,  # Pass the product ID, not nested product_data object
         )
         
         # Create checkout session
