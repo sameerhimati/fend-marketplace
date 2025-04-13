@@ -1,3 +1,15 @@
+# fend/middleware.py
+class AuthenticationFlowMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Just pass through during initial testing phase
+        response = self.get_response(request)
+        return response
+
+# When ready to enable:
+"""
 class AuthenticationFlowMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -30,3 +42,4 @@ class AuthenticationFlowMiddleware:
         
         response = self.get_response(request)
         return response
+"""

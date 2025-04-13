@@ -1,3 +1,4 @@
+# apps/payments/middleware.py
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
@@ -5,42 +6,67 @@ from django.contrib import messages
 class SubscriptionRequiredMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
+        # All paths are exempt during initial testing
+        self.exempt_paths_prefixes = [
+            '/',  # Exempt everything for now
+        ]
+
+    def is_path_exempt(self, path):
+        """Check if the requested path starts with any exempt prefix."""
+        # Always return True during initial testing
+        return True
 
     def __call__(self, request):
-        # Process request - check for subscription before accessing protected views
-        if request.user.is_authenticated and request.user.organization.type == 'startup' and not request.path.startswith('/admin/'):
-            # Invert the logic - only restrict specific paths instead of exempting a few
-            # This way we only block pilot-related features
-            restricted_paths = [
-                '/pilots/',  # Pilot listing and details
-            ]
-            
-            # Don't restrict subscription-related paths
-            exempt_paths = [
-                reverse('payments:payment_selection'),
-                reverse('payments:subscription_detail'),
-                reverse('payments:checkout_success'),
-                reverse('payments:checkout_cancel'),
-                reverse('payments:upgrade_subscription'),
-                reverse('payments:stripe_webhook'),
-                '/static/',
-                '/media/',
-                '/admin/',
-            ]
-            
-            # Check if the current path is restricted (pilot-related) but not exempt
-            is_restricted = any(request.path.startswith(path) for path in restricted_paths)
-            is_exempt = any(request.path.startswith(path) for path in exempt_paths)
-            
-            if is_restricted and not is_exempt:
-                # Check if organization has active subscription
-                if not request.user.organization.has_active_subscription():
-                    messages.warning(request, "You need an active subscription to access this feature.")
-                    return redirect('payments:subscription_detail')
-                
-        elif request.user.is_authenticated and request.user.organization.type == 'enterprise' and not request.path.startswith('/admin/'):
-            if not hasattr(request.user, 'organization') or not request.user.organization.onboarding_completed:
-                return redirect('payments:payment_selection')
-            
-        response = self.get_response(request)
-        return response
+        # Just pass through to the next middleware/view for now
+        return self.get_response(request)
+
+# When you're ready to enable actual subscription checks, replace the middleware with:
+# """
+# class SubscriptionRequiredMiddleware:
+#     def __init__(self, get_response):
+#         self.get_response = get_response
+#         # Define paths that DO NOT require an active subscription check
+#         self.exempt_paths_prefixes = [
+#             '/admin/',
+#             '/static/',
+#             '/media/',
+#             '/payments/', 
+#             '/',  # The root path
+#             '/organizations/login/',
+#             '/organizations/logout/',
+#             '/organizations/register/',
+#             '/organizations/registration_complete/',
+#             '/notifications/count/', 
+#         ]
+
+#     def is_path_exempt(self, path):
+#         """Check if the requested path starts with any exempt prefix."""
+#         for prefix in self.exempt_paths_prefixes:
+#             if path.startswith(prefix):
+#                 return True
+#         return False
+
+#     def __call__(self, request):
+#         # Allow anonymous users
+#         if not request.user.is_authenticated:
+#             return self.get_response(request)
+
+#         # Allow access to exempt paths always
+#         if self.is_path_exempt(request.path):
+#             return self.get_response(request)
+
+#         # Check if user has organization
+#         if not hasattr(request.user, 'organization') or not request.user.organization:
+#             # Redirect to landing (they need to register/login properly)
+#             return redirect('landing')
+
+#         # Check for active subscription
+#         if not request.user.organization.has_active_subscription():
+#             # Only add message if not already on subscription page
+#             if request.path != reverse('payments:subscription_detail'):
+#                 messages.warning(request, "You need an active subscription to access this feature.")
+#             return redirect('payments:subscription_detail')
+
+#         # If all checks pass, allow access
+#         return self.get_response(request)
+# """
