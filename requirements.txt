@@ -2,7 +2,7 @@ asgiref==3.8.1
 certifi==2025.1.31
 charset-normalizer==3.4.1
 crispy-tailwind==1.0.3
-Django==5.1.6
+Django
 django-allauth==65.4.1
 django-crispy-forms==2.3
 django-debug-toolbar==5.0.1
