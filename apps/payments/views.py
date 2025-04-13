@@ -22,11 +22,22 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 @login_required
 def payment_selection(request):
     """Show payment plan selection after registration"""
-    organization = request.user.organization
+    # Get the user's organization, handle case when it doesn't exist
+    organization = getattr(request.user, 'organization', None)
+    
+    # If user has no organization, redirect to register
+    if not organization:
+        messages.error(request, "You need to complete registration first.")
+        return redirect('organizations:register')
     
     # If organization already has active subscription, redirect to dashboard
-    if organization.has_active_subscription():
-        return redirect('organizations:dashboard')
+    try:
+        if organization.has_active_subscription():
+            return redirect('organizations:dashboard')
+    except Exception as e:
+        # Handle any unexpected errors during subscription check
+        print(f"Error checking subscription: {e}")
+        # Continue to plan selection as a fallback
     
     # Get available plans based on organization type
     available_plans = PricingPlan.get_available_plans(organization.type)
@@ -740,10 +751,10 @@ def purchase_tokens(request):
         return redirect('payments:token_packages')
     
     # Fixed price per token - $100
-    price_per_token = 100.00
+    price = 100.00
     
     # Calculate total price
-    amount = price_per_token * quantity
+    amount = price * quantity
     
     try:
         # Create token transaction
@@ -761,7 +772,7 @@ def purchase_tokens(request):
         
         # Create price for this purchase
         price = stripe.Price.create(
-            unit_amount=int(price_per_token * 100),  # Convert to cents
+            unit_amount=int(price * 100),  # Convert to cents
             currency="usd",
             product_data={
                 "name": product_name,
