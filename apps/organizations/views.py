@@ -87,7 +87,7 @@ class OrganizationRegistrationView(CreateView):
             login(self.request, user)
             
             # Redirect to completion page
-            return redirect('organizations:registration_complete')
+            return redirect('payments:payment_selection')
         
         except Exception as e:
             print(f"Error completing registration: {e}")

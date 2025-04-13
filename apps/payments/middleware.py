@@ -8,7 +8,7 @@ class SubscriptionRequiredMiddleware:
 
     def __call__(self, request):
         # Process request - check for subscription before accessing protected views
-        if request.user.is_authenticated and request.user.organization.type == 'startup':
+        if request.user.is_authenticated and request.user.organization.type == 'startup' and not request.path.startswith('/admin/'):
             # Invert the logic - only restrict specific paths instead of exempting a few
             # This way we only block pilot-related features
             restricted_paths = [
@@ -37,6 +37,10 @@ class SubscriptionRequiredMiddleware:
                 if not request.user.organization.has_active_subscription():
                     messages.warning(request, "You need an active subscription to access this feature.")
                     return redirect('payments:subscription_detail')
-        
+                
+        elif request.user.is_authenticated and request.user.organization.type == 'enterprise' and not request.path.startswith('/admin/'):
+            if not hasattr(request.user, 'organization') or not request.user.organization.onboarding_completed:
+                return redirect('payments:payment_selection')
+            
         response = self.get_response(request)
         return response
