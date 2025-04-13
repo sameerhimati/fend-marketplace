@@ -52,13 +52,20 @@ class SubscriptionRequiredMiddleware:
             messages.error(request, "Your account needs to be properly set up. Please sign out and register again.")
             return redirect('landing')
 
-        # Check for active subscription
+        # Check for active subscription - EXPLICITLY FOR BOTH STARTUPS AND ENTERPRISES
+        # Specifically handle startups here
         if not request.user.organization.has_active_subscription():
-            # User needs a subscription, redirect them ONCE to the detail page
-            # Only add the message if not already on the target page to avoid duplicate messages on loop attempt
-            if request.path != reverse('payments:subscription_detail'):
-                 messages.warning(request, "You need an active subscription to access this feature.")
-            return redirect('payments:subscription_detail') # Redirect ALL users without active sub here
+            # Check if this is a startup user
+            if request.user.organization.type == 'startup':
+                # Ensure startup users need subscriptions too
+                if request.path != reverse('payments:subscription_detail'):
+                    messages.warning(request, "Your startup account requires an active subscription to access this feature.")
+                return redirect('payments:subscription_detail')
+            else:
+                # Enterprise users
+                if request.path != reverse('payments:subscription_detail'):
+                    messages.warning(request, "You need an active subscription to access this feature.")
+                return redirect('payments:subscription_detail')
 
         # If user is authenticated, path not exempt, and subscription is active, allow access
         return self.get_response(request)
