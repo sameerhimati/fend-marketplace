@@ -28,7 +28,7 @@
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
                     {% for plan in plans %}
                     <div class="plan-card relative rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 {% if current_subscription.plan.id == plan.id %}border-blue-500 ring-2 ring-blue-500{% endif %}"
-                         data-plan-id="{{ plan.id }}">
+                        data-plan-id="{{ plan.id }}">
                         {% if current_subscription.plan.id == plan.id %}
                         <div class="absolute top-0 right-0 bg-blue-500 text-white text-xs px-2 py-1">
                             Current Plan
@@ -61,7 +61,7 @@
                             </div>
                             
                             <div class="mt-6">
-                                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+                            <!-- <h3 class="text-sm font-medium text-gray-900">What's included</h3> -->
                                 <ul class="mt-2 space-y-2">
                                     {% if organization.type == 'startup' %}
                                         <li class="flex items-start">
@@ -88,50 +88,77 @@
                                             </div>
                                             <p class="ml-2 text-sm text-gray-700">5% transaction fee on successful pilots</p>
                                         </li>
-                                    {% elif organization.type == 'enterprise' %}
-                                        {% if plan.plan_type == 'enterprise_single' %}
-                                            <li class="flex items-start">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <p class="ml-2 text-sm text-gray-700">Create 1 pilot opportunity</p>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <p class="ml-2 text-sm text-gray-700">Valid for 1 year</p>
-                                            </li>
-                                        {% else %}
-                                            <li class="flex items-start">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <p class="ml-2 text-sm text-gray-700">Create unlimited pilot opportunities</p>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <p class="ml-2 text-sm text-gray-700">Billed annually</p>
-                                            </li>
-                                        {% endif %}
+                                        {% if plan.plan_type == 'startup_yearly' %}
                                         <li class="flex items-start">
                                             <div class="flex-shrink-0">
                                                 <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                 </svg>
                                             </div>
-                                            <p class="ml-2 text-sm text-gray-700">Access to all startup proposals</p>
+                                            <p class="ml-2 text-sm text-gray-700">Save $20 over monthly plan</p>
                                         </li>
+                                        {% endif %}
+                                    {% elif organization.type == 'enterprise' %}
+                                        <!-- Enterprise benefits vary by plan -->
+                                        {% if plan.plan_type == 'enterprise_monthly' %}
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Full platform access</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">1 token included</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Access to all startup proposals</p>
+                                            </li>
+                                        {% elif plan.plan_type == 'enterprise_yearly' %}
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Full platform access</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">2 tokens included</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Save $300 over monthly plan</p>
+                                            </li>
+                                            <li class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </div>
+                                                <p class="ml-2 text-sm text-gray-700">Access to all startup proposals</p>
+                                            </li>
+                                        {% endif %}
                                     {% endif %}
                                 </ul>
                             </div>

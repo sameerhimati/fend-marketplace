@@ -42,13 +42,16 @@ def payment_selection(request):
     # Get available plans based on organization type
     available_plans = PricingPlan.get_available_plans(organization.type)
     
+    # Sort plans - monthly first, yearly second
+    sorted_plans = sorted(available_plans, key=lambda p: 0 if p.billing_frequency == 'monthly' else 1)
+    
     if request.method == 'POST':
         plan_id = request.POST.get('plan_id')
         
         if not plan_id:
             messages.error(request, "Please select a plan")
             return render(request, 'payments/plan_selection.html', {
-                'plans': available_plans,
+                'plans': sorted_plans,
                 'organization': organization
             })
         
@@ -77,12 +80,12 @@ def payment_selection(request):
         except Exception as e:
             messages.error(request, f"Error creating checkout session: {str(e)}")
             return render(request, 'payments/plan_selection.html', {
-                'plans': available_plans,
+                'plans': sorted_plans,
                 'organization': organization
             })
     
     return render(request, 'payments/plan_selection.html', {
-        'plans': available_plans,
+        'plans': sorted_plans,
         'organization': organization
     })
 
@@ -228,7 +231,17 @@ def checkout_success(request):
                 
                 if is_new_subscription:
                     previous_token_count = organization.token_balance
-                    organization.add_tokens(subscription.plan.initial_tokens)
+                    
+                    # FIX: Calculate the correct number of tokens based on the plan
+                    token_count = subscription.plan.initial_tokens
+                    
+                    # Log for debugging
+                    print(f"Adding {token_count} tokens for plan: {subscription.plan.name}")
+                    
+                    # Update token balance
+                    organization.token_balance = token_count
+                    organization.tokens_purchased = token_count
+                    organization.save()
                     
                     # Create notification about tokens added
                     from apps.notifications.services import create_notification
@@ -236,7 +249,7 @@ def checkout_success(request):
                         recipient=request.user,
                         notification_type='payment_received',
                         title=f"Subscription Tokens Added",
-                        message=f"Your subscription includes {subscription.plan.initial_tokens} token(s), which have been added to your balance."
+                        message=f"Your subscription includes {token_count} token(s), which have been added to your balance."
                     )
         
         # Mark organization as having completed payment
@@ -547,6 +560,9 @@ def upgrade_subscription(request):
     # Get available plans based on organization type
     available_plans = PricingPlan.get_available_plans(organization.type)
     
+    # Sort plans - monthly first, yearly second
+    sorted_plans = sorted(available_plans, key=lambda p: 0 if p.billing_frequency == 'monthly' else 1)
+    
     try:
         current_subscription = Subscription.objects.get(organization=organization)
         original_plan = current_subscription.plan  # Save the original plan
@@ -559,7 +575,7 @@ def upgrade_subscription(request):
         if not plan_id:
             messages.error(request, "Please select a plan")
             return render(request, 'payments/upgrade_subscription.html', {
-                'plans': available_plans,
+                'plans': sorted_plans,
                 'current_subscription': current_subscription
             })
         
@@ -602,7 +618,7 @@ def upgrade_subscription(request):
             except Exception as e:
                 messages.error(request, f"Error upgrading subscription: {str(e)}")
                 return render(request, 'payments/upgrade_subscription.html', {
-                    'plans': available_plans,
+                    'plans': sorted_plans,
                     'current_subscription': current_subscription
                 })
         else:
@@ -613,12 +629,12 @@ def upgrade_subscription(request):
             except Exception as e:
                 messages.error(request, f"Error creating checkout session: {str(e)}")
                 return render(request, 'payments/upgrade_subscription.html', {
-                    'plans': available_plans,
+                    'plans': sorted_plans,
                     'current_subscription': current_subscription
                 })
     
     return render(request, 'payments/upgrade_subscription.html', {
-        'plans': available_plans,
+        'plans': sorted_plans,
         'current_subscription': current_subscription
     })
 
@@ -887,3 +903,20 @@ def token_history(request):
         'token_pilots': token_pilots,
         'organization': request.user.organization
     })
+
+@login_required
+def complete_payment(request):
+    """Complete an incomplete subscription payment"""
+    if request.method != 'POST':
+        return redirect('payments:subscription_detail')
+    
+    subscription_id = request.POST.get('subscription_id')
+    subscription = get_object_or_404(Subscription, id=subscription_id, organization=request.user.organization)
+    
+    # Create a new checkout session for the current plan
+    try:
+        checkout_session = create_checkout_session(request, request.user.organization, subscription.plan, subscription)
+        return redirect(checkout_session.url)
+    except Exception as e:
+        messages.error(request, f"Error creating checkout session: {str(e)}")
+        return redirect('payments:subscription_detail')
