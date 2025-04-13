@@ -1,9 +1,17 @@
 from django.views.generic import TemplateView
+from django.shortcuts import redirect
 from apps.pilots.models import Pilot
 from apps.organizations.models import Organization
 
 class LandingPageView(TemplateView):
     template_name = 'landing.html'
+    
+    def get(self, request, *args, **kwargs):
+        # If user is authenticated, redirect to dashboard
+        if request.user.is_authenticated and hasattr(request.user, 'organization'):
+            return redirect('organizations:dashboard')
+
+        return super().get(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
