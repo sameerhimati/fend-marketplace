@@ -228,7 +228,17 @@ def checkout_success(request):
                 
                 if is_new_subscription:
                     previous_token_count = organization.token_balance
-                    organization.add_tokens(subscription.plan.initial_tokens)
+                    
+                    # FIX: Calculate the correct number of tokens based on the plan
+                    token_count = subscription.plan.initial_tokens
+                    
+                    # Log for debugging
+                    print(f"Adding {token_count} tokens for plan: {subscription.plan.name}")
+                    
+                    # Update token balance
+                    organization.token_balance = token_count
+                    organization.tokens_purchased = token_count
+                    organization.save()
                     
                     # Create notification about tokens added
                     from apps.notifications.services import create_notification
@@ -236,7 +246,7 @@ def checkout_success(request):
                         recipient=request.user,
                         notification_type='payment_received',
                         title=f"Subscription Tokens Added",
-                        message=f"Your subscription includes {subscription.plan.initial_tokens} token(s), which have been added to your balance."
+                        message=f"Your subscription includes {token_count} token(s), which have been added to your balance."
                     )
         
         # Mark organization as having completed payment
