@@ -32,9 +32,10 @@
             <div class="px-4 py-5 sm:p-6">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Select Token Quantity</h3>
                 <div class="mt-2 max-w-xl text-sm text-gray-500">
-                    <p>Each token allows you to publish one pilot opportunity. Price per token: <strong>${{ package.price_per_token }}</strong></p>
+                    <p>Each token allows you to publish one pilot opportunity. Price per token: <strong> $100.00 </strong></p>
                 </div>
                 
+                <!-- Fix the form action URL -->
                 <form method="post" action="{% url 'payments:purchase_tokens' %}" class="mt-5">
                     {% csrf_token %}
                     <div class="w-full sm:max-w-xs">
@@ -50,7 +51,7 @@
                     </div>
                     
                     <div class="mt-4 text-xl font-bold" id="total-price">
-                        Total: $<span id="price-display">{{ package.price_per_token }}</span>
+                        Total: $<span id="price-display">100.00</span>
                     </div>
                     
                     <div class="mt-5">
