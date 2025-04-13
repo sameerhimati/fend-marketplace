@@ -35,7 +35,7 @@
                     <p>Each token allows you to publish one pilot opportunity. Price per token: <strong>${{ package.price_per_token }}</strong></p>
                 </div>
                 
-                <form method="post" action="{% url 'payments:purchase_tokens_custom' %}" class="mt-5">
+                <form method="post" action="{% url 'payments:purchase_tokens' %}" class="mt-5">
                     {% csrf_token %}
                     <div class="w-full sm:max-w-xs">
                         <label for="token_quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
