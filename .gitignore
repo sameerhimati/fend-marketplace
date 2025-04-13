@@ -41,6 +41,6 @@ ENV/
 # OS
 .DS_Store
 
-migrations/*
+*/migrations/__pycache__/
 
 ssh*
