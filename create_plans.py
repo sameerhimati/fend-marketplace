@@ -16,7 +16,6 @@ def create_pricing_plans():
             "plan_type": "startup_monthly",
             "price": 10.00,
             "billing_frequency": "monthly",
-            "pilot_limit": 0,
             "is_active": True
         },
         {
@@ -24,7 +23,6 @@ def create_pricing_plans():
             "plan_type": "startup_yearly",
             "price": 100.00,
             "billing_frequency": "yearly",
-            "pilot_limit": 0,
             "is_active": True
         },
         {
@@ -32,7 +30,6 @@ def create_pricing_plans():
             "plan_type": "enterprise_monthly",
             "price": 100.00,
             "billing_frequency": "monthly",
-            "pilot_limit": 0,  # No pilot limit - using tokens instead
             "is_active": True
         },
         {
@@ -40,7 +37,6 @@ def create_pricing_plans():
             "plan_type": "enterprise_yearly",
             "price": 1000.00,
             "billing_frequency": "yearly",
-            "pilot_limit": 0,  # No pilot limit - using tokens instead
             "is_active": True
         }
     ]
