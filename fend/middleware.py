@@ -19,8 +19,12 @@ class AuthenticationFlowMiddleware:
                     return redirect('landing')
                 
                 # For users without active subscription trying to access dashboard
+                # Explicitly handle both startups and enterprises
                 if request.path == '/organizations/dashboard/' and not request.user.organization.has_active_subscription():
-                    messages.warning(request, "You need an active subscription to access the dashboard.")
+                    if request.user.organization.type == 'startup':
+                        messages.warning(request, "Your startup account requires an active subscription to access the dashboard.")
+                    else:
+                        messages.warning(request, "You need an active subscription to access the dashboard.")
                     return redirect('payments:subscription_detail')
                 
                 # For authenticated users with subscription on landing page

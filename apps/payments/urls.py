@@ -21,4 +21,5 @@ urlpatterns = [
     path('tokens/cancel/', views.token_purchase_cancel, name='token_purchase_cancel'),
     path('tokens/history/', views.token_history, name='token_history'),
     path('subscription/cancel/undo/', views.cancel_subscription_undo, name='cancel_subscription_undo'),
+    path('subscription/complete-payment/', views.complete_payment, name='complete_payment'),
 ]
