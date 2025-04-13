@@ -130,7 +130,12 @@ class EnterpriseDetailsView(UpdateView):
             organization.primary_contact_email = reg_data.get('email')
             
             organization.save()
-            return redirect('organizations:pilot_definition', pk=organization.pk)
+            
+            # Skip pilot definition step and go directly to registration completion
+            view = OrganizationRegistrationView()
+            view.request = self.request
+            return view.complete_registration(organization)
+            
         except Exception as e:
             print(f"Error in enterprise details: {e}")
             messages.error(self.request, "Error updating enterprise details. Please try again.")
