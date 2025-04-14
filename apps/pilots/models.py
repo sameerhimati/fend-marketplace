@@ -167,8 +167,10 @@ class Pilot(models.Model):
     
 
 class PilotBid(models.Model):
-
-    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Transaction fee percentage")
+    # Adjust fee_percentage field and add new fields for split fees
+    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Total transaction fee percentage")
+    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50, help_text="Startup's portion of transaction fee")
+    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50, help_text="Enterprise's portion of transaction fee")
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -199,13 +201,29 @@ class PilotBid(models.Model):
         # Only approved bids can be completed
         if self.status != 'approved':
             return False
+            
         # Create or update transaction
+        from apps.payments.models import PilotTransaction, EnterpriseFeeTransaction
+        
+        # Create main transaction for the startup (includes their fee)
         transaction, created = PilotTransaction.objects.get_or_create(
             pilot_bid=self,
             defaults={
                 'amount': self.amount,
-                'fee_percentage': self.fee_percentage,
-                'fee_amount': (self.amount * self.fee_percentage) / 100,
+                'fee_percentage': self.startup_fee_percentage,
+                'fee_amount': (self.amount * self.startup_fee_percentage) / 100,
+                'status': 'pending'
+            }
+        )
+        
+        # Create enterprise fee transaction
+        enterprise_fee_amount = (self.amount * self.enterprise_fee_percentage) / 100
+        enterprise_fee, _ = EnterpriseFeeTransaction.objects.get_or_create(
+            pilot_bid=self,
+            defaults={
+                'enterprise': self.pilot.organization,
+                'fee_percentage': self.enterprise_fee_percentage,
+                'fee_amount': enterprise_fee_amount,
                 'status': 'pending'
             }
         )

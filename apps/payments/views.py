@@ -9,7 +9,7 @@ from django.utils import timezone
 from apps.pilots.models import PilotTransaction
 from apps.notifications.services import create_bid_notification, create_pilot_notification
 
-from .models import PricingPlan, Subscription, Payment, TokenPackage, TokenTransaction
+from .models import PricingPlan, Subscription, Payment, TokenPackage, TokenTransaction, EnterpriseFeeTransaction
 from apps.organizations.models import Organization
 
 import stripe
@@ -654,15 +654,21 @@ def process_transaction(request, transaction_id):
         return redirect('pilots:bid_detail', pk=transaction.pilot_bid.id)
     
     try:
+        # Total amount including startup's fee portion
+        total_amount = transaction.amount + transaction.fee_amount
+        
         # Create Stripe PaymentIntent
         intent = stripe.PaymentIntent.create(
-            amount=int(transaction.amount * 100),  # Convert to cents
+            amount=int(total_amount * 100),  # Convert to cents
             currency='usd',
             customer=request.user.organization.stripe_customer_id,
             metadata={
                 'transaction_id': transaction.id,
                 'pilot_bid_id': transaction.pilot_bid.id,
-                'pilot_title': transaction.pilot_bid.pilot.title
+                'pilot_title': transaction.pilot_bid.pilot.title,
+                'base_amount': float(transaction.amount),
+                'fee_amount': float(transaction.fee_amount),
+                'fee_percentage': float(transaction.fee_percentage)
             }
         )
         
@@ -690,6 +696,104 @@ def process_transaction(request, transaction_id):
     except Exception as e:
         messages.error(request, f"Error processing payment: {str(e)}")
         return redirect('pilots:bid_detail', pk=transaction.pilot_bid.id)
+    
+@login_required
+def process_enterprise_fee(request, fee_id):
+    """Process the enterprise portion of a pilot transaction fee"""
+    fee_transaction = get_object_or_404(EnterpriseFeeTransaction, id=fee_id)
+    
+    # Check if user is authorized (enterprise that owns the pilot)
+    if request.user.organization != fee_transaction.enterprise:
+        messages.error(request, "You don't have permission to process this fee")
+        return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
+    
+    # Check if fee transaction is pending
+    if fee_transaction.status != 'pending':
+        messages.error(request, "This fee is already being processed")
+        return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
+    
+    try:
+        # Create Stripe PaymentIntent for the fee amount
+        intent = stripe.PaymentIntent.create(
+            amount=int(fee_transaction.fee_amount * 100),  # Convert to cents
+            currency='usd',
+            customer=request.user.organization.stripe_customer_id,
+            metadata={
+                'fee_transaction_id': fee_transaction.id,
+                'pilot_bid_id': fee_transaction.pilot_bid.id,
+                'pilot_title': fee_transaction.pilot_bid.pilot.title,
+                'fee_type': 'enterprise',
+                'fee_amount': float(fee_transaction.fee_amount),
+                'fee_percentage': float(fee_transaction.fee_percentage)
+            }
+        )
+        
+        # Update transaction with PaymentIntent ID
+        fee_transaction.stripe_payment_intent_id = intent.id
+        fee_transaction.status = 'processing'
+        fee_transaction.save()
+        
+        # Create checkout session for the PaymentIntent
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            payment_intent=intent.id,
+            client_reference_id=str(fee_transaction.id),
+            customer=request.user.organization.stripe_customer_id,
+            success_url=request.build_absolute_uri(
+                reverse('payments:enterprise_fee_success', args=[fee_transaction.id])
+            ),
+            cancel_url=request.build_absolute_uri(
+                reverse('payments:enterprise_fee_cancel', args=[fee_transaction.id])
+            ),
+        )
+        
+        return redirect(checkout_session.url)
+    
+    except Exception as e:
+        messages.error(request, f"Error processing fee payment: {str(e)}")
+        return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
+
+@login_required
+def enterprise_fee_success(request, fee_id):
+    """Handle successful enterprise fee payment"""
+    fee_transaction = get_object_or_404(EnterpriseFeeTransaction, id=fee_id)
+    
+    # Security check - only the enterprise can see this
+    if request.user.organization != fee_transaction.enterprise:
+        messages.error(request, "You don't have permission to view this transaction")
+        return redirect('organizations:dashboard')
+    
+    # Mark fee transaction as completed
+    fee_transaction.status = 'completed'
+    fee_transaction.completed_at = timezone.now()
+    fee_transaction.save()
+    
+    # Create notification
+    create_bid_notification(
+        bid=fee_transaction.pilot_bid,
+        notification_type='payment_received',
+        title=f"Platform fee paid: {fee_transaction.pilot_bid.pilot.title}",
+        message=f"Enterprise platform fee of ${fee_transaction.fee_amount} has been processed for pilot '{fee_transaction.pilot_bid.pilot.title}'."
+    )
+    
+    messages.success(request, "Platform fee payment completed successfully!")
+    
+    # Show a success page
+    return render(request, 'payments/enterprise_fee_success.html', {
+        'fee_transaction': fee_transaction
+    })
+
+@login_required
+def enterprise_fee_cancel(request, fee_id):
+    """Handle cancelled enterprise fee payment"""
+    fee_transaction = get_object_or_404(EnterpriseFeeTransaction, id=fee_id)
+    
+    # Reset transaction status
+    fee_transaction.status = 'pending'
+    fee_transaction.save()
+    
+    messages.warning(request, "Fee payment was cancelled. You can try again later.")
+    return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
 
 @login_required
 def transaction_success(request, transaction_id):

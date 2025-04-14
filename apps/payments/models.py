@@ -290,3 +290,24 @@ class TokenConsumptionLog(models.Model):
     
     def __str__(self):
         return f"{self.organization.name} - {self.tokens_consumed} tokens on {self.created_at.strftime('%Y-%m-%d')}"
+    
+class EnterpriseFeeTransaction(models.Model):
+    """Track enterprise fees for completed pilot transactions"""
+    pilot_bid = models.OneToOneField(
+        'pilots.PilotBid', 
+        on_delete=models.CASCADE,
+        related_name='enterprise_fee'
+    )
+    enterprise = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.CASCADE,
+        related_name='fee_transactions'
+    )
+    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50)
+    fee_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=20, default='pending')
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"Enterprise Fee for Bid #{self.pilot_bid.id} - ${self.fee_amount}"
