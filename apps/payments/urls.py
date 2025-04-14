@@ -22,4 +22,7 @@ urlpatterns = [
     path('tokens/history/', views.token_history, name='token_history'),
     path('subscription/cancel/undo/', views.cancel_subscription_undo, name='cancel_subscription_undo'),
     path('subscription/complete-payment/', views.complete_payment, name='complete_payment'),
+    path('enterprise-fee/<int:fee_id>/process/', views.process_enterprise_fee, name='process_enterprise_fee'),
+    path('enterprise-fee/<int:fee_id>/success/', views.enterprise_fee_success, name='enterprise_fee_success'),
+    path('enterprise-fee/<int:fee_id>/cancel/', views.enterprise_fee_cancel, name='enterprise_fee_cancel'),
 ]
