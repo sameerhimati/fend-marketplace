@@ -19,14 +19,16 @@
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <div class="ml-3 flex-1 md:flex md:justify-between">
-                                <p class="text-sm text-blue-700">
-                                    {% if pilot.price > 0 %}
-                                        This pilot requires a minimum bid of <strong>${{ pilot.price }}</strong>
-                                    {% else %}
-                                        This pilot is listed as free, but you can still submit a bid amount if desired.
-                                    {% endif %}
-                                </p>
+                            <div class="ml-3 flex-1">
+                                <h3 class="text-sm font-medium text-blue-700">Platform Fee Information</h3>
+                                <div class="mt-1 text-sm text-blue-700">
+                                    <p>When the pilot is completed, a platform fee will be charged as follows:</p>
+                                    <ul class="list-disc pl-5 mt-1">
+                                        <li>You (the startup) will pay a 2.5% fee</li>
+                                        <li>The enterprise will also pay a 2.5% fee</li>
+                                    </ul>
+                                    <p class="mt-1">Example: For a $1,000 bid, you would pay $25 and the enterprise would pay you $1000 and Fend a $25 fee ($1,000 + $25 fee).</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -71,8 +73,9 @@
                             Bid Amount (USD)
                         </label>
                         <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500 sm:text-sm">$</span>
+                            <div class="mt-2 text-sm text-gray-500">
+                                <p>Your bid amount: <span id="amount-display">$0.00</span></p>
+                                <p>Your platform fee (2.5%): <span id="fee-amount">$0.00</span></p>
                             </div>
                             <input type="number" 
                                    name="{{ form.amount.name }}" 
@@ -125,4 +128,25 @@
         </div>
     </div>
 </div>
+<script>
+    // Function to update the fee calculation in real-time
+    function updateFeeCalculation(bidAmount) {
+        const amount = parseFloat(bidAmount) || 0;
+        const feePercentage = 2.5; // 2.5% platform fee for startup
+        const fee = (amount * feePercentage / 100).toFixed(2);
+        
+        // Update in real-time
+        document.getElementById('amount-display').textContent = `$${amount.toFixed(2)}`;
+        document.getElementById('fee-amount').textContent = `$${fee}`;
+    }
+    
+    // Initialize with current value
+    document.addEventListener('DOMContentLoaded', function() {
+        const bidInput = document.getElementById('{{ form.amount.id_for_label }}');
+        bidInput.addEventListener('input', function() {
+            updateFeeCalculation(this.value);
+        });
+        updateFeeCalculation(bidInput.value);
+    });
+</script>
 {% endblock %}
