@@ -49,6 +49,27 @@
                         {% endif %}
                     </div>
 
+                    <div class="mb-6 bg-blue-50 p-4 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <h3 class="text-sm font-medium text-blue-700">Platform Fee Information</h3>
+                                <div class="mt-1 text-sm text-blue-700">
+                                    <p>When a bid is accepted and the pilot is completed, a platform fee will be charged as follows:</p>
+                                    <ul class="list-disc pl-5 mt-1">
+                                        <li>You (the enterprise) will pay a 2.5% fee</li>
+                                        <li>The startup will also pay a 2.5% fee</li>
+                                    </ul>
+                                    <p class="mt-1">Example: For a $1,000 bid, you would pay the startup $1,000 plus $25 to Fend as a platform fee.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Technical Specs Document -->
                     <div>
                         <label for="{{ form.technical_specs_doc.id_for_label }}" class="block text-sm font-medium text-gray-700">
@@ -121,13 +142,13 @@
                                 min="0"
                                 value="{{ form.price.value|default:'0.00' }}"
                                 class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                                placeholder="0.00"
+                                placeholder="1000.00"
                                 required>
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">USD</span>
                             </div>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Enter fixed price (required). Use 0 for free pilots.</p>
+                        <p class="mt-1 text-xs text-gray-500">Enter fixed price (required).</p>
                         {% if form.price.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.price.errors.0 }}</p>
                         {% endif %}
