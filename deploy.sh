@@ -1,8 +1,26 @@
 #!/bin/bash
 # Deployment script for Fend Marketplace with SSL support
 
+# Exit on any error
+set -e
+
 # Show commands as they're executed
 set -x
+
+# Create logs directory if it doesn't exist
+mkdir -p logs/nginx
+
+# Check if we need to initialize SSL
+if [ ! -d "certbot/conf/live/marketplace.fend.ai" ]; then
+    echo "SSL certificates not found. Running initial SSL setup..."
+    ./init-letsencrypt.sh
+    # If the script fails, continue with HTTP for now
+    if [ $? -ne 0 ]; then
+        echo "SSL setup failed. Continuing with HTTP for now."
+    fi
+else
+    echo "SSL certificates found. Proceeding with HTTPS deployment."
+fi
 
 # Stop running containers
 docker-compose down
@@ -14,7 +32,9 @@ git pull
 docker-compose build --no-cache web
 
 # Check if SSL certificates need renewal
-docker-compose run --rm certbot renew
+if [ -d "certbot/conf/live/marketplace.fend.ai" ]; then
+    docker-compose run --rm certbot renew
+fi
 
 # Start all services in detached mode
 docker-compose up -d
@@ -28,9 +48,6 @@ docker-compose exec web python manage.py migrate
 
 # Update pricing plans and token packages
 docker-compose exec web python create_plans.py
-
-# Fix startup subscriptions
-# docker-compose exec web python create_startup_subscriptions.py
 
 # Fix startup display issues
 docker-compose exec web python fix_startup_display.py
