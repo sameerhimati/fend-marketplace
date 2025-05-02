@@ -44,4 +44,14 @@ ENV/
 
 */migrations/__pycache__/
 
-ssh*
+ssh*# SSL Certificates
+certbot/
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# Docker volumes
+volumes/
