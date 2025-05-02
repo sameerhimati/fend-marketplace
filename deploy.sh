@@ -30,7 +30,7 @@ docker-compose exec web python manage.py migrate
 docker-compose exec web python create_plans.py
 
 # Fix startup subscriptions
-docker-compose exec web python create_startup_subscriptions.py
+# docker-compose exec web python create_startup_subscriptions.py
 
 # Fix startup display issues
 docker-compose exec web python fix_startup_display.py
