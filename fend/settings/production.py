@@ -1,7 +1,7 @@
 from .base import *
 
-# Add your server IP to ALLOWED_HOSTS
-ALLOWED_HOSTS = ['209.38.145.163', 'localhost', '127.0.0.1']
+# Add your domain to ALLOWED_HOSTS
+ALLOWED_HOSTS = ['209.38.145.163', 'localhost', '127.0.0.1', 'marketplace.fend.ai']
 
 # Make sure debug is off in production
 DEBUG = False
@@ -17,4 +17,4 @@ SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Allow CSRF protection to work with HTTPS
-CSRF_TRUSTED_ORIGINS = ['https://209.38.145.163']
+CSRF_TRUSTED_ORIGINS = ['https://marketplace.fend.ai']

@@ -44,7 +44,9 @@ ENV/
 
 */migrations/__pycache__/
 
-ssh*# SSL Certificates
+ssh*
+
+# SSL Certificates
 certbot/
 
 # Environment files
