@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deployment script for Fend Marketplace
+# Deployment script for Fend Marketplace with SSL support
 
 # Show commands as they're executed
 set -x
@@ -12,6 +12,9 @@ git pull
 
 # Build the web container without cache
 docker-compose build --no-cache web
+
+# Check if SSL certificates need renewal
+docker-compose run --rm certbot renew
 
 # Start all services in detached mode
 docker-compose up -d
