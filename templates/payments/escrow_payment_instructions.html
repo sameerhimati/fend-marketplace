@@ -67,27 +67,25 @@
                             <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
                                 <div class="sm:col-span-2">
                                     <dt class="text-sm font-medium text-gray-500">Bank Name</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">First National Bank</dd>
-                                </div>
-                                <div class="sm:col-span-1">
-                                    <dt class="text-sm font-medium text-gray-500">Account Name</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">Fend Marketplace LLC</dd>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ payment.pilot_bid.pilot.organization.bank_name|default:"Please configure bank details in your profile" }}</dd>
                                 </div>
                                 <div class="sm:col-span-1">
                                     <dt class="text-sm font-medium text-gray-500">Account Number</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">XXXXXX1234</dd>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ payment.pilot_bid.pilot.organization.bank_account_number|default:"Please configure bank details in your profile" }}</dd>
                                 </div>
                                 <div class="sm:col-span-1">
                                     <dt class="text-sm font-medium text-gray-500">Routing Number</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">XXXXXX5678</dd>
-                                </div>
-                                <div class="sm:col-span-1">
-                                    <dt class="text-sm font-medium text-gray-500">Bank Address</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">123 Financial St, New York, NY 10001</dd>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ payment.pilot_bid.pilot.organization.bank_routing_number|default:"Please configure bank details in your profile" }}</dd>
                                 </div>
                                 <div class="sm:col-span-2">
                                     <dt class="text-sm font-medium text-gray-500">Reference Code (IMPORTANT)</dt>
-                                    <dd class="mt-1 text-sm font-semibold text-indigo-700 bg-indigo-50 p-2 rounded">{{ payment.reference_code }}</dd>
+                                    <dd class="mt-1 text-sm font-semibold text-indigo-700 bg-indigo-50 p-2 rounded">
+                                        {% if payment.reference_code %}
+                                            {{ payment.reference_code }}
+                                        {% else %}
+                                            <span class="text-red-600">Missing reference code. Please contact support.</span>
+                                        {% endif %}
+                                    </dd>
                                 </div>
                             </dl>
                         </div>

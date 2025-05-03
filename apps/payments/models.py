@@ -352,7 +352,8 @@ class EscrowPayment(models.Model):
             self.reference_code = self.generate_reference_code()
             
         # Now save again with the reference code
-        super().save(*args, **kwargs)
+            return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
     
     def mark_as_instructions_sent(self):
         """Mark payment instructions as sent to enterprise"""

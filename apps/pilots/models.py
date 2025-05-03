@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from apps.payments.models import PilotTransaction
 from django.utils import timezone as timezone
 from datetime import timedelta
+import decimal
 
 class Pilot(models.Model):
     STATUS_CHOICES = (
@@ -201,27 +202,54 @@ class PilotBid(models.Model):
         self.status = 'approved'
         self.save()
         
+        # Update the pilot's price to match the approved bid amount
+        pilot = self.pilot
+        pilot.price = self.amount
+        pilot.save(update_fields=['price'])
+        
         # Calculate payment amounts
-        enterprise_fee_percentage = 2.50
-        startup_fee_percentage = 2.50
-        platform_fee = (self.amount * (enterprise_fee_percentage + startup_fee_percentage)) / 100
+        enterprise_fee_percentage = decimal.Decimal(2.50)
+        startup_fee_percentage = decimal.Decimal(2.50)
+        platform_fee = (self.amount * decimal.Decimal((enterprise_fee_percentage + startup_fee_percentage))) / 100
         total_amount = self.amount + (self.amount * enterprise_fee_percentage / 100)  # Enterprise pays 102.5%
         startup_amount = self.amount  # Startup receives base amount
         
         # Create escrow payment
         from apps.payments.models import EscrowPayment
-        escrow_payment = EscrowPayment.objects.create(
-            pilot_bid=self,
-            total_amount=total_amount,
-            startup_amount=startup_amount,
-            platform_fee=platform_fee,
-            enterprise_fee_percentage=enterprise_fee_percentage,
-            startup_fee_percentage=startup_fee_percentage
-        )
+        try:
+            escrow_payment = EscrowPayment.objects.get(pilot_bid=self)
+        except EscrowPayment.DoesNotExist:
+            escrow_payment = EscrowPayment.objects.create(
+                pilot_bid=self,
+                total_amount=total_amount,
+                startup_amount=startup_amount,
+                platform_fee=platform_fee,
+                enterprise_fee_percentage=enterprise_fee_percentage,
+                startup_fee_percentage=startup_fee_percentage
+            )
         
-        # Mark payment instructions as sent
+        # Handle other pending bids - decline them
+        other_pending_bids = PilotBid.objects.filter(
+            pilot=self.pilot,
+            status__in=['pending', 'under_review']
+        ).exclude(id=self.id)
+        
+        if other_pending_bids.exists():
+            from apps.notifications.services import create_bid_notification
+            for bid in other_pending_bids:
+                bid.status = 'declined'
+                bid.save()
+                
+                # Create notification
+                create_bid_notification(
+                    bid=bid,
+                    notification_type='bid_updated',
+                    title=f"Bid Declined: {bid.pilot.title}",
+                    message=f"Another bid has been accepted for '{bid.pilot.title}', so your bid has been declined."
+                )
+
         escrow_payment.mark_as_instructions_sent()
-        
+    
         # Create notification for both parties
         from apps.notifications.services import create_bid_notification
         create_bid_notification(

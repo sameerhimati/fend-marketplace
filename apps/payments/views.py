@@ -1032,6 +1032,11 @@ def admin_release_payment(request, payment_id):
         messages.error(request, "Payment must be in 'received' status to be released")
         return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
     
+    # Check if pilot is marked as completed
+    if payment.pilot_bid.status != 'completed':
+        messages.error(request, "The pilot must be marked as completed by the enterprise before releasing payment")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
     # Create log entry
     EscrowPaymentLog.objects.create(
         escrow_payment=payment,
