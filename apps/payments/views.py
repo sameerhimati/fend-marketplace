@@ -1,15 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from django.urls import reverse
 from django.contrib import messages
 from django.utils import timezone
-from apps.pilots.models import PilotTransaction
-from apps.notifications.services import create_bid_notification, create_pilot_notification
+from apps.pilots.models import PilotTransaction, PilotBid
+from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 
-from .models import PricingPlan, Subscription, Payment, TokenPackage, TokenTransaction, EnterpriseFeeTransaction
+from .models import PricingPlan, Subscription, Payment, TokenPackage, TokenTransaction, EscrowPayment, EscrowPaymentLog
 from apps.organizations.models import Organization
 
 import stripe
@@ -696,104 +698,6 @@ def process_transaction(request, transaction_id):
     except Exception as e:
         messages.error(request, f"Error processing payment: {str(e)}")
         return redirect('pilots:bid_detail', pk=transaction.pilot_bid.id)
-    
-@login_required
-def process_enterprise_fee(request, fee_id):
-    """Process the enterprise portion of a pilot transaction fee"""
-    fee_transaction = get_object_or_404(EnterpriseFeeTransaction, id=fee_id)
-    
-    # Check if user is authorized (enterprise that owns the pilot)
-    if request.user.organization != fee_transaction.enterprise:
-        messages.error(request, "You don't have permission to process this fee")
-        return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
-    
-    # Check if fee transaction is pending
-    if fee_transaction.status != 'pending':
-        messages.error(request, "This fee is already being processed")
-        return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
-    
-    try:
-        # Create Stripe PaymentIntent for the fee amount
-        intent = stripe.PaymentIntent.create(
-            amount=int(fee_transaction.fee_amount * 100),  # Convert to cents
-            currency='usd',
-            customer=request.user.organization.stripe_customer_id,
-            metadata={
-                'fee_transaction_id': fee_transaction.id,
-                'pilot_bid_id': fee_transaction.pilot_bid.id,
-                'pilot_title': fee_transaction.pilot_bid.pilot.title,
-                'fee_type': 'enterprise',
-                'fee_amount': float(fee_transaction.fee_amount),
-                'fee_percentage': float(fee_transaction.fee_percentage)
-            }
-        )
-        
-        # Update transaction with PaymentIntent ID
-        fee_transaction.stripe_payment_intent_id = intent.id
-        fee_transaction.status = 'processing'
-        fee_transaction.save()
-        
-        # Create checkout session for the PaymentIntent
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            payment_intent=intent.id,
-            client_reference_id=str(fee_transaction.id),
-            customer=request.user.organization.stripe_customer_id,
-            success_url=request.build_absolute_uri(
-                reverse('payments:enterprise_fee_success', args=[fee_transaction.id])
-            ),
-            cancel_url=request.build_absolute_uri(
-                reverse('payments:enterprise_fee_cancel', args=[fee_transaction.id])
-            ),
-        )
-        
-        return redirect(checkout_session.url)
-    
-    except Exception as e:
-        messages.error(request, f"Error processing fee payment: {str(e)}")
-        return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
-
-@login_required
-def enterprise_fee_success(request, fee_id):
-    """Handle successful enterprise fee payment"""
-    fee_transaction = get_object_or_404(EnterpriseFeeTransaction, id=fee_id)
-    
-    # Security check - only the enterprise can see this
-    if request.user.organization != fee_transaction.enterprise:
-        messages.error(request, "You don't have permission to view this transaction")
-        return redirect('organizations:dashboard')
-    
-    # Mark fee transaction as completed
-    fee_transaction.status = 'completed'
-    fee_transaction.completed_at = timezone.now()
-    fee_transaction.save()
-    
-    # Create notification
-    create_bid_notification(
-        bid=fee_transaction.pilot_bid,
-        notification_type='payment_received',
-        title=f"Platform fee paid: {fee_transaction.pilot_bid.pilot.title}",
-        message=f"Enterprise platform fee of ${fee_transaction.fee_amount} has been processed for pilot '{fee_transaction.pilot_bid.pilot.title}'."
-    )
-    
-    messages.success(request, "Platform fee payment completed successfully!")
-    
-    # Show a success page
-    return render(request, 'payments/enterprise_fee_success.html', {
-        'fee_transaction': fee_transaction
-    })
-
-@login_required
-def enterprise_fee_cancel(request, fee_id):
-    """Handle cancelled enterprise fee payment"""
-    fee_transaction = get_object_or_404(EnterpriseFeeTransaction, id=fee_id)
-    
-    # Reset transaction status
-    fee_transaction.status = 'pending'
-    fee_transaction.save()
-    
-    messages.warning(request, "Fee payment was cancelled. You can try again later.")
-    return redirect('pilots:bid_detail', pk=fee_transaction.pilot_bid.id)
 
 @login_required
 def transaction_success(request, transaction_id):
@@ -1024,3 +928,221 @@ def complete_payment(request):
     except Exception as e:
         messages.error(request, f"Error creating checkout session: {str(e)}")
         return redirect('payments:subscription_detail')
+    
+@login_required
+def escrow_payment_instructions(request, payment_id):
+    """Show payment instructions for enterprise"""
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Security check - only the enterprise can see this
+    if request.user.organization != payment.pilot_bid.pilot.organization:
+        messages.error(request, "You don't have permission to view these payment instructions")
+        return redirect('organizations:dashboard')
+    
+    return render(request, 'payments/escrow_payment_instructions.html', {
+        'payment': payment
+    })
+
+@login_required
+def escrow_payment_confirmation(request, payment_id):
+    """Enterprise confirms payment has been sent"""
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Security check - only the enterprise can confirm payment
+    if request.user.organization != payment.pilot_bid.pilot.organization:
+        messages.error(request, "You don't have permission to confirm this payment")
+        return redirect('organizations:dashboard')
+    
+    if request.method == 'POST':
+        wire_date = request.POST.get('wire_date')
+        confirmation = request.POST.get('confirmation')
+        
+        # Validate date
+        try:
+            wire_date = datetime.strptime(wire_date, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Invalid date format")
+            return render(request, 'payments/escrow_payment_confirmation.html', {'payment': payment})
+        
+        # Mark payment as initiated
+        payment.mark_as_payment_initiated(wire_date=wire_date, confirmation=confirmation)
+        
+        messages.success(request, "Payment confirmation received. Thank you!")
+        return redirect('pilots:bid_detail', pk=payment.pilot_bid.id)
+    
+    return render(request, 'payments/escrow_payment_confirmation.html', {
+        'payment': payment
+    })
+
+@login_required
+@staff_member_required
+def admin_escrow_payments(request):
+    """Admin view for all escrow payments"""
+    payments = EscrowPayment.objects.all().order_by('-created_at')
+    
+    return render(request, 'payments/admin_escrow_payments.html', {
+        'payments': payments
+    })
+
+@login_required
+@staff_member_required
+def admin_escrow_payment_detail(request, payment_id):
+    """Admin view for a single escrow payment"""
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    return render(request, 'payments/admin_escrow_payment_detail.html', {
+        'payment': payment
+    })
+
+@login_required
+@staff_member_required
+def admin_mark_payment_received(request, payment_id):
+    """Admin marks payment as received"""
+    if request.method != 'POST':
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Create log entry
+    EscrowPaymentLog.objects.create(
+        escrow_payment=payment,
+        previous_status=payment.status,
+        new_status='received',
+        changed_by=request.user,
+        notes=request.POST.get('notes', '')
+    )
+    
+    # Mark payment as received
+    payment.mark_as_received()
+    
+    messages.success(request, f"Payment {payment.reference_code} marked as received")
+    return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+
+@login_required
+@staff_member_required
+def admin_release_payment(request, payment_id):
+    """Admin releases payment to startup"""
+    if request.method != 'POST':
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Check if payment is in received status
+    if payment.status != 'received':
+        messages.error(request, "Payment must be in 'received' status to be released")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Create log entry
+    EscrowPaymentLog.objects.create(
+        escrow_payment=payment,
+        previous_status=payment.status,
+        new_status='released',
+        changed_by=request.user,
+        notes=request.POST.get('notes', '')
+    )
+    
+    # Mark payment as released
+    payment.mark_as_released()
+    
+    messages.success(request, f"Payment {payment.reference_code} released to startup")
+    return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+
+@login_required
+def update_bid_status(request, pk):
+    """Allow enterprises to update bid status"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    
+    # Check if user has permission (enterprise owner of the pilot)
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to update this bid")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    new_status = request.POST.get('status')
+    valid_statuses = dict(PilotBid.STATUS_CHOICES)
+    if new_status in valid_statuses:
+        old_status = bid.status
+        
+        # Special handling for 'approved' status
+        if new_status == 'approved':
+            # Create escrow payment
+            escrow_payment = bid.mark_as_approved()
+            
+            if escrow_payment:
+                # Redirect to payment instructions
+                messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
+                return redirect('payments:escrow_payment_instructions', payment_id=escrow_payment.id)
+            else:
+                messages.error(request, "Error creating escrow payment record")
+                return redirect('pilots:bid_detail', pk=pk)
+        else:
+            # Normal status update
+            bid.status = new_status
+            bid.save()
+            
+            # Create notification for bid status update
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_updated',
+                title=f"Bid status updated: {bid.pilot.title}",
+                message=f"The status of your bid for '{bid.pilot.title}' has been updated from '{valid_statuses[old_status]}' to '{valid_statuses[new_status]}'."
+            )
+            
+            messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
+    else:
+        messages.error(request, "Invalid status")
+    
+    return redirect('pilots:bid_detail', pk=pk)
+
+@login_required
+def finalize_pilot(request, pk):
+    """Mark a pilot as completed and trigger payment release"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    
+    # Check if user has permission (enterprise owner of the pilot)
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to finalize this pilot")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    # Check if escrow payment exists and has been received
+    if not hasattr(bid, 'escrow_payment') or bid.escrow_payment.status != 'received':
+        messages.error(request, "Payment must be received before the pilot can be marked as completed")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    # Update bid status
+    bid.status = 'completed'
+    bid.completed_at = timezone.now()
+    bid.save()
+    
+    # Notify admins that the pilot is completed and payment is ready for release
+    User = get_user_model()
+    
+    # Get admin users
+    admins = User.objects.filter(is_staff=True)
+    for admin in admins:
+        create_notification(
+            recipient=admin,
+            notification_type='pilot_completed',
+            title=f"Pilot Completed: {bid.pilot.title}",
+            message=f"The pilot '{bid.pilot.title}' has been marked as completed. The payment is ready to be released to the startup.",
+            related_pilot=bid.pilot,
+            related_bid=bid
+        )
+    
+    # Notify both parties
+    create_bid_notification(
+        bid=bid,
+        notification_type='pilot_completed',
+        title=f"Pilot Completed: {bid.pilot.title}",
+        message=f"The pilot '{bid.pilot.title}' has been marked as completed. The payment will be released to the startup soon."
+    )
+    
+    messages.success(request, "Pilot has been marked as completed. The payment will be released to the startup by the Fend team.")
+    return redirect('pilots:bid_detail', pk=pk)

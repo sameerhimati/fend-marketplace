@@ -9,8 +9,10 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-from apps.notifications.services import create_bid_notification, create_pilot_notification
+from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
+from django.contrib.auth import get_user_model
 
+from datetime import timezone
 
 class PilotListView(LoginRequiredMixin, ListView):
     model = Pilot
@@ -462,34 +464,50 @@ def delete_pilot(request, pk):
 
 
 @login_required
-def finalize_pilot(request, bid_id):
-    """Mark a pilot as completed and create payment transaction"""
-    bid = get_object_or_404(PilotBid, id=bid_id)
+def finalize_pilot(request, pk):
+    """Mark a pilot as completed and trigger payment release workflow"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
     
-    # Check if user is authorized (enterprise that owns the pilot)
-    if request.user.organization != bid.pilot.organization:
-        messages.error(request, "You don't have permission to complete this pilot")
-        return redirect('pilots:bid_detail', pk=bid_id)
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
     
-    # Check if bid is in approved status
-    if bid.status != 'approved':
-        messages.error(request, "Only approved bids can be marked as completed")
-        return redirect('pilots:bid_detail', pk=bid_id)
+    # Check if user has permission (enterprise owner of the pilot)
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to finalize this pilot")
+        return redirect('pilots:bid_detail', pk=pk)
     
-    # Create transaction and mark as completed
-    transaction = bid.mark_as_completed()
+    # Check if escrow payment exists and has been received
+    if not hasattr(bid, 'escrow_payment') or bid.escrow_payment.status != 'received':
+        messages.error(request, "Payment must be received before the pilot can be marked as completed")
+        return redirect('pilots:bid_detail', pk=pk)
     
-    if transaction:
-        # Create a notification
-        create_bid_notification(
-            bid=bid,
-            notification_type='bid_updated',
-            title=f"Pilot completed: {bid.pilot.title}",
-            message=f"Your pilot '{bid.pilot.title}' has been marked as completed. A payment of ${bid.amount} will be processed."
+    # Update bid status
+    bid.status = 'completed'
+    bid.completed_at = timezone.now()
+    bid.save()
+
+    User = get_user_model()
+    
+    # Get admin users
+    admins = User.objects.filter(is_staff=True)
+    for admin in admins:
+        create_notification(
+            recipient=admin,
+            notification_type='pilot_completed',
+            title=f"Pilot Completed: {bid.pilot.title}",
+            message=f"The pilot '{bid.pilot.title}' has been marked as completed. The payment is ready to be released to the startup.",
+            related_pilot=bid.pilot,
+            related_bid=bid
         )
-        
-        messages.success(request, "Pilot marked as completed. Payment transaction created.")
-    else:
-        messages.error(request, "Error creating completion transaction")
     
-    return redirect('pilots:bid_detail', pk=bid_id)
+    # Notify both parties
+    create_bid_notification(
+        bid=bid,
+        notification_type='pilot_completed',
+        title=f"Pilot Completed: {bid.pilot.title}",
+        message=f"The pilot '{bid.pilot.title}' has been marked as completed. The payment will be released to the startup soon."
+    )
+    
+    messages.success(request, "Pilot has been marked as completed. The payment will be released to the startup by the Fend team.")
+    return redirect('pilots:bid_detail', pk=pk)

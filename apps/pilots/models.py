@@ -195,41 +195,40 @@ class PilotBid(models.Model):
     class Meta:
         unique_together = ['pilot', 'startup']
     
-    def mark_as_completed(self):
-        """Mark the bid as completed and create transaction"""
-        
-        # Only approved bids can be completed
-        if self.status != 'approved':
-            return False
-            
-        # Create or update transaction
-        from apps.payments.models import PilotTransaction, EnterpriseFeeTransaction
-        
-        # Create main transaction for the startup (includes their fee)
-        transaction, created = PilotTransaction.objects.get_or_create(
-            pilot_bid=self,
-            defaults={
-                'amount': self.amount,
-                'fee_percentage': self.startup_fee_percentage,
-                'fee_amount': (self.amount * self.startup_fee_percentage) / 100,
-                'status': 'pending'
-            }
-        )
-        
-        # Create enterprise fee transaction
-        enterprise_fee_amount = (self.amount * self.enterprise_fee_percentage) / 100
-        enterprise_fee, _ = EnterpriseFeeTransaction.objects.get_or_create(
-            pilot_bid=self,
-            defaults={
-                'enterprise': self.pilot.organization,
-                'fee_percentage': self.enterprise_fee_percentage,
-                'fee_amount': enterprise_fee_amount,
-                'status': 'pending'
-            }
-        )
-        
-        # Update status
-        self.status = 'completed'
+    def mark_as_approved(self):
+        """Mark bid as approved and create escrow payment object"""
+        # Update bid status
+        self.status = 'approved'
         self.save()
         
-        return transaction
+        # Calculate payment amounts
+        enterprise_fee_percentage = 2.50
+        startup_fee_percentage = 2.50
+        platform_fee = (self.amount * (enterprise_fee_percentage + startup_fee_percentage)) / 100
+        total_amount = self.amount + (self.amount * enterprise_fee_percentage / 100)  # Enterprise pays 102.5%
+        startup_amount = self.amount  # Startup receives base amount
+        
+        # Create escrow payment
+        from apps.payments.models import EscrowPayment
+        escrow_payment = EscrowPayment.objects.create(
+            pilot_bid=self,
+            total_amount=total_amount,
+            startup_amount=startup_amount,
+            platform_fee=platform_fee,
+            enterprise_fee_percentage=enterprise_fee_percentage,
+            startup_fee_percentage=startup_fee_percentage
+        )
+        
+        # Mark payment instructions as sent
+        escrow_payment.mark_as_instructions_sent()
+        
+        # Create notification for both parties
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self,
+            notification_type='bid_updated',
+            title=f"Bid Approved: {self.pilot.title}",
+            message=f"The bid for '{self.pilot.title}' has been approved. Payment instructions have been sent."
+        )
+        
+        return escrow_payment

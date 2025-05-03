@@ -103,7 +103,7 @@
             {% endif %}
 
             <!-- Enterprise Fee Section -->
-            {% if is_enterprise and bid.status == 'completed' and bid.enterprise_fee.status == 'pending' %}
+            <!-- {% if is_enterprise and bid.status == 'completed' and bid.enterprise_fee.status == 'pending' %}
             <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
                 <div class="bg-yellow-50 p-4 rounded-md">
                     <div class="flex">
@@ -137,7 +137,7 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+            {% endif %} -->
 
             <!-- Actions -->
             <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between">
@@ -179,12 +179,59 @@
                         {% endif %}
                     {% endif %}
 
-                    {% if is_enterprise and bid.status == 'approved' %}
+                    {% if bid.status == 'approved' and bid.escrow_payment %}
+                    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                        <div class="bg-blue-50 p-4 rounded-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-blue-800">Escrow Payment Status</h3>
+                                    <div class="mt-2 text-sm text-blue-700">
+                                        <p>Current status: <span class="font-medium">{{ bid.escrow_payment.get_status_display }}</span></p>
+                                        
+                                        {% if is_enterprise %}
+                                            {% if bid.escrow_payment.status == 'instructions_sent' %}
+                                                <div class="mt-2">
+                                                    <a href="{% url 'payments:escrow_payment_instructions' bid.escrow_payment.id %}" 
+                                                    class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                                                        View Payment Instructions
+                                                    </a>
+                                                </div>
+                                            {% elif bid.escrow_payment.status == 'payment_initiated' %}
+                                                <p class="mt-1">Your payment of ${{ bid.escrow_payment.total_amount }} is being processed.</p>
+                                            {% elif bid.escrow_payment.status == 'received' %}
+                                                <p class="mt-1">Your payment has been received by Fend and is held in escrow.</p>
+                                            {% elif bid.escrow_payment.status == 'released' %}
+                                                <p class="mt-1">Payment has been released to the startup.</p>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if bid.escrow_payment.status == 'instructions_sent' %}
+                                                <p class="mt-1">Waiting for payment from the enterprise.</p>
+                                            {% elif bid.escrow_payment.status == 'payment_initiated' %}
+                                                <p class="mt-1">Enterprise has initiated payment. Waiting for confirmation from Fend.</p>
+                                            {% elif bid.escrow_payment.status == 'received' %}
+                                                <p class="mt-1">Payment has been received by Fend and is held in escrow. Funds will be released upon successful completion of the pilot.</p>
+                                            {% elif bid.escrow_payment.status == 'released' %}
+                                                <p class="mt-1">Payment of ${{ bid.escrow_payment.startup_amount }} has been released to your account.</p>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if is_enterprise and bid.status == 'approved' and bid.escrow_payment.status == 'received' %}
                     <form method="post" action="{% url 'pilots:finalize_pilot' bid.pk %}" class="inline">
                         {% csrf_token %}
                         <button type="submit" 
                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                onclick="return confirm('Are you sure you want to mark this pilot as completed? This will trigger the payment process with a 2.5% platform fee for both you and the startup.');">
+                                onclick="return confirm('Are you sure you want to mark this pilot as completed? This will initiate the release of funds to the startup.');">
                             Mark Pilot Completed
                         </button>
                     </form>
