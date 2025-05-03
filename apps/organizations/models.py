@@ -60,6 +60,10 @@ class Organization(models.Model):
     has_payment_method = models.BooleanField(default=False)
     free_trial_used = models.BooleanField(default=False)
 
+    bank_name = models.CharField(max_length=255, blank=True, null=True)
+    bank_account_number = models.CharField(max_length=255, blank=True, null=True)
+    bank_routing_number = models.CharField(max_length=255, blank=True, null=True)
+
     token_balance = models.IntegerField(default=0, help_text="Current number of available tokens")
     tokens_used = models.IntegerField(default=0, help_text="Total number of tokens used")
     tokens_purchased = models.IntegerField(default=0, help_text="Total number of tokens purchased")

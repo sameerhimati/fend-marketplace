@@ -51,6 +51,38 @@
                     {% endif %}
                 </dl>
             </div>
+            <div class="mt-8 border-t border-gray-200 pt-8">
+                <h3 class="text-lg font-medium text-gray-900">Bank Information</h3>
+                <p class="mt-1 text-sm text-gray-500">This information will be used for receiving payments when bids are approved</p>
+                
+                <form method="post" action="{% url 'organizations:update_bank_info' %}" class="mt-4">
+                    {% csrf_token %}
+                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div class="col-span-2">
+                                <label for="bank_name" class="block text-sm font-medium text-gray-700">Bank Name</label>
+                                <input type="text" name="bank_name" id="bank_name" value="{{ organization.bank_name|default:'' }}" 
+                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="bank_account_number" class="block text-sm font-medium text-gray-700">Account Number</label>
+                                <input type="text" name="bank_account_number" id="bank_account_number" value="{{ organization.bank_account_number|default:'' }}" 
+                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                            <div>
+                                <label for="bank_routing_number" class="block text-sm font-medium text-gray-700">Routing Number</label>
+                                <input type="text" name="bank_routing_number" id="bank_routing_number" value="{{ organization.bank_routing_number|default:'' }}" 
+                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Save Bank Information
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
             
             {% if organization.type == 'enterprise' and published_pilots %}
                 <div class="border-t border-gray-200 px-4 py-5 sm:px-6">

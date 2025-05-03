@@ -27,4 +27,5 @@ urlpatterns = [
      path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
      path('profile/remove-logo/', views.remove_logo, name='remove_logo'),
      path('startups/', views.StartupDirectoryView.as_view(), name='startup_directory'),
+     path('update-bank-info/', views.update_bank_info, name='update_bank_info'),
 ]

@@ -11,8 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 from django.contrib.auth import get_user_model
-
-from datetime import timezone
+from django.utils import timezone
 
 class PilotListView(LoginRequiredMixin, ListView):
     model = Pilot
@@ -369,18 +368,41 @@ def update_bid_status(request, pk):
     valid_statuses = dict(PilotBid.STATUS_CHOICES)
     if new_status in valid_statuses:
         old_status = bid.status
-        bid.status = new_status
-        bid.save()
-        
-        # Create notification for bid status update
-        create_bid_notification(
-            bid=bid,
-            notification_type='bid_updated',
-            title=f"Bid status updated: {bid.pilot.title}",
-            message=f"The status of your bid for '{bid.pilot.title}' has been updated from '{valid_statuses[old_status]}' to '{valid_statuses[new_status]}'."
-        )
-        
-        messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
+        if new_status == 'approved':
+            # Check if enterprise has bank information configured
+            if not all([
+                user_org.bank_name, 
+                user_org.bank_account_number,
+                user_org.bank_routing_number
+            ]):
+                messages.error(request, "You must configure your bank information before approving bids. Please update your profile.")
+                return redirect('organizations:profile', pk=user_org.id)
+            
+            # Use the mark_as_approved method which creates the escrow payment
+            escrow_payment = bid.mark_as_approved()
+            
+            if escrow_payment:
+                # Redirect to payment instructions
+                messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
+                return redirect('payments:escrow_payment_instructions', payment_id=escrow_payment.id)
+            else:
+                messages.error(request, "Error creating escrow payment record")
+                return redirect('pilots:bid_detail', pk=pk)
+        else:
+            # Normal status update
+            bid.status = new_status
+            bid.save()
+            
+            # Create notification for bid status update
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_updated',
+                title=f"Bid status updated: {bid.pilot.title}",
+                message=f"The status of your bid for '{bid.pilot.title}' has been updated from '{valid_statuses[old_status]}' to '{valid_statuses[new_status]}'."
+            )
+            
+            messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
+
     else:
         messages.error(request, "Invalid status")
     
@@ -464,32 +486,40 @@ def delete_pilot(request, pk):
 
 
 @login_required
-def finalize_pilot(request, pk):
+def finalize_pilot(request, bid_id):
     """Mark a pilot as completed and trigger payment release workflow"""
     if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=pk)
+        return redirect('pilots:bid_detail', pk=bid_id)
     
-    bid = get_object_or_404(PilotBid, pk=pk)
+    bid = get_object_or_404(PilotBid, pk=bid_id)
     user_org = request.user.organization
     
     # Check if user has permission (enterprise owner of the pilot)
     if user_org != bid.pilot.organization:
         messages.error(request, "You don't have permission to finalize this pilot")
-        return redirect('pilots:bid_detail', pk=pk)
+        return redirect('pilots:bid_detail', pk=bid_id)
     
     # Check if escrow payment exists and has been received
-    if not hasattr(bid, 'escrow_payment') or bid.escrow_payment.status != 'received':
+    if not hasattr(bid, 'escrow_payment'):
+        messages.error(request, "No payment record found for this bid")
+        return redirect('pilots:bid_detail', pk=bid_id)
+        
+    if bid.escrow_payment.status != 'received':
         messages.error(request, "Payment must be received before the pilot can be marked as completed")
-        return redirect('pilots:bid_detail', pk=pk)
+        return redirect('pilots:bid_detail', pk=bid_id)
     
     # Update bid status
     bid.status = 'completed'
+    
+    # Also update pilot status to completed
+    pilot = bid.pilot
+    pilot.status = 'completed'
+    pilot.save(update_fields=['status'])
     bid.completed_at = timezone.now()
     bid.save()
 
+    # Create admin notifications
     User = get_user_model()
-    
-    # Get admin users
     admins = User.objects.filter(is_staff=True)
     for admin in admins:
         create_notification(
@@ -510,4 +540,4 @@ def finalize_pilot(request, pk):
     )
     
     messages.success(request, "Pilot has been marked as completed. The payment will be released to the startup by the Fend team.")
-    return redirect('pilots:bid_detail', pk=pk)
+    return redirect('pilots:bid_detail', pk=bid_id)

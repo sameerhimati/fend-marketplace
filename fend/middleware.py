@@ -31,6 +31,9 @@ class AuthenticationFlowMiddleware:
                 if request.path == '/' and request.user.organization.has_active_subscription():
                     return redirect('organizations:dashboard')
             
+            if request.path.startswith('/admin/'):
+                return self.get_response(request)
+            
             # Check if user has completed onboarding
             if not hasattr(request.user, 'organization') or not request.user.organization.onboarding_completed:
                 # Allow access only to payment pages and logout

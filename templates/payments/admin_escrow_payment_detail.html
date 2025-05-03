@@ -247,7 +247,22 @@
             <h3 class="text-lg leading-6 font-medium text-gray-900">Release Payment to Startup</h3>
             <div class="mt-2 max-w-xl text-sm text-gray-500">
                 <p>Release funds to the startup once the pilot has been successfully completed and verified.</p>
+                
+                {% if payment.pilot_bid.status == 'completed' %}
+                <div class="mt-2 bg-green-50 p-3 rounded-md">
+                    <p class="text-sm text-green-700">
+                        <span class="font-medium">✓ Pilot marked as completed</span> by the enterprise on {{ payment.pilot_bid.completed_at|date:"F j, Y" }}.
+                    </p>
+                </div>
+                {% else %}
+                <div class="mt-2 bg-yellow-50 p-3 rounded-md">
+                    <p class="text-sm text-yellow-700">
+                        <span class="font-medium">⚠️ Pilot not marked as completed yet.</span> The enterprise needs to mark the pilot as completed before funds can be released.
+                    </p>
+                </div>
+                {% endif %}
             </div>
+            
             <form method="post" action="{% url 'payments:admin_release_payment' payment.id %}" class="mt-5">
                 {% csrf_token %}
                 <div class="mb-4">
@@ -258,8 +273,15 @@
                         <textarea name="notes" id="notes" rows="3" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
                     </div>
                 </div>
+                
                 <button type="submit"
-                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        {% if payment.pilot_bid.status != 'completed' %}
+                        disabled
+                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-400 cursor-not-allowed"
+                        title="Pilot must be marked as completed by the enterprise first"
+                        {% else %}
+                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        {% endif %}>
                     Release Payment to Startup
                 </button>
             </form>
