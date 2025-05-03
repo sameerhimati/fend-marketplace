@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Instructions - Fend Marketplace{% endblock %}
+
+{% block content %}
+<div class="py-8 bg-gray-50">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Payment Instructions</h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                        For Pilot: {{ payment.pilot_bid.pilot.title }}
+                    </p>
+                </div>
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif payment.status == 'instructions_sent' %}bg-blue-100 text-blue-800
+                    {% elif payment.status == 'payment_initiated' %}bg-indigo-100 text-indigo-800
+                    {% elif payment.status == 'received' %}bg-green-100 text-green-800
+                    {% elif payment.status == 'released' %}bg-purple-100 text-purple-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ payment.get_status_display }}
+                </span>
+            </div>
+            
+            <!-- Payment Details -->
+            <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+                <div class="bg-blue-50 p-4 mb-6 rounded-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Escrow Payment System</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p>Your payment will be held in escrow until the pilot is successfully completed. Once both parties confirm completion, the payment will be released to the startup.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">Payment Summary</h3>
+                        <dl class="mt-2 grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                            <div class="sm:col-span-1">
+                                <dt class="text-sm font-medium text-gray-500">Bid Amount</dt>
+                                <dd class="mt-1 text-sm text-gray-900">${{ payment.startup_amount }}</dd>
+                            </div>
+                            <div class="sm:col-span-1">
+                                <dt class="text-sm font-medium text-gray-500">Platform Fee ({{ payment.enterprise_fee_percentage }}%)</dt>
+                                <dd class="mt-1 text-sm text-gray-900">${{ payment.platform_fee|floatformat:2 }}</dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-sm font-medium text-gray-500">Total Amount Due</dt>
+                                <dd class="mt-1 text-lg font-bold text-gray-900">${{ payment.total_amount }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-6">
+                        <h3 class="text-lg font-medium text-gray-900">Wire Transfer Instructions</h3>
+                        <div class="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                                <div class="sm:col-span-2">
+                                    <dt class="text-sm font-medium text-gray-500">Bank Name</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">First National Bank</dd>
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Account Name</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">Fend Marketplace LLC</dd>
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Account Number</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">XXXXXX1234</dd>
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Routing Number</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">XXXXXX5678</dd>
+                                </div>
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Bank Address</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">123 Financial St, New York, NY 10001</dd>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <dt class="text-sm font-medium text-gray-500">Reference Code (IMPORTANT)</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-indigo-700 bg-indigo-50 p-2 rounded">{{ payment.reference_code }}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">
+                            Please include the reference code in your wire transfer description to ensure proper tracking.
+                        </p>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-6">
+                        <h3 class="text-lg font-medium text-gray-900">Next Steps</h3>
+                        <ol class="mt-4 list-decimal list-inside space-y-2 text-sm text-gray-700">
+                            <li>Complete the wire transfer to the account details above</li>
+                            <li>Note down your confirmation/reference number from your bank</li>
+                            <li>Mark the payment as sent in the system once completed</li>
+                            <li>Our team will verify the payment and update the status</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-between">
+                        <a href="{% url 'pilots:bid_detail' payment.pilot_bid.id %}" 
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Back to Bid Details
+                        </a>
+                        {% if payment.status == 'instructions_sent' %}
+                        <a href="{% url 'payments:escrow_payment_confirmation' payment.id %}" 
+                           class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                            Mark Payment as Sent
+                        </a>
+                        {% else %}
+                        <button disabled
+                                class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-gray-400 cursor-not-allowed">
+                            Payment Already Confirmed
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

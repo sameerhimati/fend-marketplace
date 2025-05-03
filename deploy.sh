@@ -26,7 +26,7 @@ sleep 5
 docker-compose exec web python manage.py migrate
 
 # Collect static files
-docker-compose exec web python manage.py collectstatic --no-input
+docker-compose exec web python manage.py collectstatic
 
 # Run application-specific setup scripts
 docker-compose exec web python create_plans.py
