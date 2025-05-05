@@ -136,6 +136,14 @@
                                                 Purchase Tokens
                                             </a>
                                             {% endif %}
+                                            {% if user.is_staff %}
+                                            <li class="py-2">
+                                                <a href="{% url 'payments:admin_payment_dashboard' %}" 
+                                                class="text-base font-medium text-gray-900 hover:text-indigo-600">
+                                                    Payment Management
+                                                </a>
+                                            </li>
+                                            {% endif %}
                                         {% endif %}
                                         <form method="post" action="{% url 'organizations:logout' %}" class="block w-full text-left">
                                             {% csrf_token %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Dashboard - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="p-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-xl font-bold">Payment Dashboard</h1>
+        <a href="{% url 'payments:admin_escrow_payments' %}" 
+           class="px-3 py-1 bg-white border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">
+            View All Payments
+        </a>
+    </div>
+    
+    <!-- Payments Needing Verification -->
+    <div class="bg-white rounded shadow-sm mb-6">
+        <div class="px-4 py-3 bg-yellow-50 border-b border-yellow-100">
+            <h2 class="text-md font-medium text-yellow-800">Payments Awaiting Verification</h2>
+        </div>
+        
+        {% if needs_verification %}
+        <ul class="divide-y divide-gray-200">
+            {% for payment in needs_verification %}
+            <li class="p-4 hover:bg-gray-50">
+                <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" class="block">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ payment.reference_code }}</p>
+                            <p class="text-sm text-gray-500">{{ payment.pilot_bid.pilot.title }}</p>
+                            <p class="text-xs text-gray-500">{{ payment.payment_initiated_at|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium text-gray-900">${{ payment.total_amount }}</p>
+                            <form method="post" action="{% url 'payments:admin_mark_payment_received' payment.id %}" class="mt-1">
+                                {% csrf_token %}
+                                <button type="submit" class="text-sm text-green-600 hover:text-green-800">
+                                    Verify Payment →
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-gray-500">
+            No payments awaiting verification
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Ready for Release -->
+    <div class="bg-white rounded shadow-sm mb-6">
+        <div class="px-4 py-3 bg-green-50 border-b border-green-100">
+            <h2 class="text-md font-medium text-green-800">Payments Ready for Release</h2>
+        </div>
+        
+        {% if ready_for_release %}
+        <ul class="divide-y divide-gray-200">
+            {% for payment in ready_for_release %}
+            <li class="p-4 hover:bg-gray-50">
+                <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" class="block">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ payment.reference_code }}</p>
+                            <p class="text-sm text-gray-500">{{ payment.pilot_bid.pilot.title }}</p>
+                            <p class="text-xs text-gray-500">Pilot completed: {{ payment.pilot_bid.completed_at|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-medium text-gray-900">${{ payment.startup_amount }}</p>
+                            <form method="post" action="{% url 'payments:admin_release_payment' payment.id %}" class="mt-1">
+                                {% csrf_token %}
+                                <button type="submit" class="text-sm text-indigo-600 hover:text-indigo-800">
+                                    Release Funds →
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-gray-500">
+            No payments ready for release
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="bg-white rounded shadow-sm">
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h2 class="text-md font-medium text-gray-800">Recent Activity</h2>
+        </div>
+        
+        {% if recent_logs %}
+        <ul class="divide-y divide-gray-200">
+            {% for log in recent_logs %}
+            <li class="p-4">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-900">
+                            <a href="{% url 'payments:admin_escrow_payment_detail' log.escrow_payment.id %}" class="text-indigo-600 hover:text-indigo-900">
+                                {{ log.escrow_payment.reference_code }}
+                            </a>
+                            status changed to <span class="font-medium">{{ log.new_status }}</span>
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            {{ log.created_at|date:"M d, Y H:i" }} 
+                            {% if log.changed_by %}by {{ log.changed_by.username }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-gray-500">
+            No recent activity
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

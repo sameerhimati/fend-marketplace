@@ -8,6 +8,9 @@ from django.conf import settings
 from django.urls import reverse
 from django.contrib import messages
 from django.utils import timezone
+from django.db.models import Q, Sum, Count
+from django.core.paginator import Paginator
+import csv
 from apps.pilots.models import PilotTransaction, PilotBid
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 
@@ -1151,3 +1154,215 @@ def finalize_pilot(request, pk):
     
     messages.success(request, "Pilot has been marked as completed. The payment will be released to the startup by the Fend team.")
     return redirect('pilots:bid_detail', pk=pk)
+
+
+@login_required
+@staff_member_required
+def admin_payment_dashboard(request):
+    """Admin dashboard focusing on actionable items"""
+    
+    # Payments needing verification (initiated but not received)
+    needs_verification = EscrowPayment.objects.filter(
+        status='payment_initiated'
+    ).order_by('-payment_initiated_at')[:5]  # Limit to 5 most recent
+    
+    # Payments ready for release (received and pilot completed)
+    ready_for_release = EscrowPayment.objects.filter(
+        status='received', 
+        pilot_bid__status='completed'
+    ).order_by('-received_at')[:5]  # Limit to 5 most recent
+    
+    # Recent activity
+    recent_logs = EscrowPaymentLog.objects.order_by('-created_at')[:5]
+    
+    return render(request, 'payments/admin/dashboard.html', {
+        'needs_verification': needs_verification,
+        'ready_for_release': ready_for_release,
+        'recent_logs': recent_logs,
+    })
+
+@login_required
+@staff_member_required
+def admin_escrow_payments(request):
+    """Enhanced admin view for escrow payments"""
+    tab = request.GET.get('tab')
+    search = request.GET.get('search')
+    status = request.GET.get('status')
+    
+    # Base queryset
+    payments = EscrowPayment.objects.all()
+    
+    # Apply tab filter
+    if tab == 'initiated':
+        payments = payments.filter(status='payment_initiated')
+    elif tab == 'ready':
+        payments = payments.filter(status='received', pilot_bid__status='completed')
+    elif tab == 'completed':
+        payments = payments.filter(status='released')
+    
+    # Apply search filter
+    if search:
+        payments = payments.filter(
+            Q(reference_code__icontains=search) | 
+            Q(pilot_bid__pilot__title__icontains=search) |
+            Q(pilot_bid__pilot__organization__name__icontains=search) |
+            Q(pilot_bid__startup__name__icontains=search)
+        )
+    
+    # Apply status filter
+    if status:
+        payments = payments.filter(status=status)
+    
+    # Order by most recent activity
+    payments = payments.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(payments, 10)  # Show 10 payments per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get counts for tabs
+    initiated_count = EscrowPayment.objects.filter(status='payment_initiated').count()
+    ready_count = EscrowPayment.objects.filter(status='received', pilot_bid__status='completed').count()
+    released_count = EscrowPayment.objects.filter(status='released').count()
+    pending_count = EscrowPayment.objects.filter(
+        Q(status='pending') | Q(status='instructions_sent')
+    ).count()
+    
+    return render(request, 'payments/admin/payment_list.html', {
+        'payments': page_obj,
+        'tab': tab,
+        'initiated_count': initiated_count,
+        'ready_count': ready_count,
+        'released_count': released_count,
+        'pending_count': pending_count,
+    })
+
+@login_required
+@staff_member_required
+def admin_escrow_payment_detail(request, payment_id):
+    """Enhanced detail view for a specific payment"""
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    return render(request, 'payments/admin/payment_detail.html', {
+        'payment': payment,
+    })
+
+@login_required
+@staff_member_required
+def admin_update_payment_status(request, payment_id):
+    """Update payment status manually"""
+    if request.method != 'POST':
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    new_status = request.POST.get('status')
+    notes = request.POST.get('notes', '')
+    
+    # Validate status
+    valid_statuses = dict(EscrowPayment.STATUS_CHOICES)
+    if new_status not in valid_statuses:
+        messages.error(request, "Invalid status")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Don't update if status hasn't changed
+    if new_status == payment.status:
+        messages.info(request, "Status unchanged")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Special handling for released status - check pilot completion
+    if new_status == 'released' and payment.pilot_bid.status != 'completed':
+        # We'll allow it with a warning
+        messages.warning(request, "Warning: Releasing payment before pilot completion was marked")
+    
+    # Create log entry
+    EscrowPaymentLog.objects.create(
+        escrow_payment=payment,
+        previous_status=payment.status,
+        new_status=new_status,
+        changed_by=request.user,
+        notes=notes
+    )
+    
+    # Special handling for specific statuses
+    if new_status == 'received':
+        payment.mark_as_received()
+    elif new_status == 'released':
+        payment.mark_as_released()
+    else:
+        # Generic status update
+        payment.status = new_status
+        payment.save(update_fields=['status'])
+    
+    messages.success(request, f"Payment status updated to {valid_statuses[new_status]}")
+    return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+
+@login_required
+@staff_member_required
+def admin_export_payments_csv(request):
+    """Export payments as CSV file"""
+    # Apply same filters as admin_escrow_payments
+    tab = request.GET.get('tab')
+    search = request.GET.get('search')
+    status = request.GET.get('status')
+    
+    # Base queryset
+    payments = EscrowPayment.objects.all()
+    
+    # Apply filters (same as in list view)
+    if tab == 'initiated':
+        payments = payments.filter(status='payment_initiated')
+    elif tab == 'ready':
+        payments = payments.filter(status='received', pilot_bid__status='completed')
+    elif tab == 'completed':
+        payments = payments.filter(status='released')
+    
+    if search:
+        payments = payments.filter(
+            Q(reference_code__icontains=search) | 
+            Q(pilot_bid__pilot__title__icontains=search) |
+            Q(pilot_bid__pilot__organization__name__icontains=search) |
+            Q(pilot_bid__startup__name__icontains=search)
+        )
+    
+    if status:
+        payments = payments.filter(status=status)
+    
+    # Order by most recent activity
+    payments = payments.order_by('-created_at')
+    
+    # Create the HttpResponse with CSV header
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="escrow_payments_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Reference Code', 'Pilot Title', 'Enterprise', 'Startup', 
+        'Amount', 'Status', 'Created Date', 'Last Updated'
+    ])
+    
+    for payment in payments:
+        # Determine last updated date based on status
+        if payment.released_at:
+            last_updated = payment.released_at
+        elif payment.received_at:
+            last_updated = payment.received_at
+        elif payment.payment_initiated_at:
+            last_updated = payment.payment_initiated_at
+        elif payment.instructions_sent_at:
+            last_updated = payment.instructions_sent_at
+        else:
+            last_updated = payment.created_at
+            
+        writer.writerow([
+            payment.reference_code,
+            payment.pilot_bid.pilot.title,
+            payment.pilot_bid.pilot.organization.name,
+            payment.pilot_bid.startup.name,
+            payment.total_amount,
+            payment.get_status_display(),
+            payment.created_at.strftime('%Y-%m-%d'),
+            last_updated.strftime('%Y-%m-%d')
+        ])
+    
+    return response

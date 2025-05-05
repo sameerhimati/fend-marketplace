@@ -27,8 +27,11 @@ urlpatterns = [
     # path('enterprise-fee/<int:fee_id>/cancel/', views.enterprise_fee_cancel, name='enterprise_fee_cancel'),
     path('escrow-payment/<int:payment_id>/', views.escrow_payment_instructions, name='escrow_payment_instructions'),
     path('escrow-payment/<int:payment_id>/confirm/', views.escrow_payment_confirmation, name='escrow_payment_confirmation'),
+    path('admin/dashboard/', views.admin_payment_dashboard, name='admin_payment_dashboard'),
     path('admin/escrow-payments/', views.admin_escrow_payments, name='admin_escrow_payments'),
     path('admin/escrow-payment/<int:payment_id>/', views.admin_escrow_payment_detail, name='admin_escrow_payment_detail'),
     path('admin/escrow-payment/<int:payment_id>/received/', views.admin_mark_payment_received, name='admin_mark_payment_received'),
     path('admin/escrow-payment/<int:payment_id>/release/', views.admin_release_payment, name='admin_release_payment'),
+    path('admin/escrow-payment/<int:payment_id>/update-status/', views.admin_update_payment_status, name='admin_update_payment_status'),
+    path('admin/escrow-payments/export-csv/', views.admin_export_payments_csv, name='admin_export_payments_csv'),
 ]
