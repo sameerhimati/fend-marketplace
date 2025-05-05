@@ -26,13 +26,7 @@ sleep 5
 docker-compose exec web python manage.py migrate
 
 # Collect static files
-docker-compose exec web python manage.py collectstatic
-
-# Run application-specific setup scripts
-docker-compose exec web python app/payments/management/commands/setup_pricing_plans.py
-docker-compose exec web python app/payments/management/commands/update_pricing_plans.py
-docker-compose exec web python app/payments/management/commands/fix_reference_codes.py
-docker-compose exec web python fix_startup_display.py
+docker-compose exec web python manage.py collectstatic --noinput
 
 # Check if everything is running properly
 docker-compose ps
