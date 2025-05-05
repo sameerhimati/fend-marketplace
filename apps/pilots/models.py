@@ -60,15 +60,13 @@ class Pilot(models.Model):
         decimal_places=2, 
         null=False,  # Make it required
         blank=False,
-        default=0,  # Default to 0
+        default=1000,  # Default to 0
         help_text="Enter the fixed price for this pilot (in USD)"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Token Tracking
-    token_consumed = models.BooleanField(default=False, help_text="Whether a token was consumed for this pilot")
     published_at = models.DateTimeField(null=True, blank=True, help_text="When the pilot was published")
     
     def save(self, *args, **kwargs):
@@ -83,44 +81,31 @@ class Pilot(models.Model):
             if original.status != 'published' and self.status == 'published':
                 is_new_publication = True
         
-        # If new publication, validate and consume token
+        # If new publication, validate and increment pilot count
         if is_new_publication:
             # Check if organization can publish a pilot
             if not self.organization.can_publish_pilot():
-                raise ValidationError(
-                    "Your organization doesn't have any tokens available. Please purchase tokens to publish pilots."
-                )
+                if self.organization.get_remaining_pilots() == 0:
+                    raise ValidationError(
+                        "You've reached your plan's pilot limit. Please upgrade to publish more pilots."
+                    )
+                else:
+                    raise ValidationError(
+                        "Your organization doesn't have an active subscription. Please subscribe to publish pilots."
+                    )
             
-            # Set published_at timestamp - FIX: Use django.utils.timezone
+            # Set published_at timestamp
             self.published_at = timezone.now()
             
-            # Mark that this will consume a token
-            # Token will be consumed after save
-            self._consume_token = True
+            # Mark that this will increment the pilot count
+            self._increment_pilot_count = True
             
         super().save(*args, **kwargs)
         
-        # After successful save, consume token if needed
-        if hasattr(self, '_consume_token') and self._consume_token:
-            if self.organization.consume_token():
-                self.token_consumed = True
-                # Update just this field without triggering full save again
-                Pilot.objects.filter(pk=self.pk).update(token_consumed=True)
-                
-                # Update the consumption log with the pilot reference
-                from apps.payments.models import TokenConsumptionLog
-                recent_log = TokenConsumptionLog.objects.filter(
-                    organization=self.organization,
-                    action_type='pilot_publish'
-                ).order_by('-created_at').first()
-                
-                # If found a recent log (should be the one created by consume_token)
-                if recent_log and recent_log.created_at > timezone.now() - timedelta(minutes=1):
-                    recent_log.pilot = self
-                    recent_log.notes = f"Token consumed for publishing pilot: {self.title}"
-                    recent_log.save()
-                
-                delattr(self, '_consume_token')
+        # After successful save, increment pilot count if needed
+        if hasattr(self, '_increment_pilot_count') and self._increment_pilot_count:
+            self.organization.increment_published_pilots()
+            delattr(self, '_increment_pilot_count')
 
     def __str__(self):
         return self.title

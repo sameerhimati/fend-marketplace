@@ -18,6 +18,13 @@
             <p class="mt-2 text-sm text-blue-700">
                 When changing plans, we'll automatically calculate the remaining value of your current subscription and apply it as credit to your new plan. You'll only pay the difference today.
             </p>
+            {% if organization.type == 'enterprise' and organization.subscription.plan.pilot_limit and organization.get_remaining_pilots <= 1 %}
+            <div class="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3">
+                <p class="text-sm text-yellow-700">
+                    <span class="font-medium">Reaching pilot limit:</span> You have {{ organization.get_remaining_pilots }} pilot{{ organization.get_remaining_pilots|pluralize }} remaining on your monthly plan. Upgrade to yearly for unlimited pilots.
+                </p>
+            </div>
+            {% endif %}
         </div>
 
         <div class="mt-12">
@@ -61,7 +68,7 @@
                             </div>
                             
                             <div class="mt-6">
-                            <!-- <h3 class="text-sm font-medium text-gray-900">What's included</h3> -->
+                                <!-- <h3 class="text-sm font-medium text-gray-900">What's included</h3> -->
                                 <ul class="mt-2 space-y-2">
                                     {% if organization.type == 'startup' %}
                                         <li class="flex items-start">
@@ -88,18 +95,7 @@
                                             </div>
                                             <p class="ml-2 text-sm text-gray-700">5% transaction fee on successful pilots</p>
                                         </li>
-                                        {% if plan.plan_type == 'startup_yearly' %}
-                                        <li class="flex items-start">
-                                            <div class="flex-shrink-0">
-                                                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                </svg>
-                                            </div>
-                                            <p class="ml-2 text-sm text-gray-700">Save $20 over monthly plan</p>
-                                        </li>
-                                        {% endif %}
                                     {% elif organization.type == 'enterprise' %}
-                                        <!-- Enterprise benefits vary by plan -->
                                         {% if plan.plan_type == 'enterprise_monthly' %}
                                             <li class="flex items-start">
                                                 <div class="flex-shrink-0">
@@ -107,7 +103,7 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                     </svg>
                                                 </div>
-                                                <p class="ml-2 text-sm text-gray-700">Full platform access</p>
+                                                <p class="ml-2 text-sm text-gray-700">Full access to the Fend Network</p>
                                             </li>
                                             <li class="flex items-start">
                                                 <div class="flex-shrink-0">
@@ -115,15 +111,7 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                     </svg>
                                                 </div>
-                                                <p class="ml-2 text-sm text-gray-700">1 token included</p>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <p class="ml-2 text-sm text-gray-700">Access to all startup proposals</p>
+                                                <p class="ml-2 text-sm text-gray-700">Up to 5 Pilot Publishing Opportunities</p>
                                             </li>
                                         {% elif plan.plan_type == 'enterprise_yearly' %}
                                             <li class="flex items-start">
@@ -132,7 +120,7 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                     </svg>
                                                 </div>
-                                                <p class="ml-2 text-sm text-gray-700">Full platform access</p>
+                                                <p class="ml-2 text-sm text-gray-700">Full access to the Fend Network</p>
                                             </li>
                                             <li class="flex items-start">
                                                 <div class="flex-shrink-0">
@@ -140,7 +128,7 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                     </svg>
                                                 </div>
-                                                <p class="ml-2 text-sm text-gray-700">2 tokens included</p>
+                                                <p class="ml-2 text-sm text-gray-700">Unlimited Pilot Publishing Opportunities</p>
                                             </li>
                                             <li class="flex items-start">
                                                 <div class="flex-shrink-0">
@@ -148,20 +136,13 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                     </svg>
                                                 </div>
-                                                <p class="ml-2 text-sm text-gray-700">Save $300 over monthly plan</p>
-                                            </li>
-                                            <li class="flex items-start">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                </div>
-                                                <p class="ml-2 text-sm text-gray-700">Access to all startup proposals</p>
+                                                <p class="ml-2 text-sm text-gray-700">Save $200 over the Monthly Plan</p>
                                             </li>
                                         {% endif %}
                                     {% endif %}
                                 </ul>
                             </div>
+                            
                         </div>
                     </div>
                     {% endfor %}

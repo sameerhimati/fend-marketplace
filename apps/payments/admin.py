@@ -2,10 +2,7 @@ from django.contrib import admin
 from .models import (
     PricingPlan, 
     Subscription, 
-    Payment, 
-    TokenPackage, 
-    TokenTransaction, 
-    TokenConsumptionLog,
+    Payment,
     EscrowPayment,
     EscrowPaymentLog
 )
@@ -29,6 +26,3 @@ class EscrowPaymentLogAdmin(admin.ModelAdmin):
 admin.site.register(PricingPlan)
 admin.site.register(Subscription)
 admin.site.register(Payment)
-admin.site.register(TokenPackage)
-admin.site.register(TokenTransaction)
-admin.site.register(TokenConsumptionLog)

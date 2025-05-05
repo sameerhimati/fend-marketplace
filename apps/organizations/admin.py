@@ -30,7 +30,7 @@ class OrganizationAdmin(admin.ModelAdmin):
         ('Primary Contact', {
             'fields': (
                 'primary_contact_name',
-                'primary_contact_email',
+                # 'primary_contact_email',
                 'primary_contact_phone'
             ),
             'classes': ('enterprise-only',)

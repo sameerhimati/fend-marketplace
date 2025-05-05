@@ -73,13 +73,21 @@
                                 <span class="text-yellow-600">Your subscription is not active. Please complete the payment process to access pilot publishing.</span>
                             {% else %}
                                 <div>
-                                    <div class="flex items-baseline">
-                                        <span class="text-lg font-medium text-indigo-600">{{ organization.token_balance }}</span>
-                                        <span class="ml-1 text-sm text-gray-500">tokens available</span>
-                                    </div>
-                                    <p class="mt-1 text-sm text-gray-500">Each token allows you to publish one pilot opportunity.</p>
-                                    {% if organization.token_balance == 0 %}
-                                        <p class="mt-2"><a href="{% url 'payments:token_packages' %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Purchase Tokens</a></p>
+                                    {% if subscription.plan.pilot_limit %}
+                                        <div class="flex items-baseline">
+                                            <span class="text-lg font-medium text-indigo-600">{{ organization.get_remaining_pilots }}</span>
+                                            <span class="ml-1 text-sm text-gray-500">pilots remaining</span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-gray-500">Your {{ subscription.plan.name }} plan allows publishing up to {{ subscription.plan.pilot_limit }} pilots.</p>
+                                        {% if organization.get_remaining_pilots == 0 %}
+                                            <p class="mt-2"><a href="{% url 'payments:upgrade_subscription' %}" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">Upgrade Plan</a></p>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="flex items-baseline">
+                                            <span class="text-lg font-medium text-indigo-600">Unlimited</span>
+                                            <span class="ml-1 text-sm text-gray-500">pilots</span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-gray-500">Your {{ subscription.plan.name }} plan allows publishing unlimited pilots.</p>
                                     {% endif %}
                                 </div>
                             {% endif %}
@@ -214,31 +222,31 @@
             </div>
             {% endif %}
 
-        <!-- Token Information Section -->
+        <!-- Published Pilots Information Section -->
         {% if organization.type == 'enterprise' %}
         <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
                 <h2 class="text-lg leading-6 font-medium text-gray-900">
-                    Token Information
+                    Published Pilots
                 </h2>
                 <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                    Tokens are required to publish pilot opportunities.
+                    Track your organization's published pilots.
                 </p>
             </div>
 
             <div class="px-4 py-5 sm:p-6">
                 <div class="sm:flex sm:items-center sm:justify-between">
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900">Current Token Balance</h3>
+                        <h3 class="text-lg font-medium text-gray-900">Pilot Usage Summary</h3>
                         <div class="mt-2 flex items-baseline">
-                            <span class="text-3xl font-semibold text-indigo-600">{{ organization.token_balance }}</span>
-                            <span class="ml-2 text-sm text-gray-500">tokens available</span>
+                            <span class="text-3xl font-semibold text-indigo-600">{{ organization.published_pilot_count }}</span>
+                            <span class="ml-2 text-sm text-gray-500">pilots published</span>
                         </div>
                     </div>
                     <div class="mt-5 sm:mt-0">
-                        <a href="{% url 'payments:token_packages' %}" 
+                        <a href="{% url 'pilots:list' %}" 
                         class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                            Purchase Tokens
+                            View All Pilots
                         </a>
                     </div>
                 </div>
@@ -246,19 +254,20 @@
                 <div class="mt-6 border-t border-gray-200 pt-6">
                     <dl class="sm:divide-y sm:divide-gray-200">
                         <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <dt class="text-sm font-medium text-gray-500">Total Purchased</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ organization.tokens_purchased }}</dd>
+                            <dt class="text-sm font-medium text-gray-500">Plan Type</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ organization.subscription.plan.name }}</dd>
                         </div>
                         <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <dt class="text-sm font-medium text-gray-500">Total Used</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ organization.tokens_used }}</dd>
+                            <dt class="text-sm font-medium text-gray-500">Pilot Limit</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {% if organization.subscription.plan.pilot_limit %}
+                                    {{ organization.subscription.plan.pilot_limit }} pilots
+                                {% else %}
+                                    Unlimited
+                                {% endif %}
+                            </dd>
                         </div>
                     </dl>
-                    <div class="mt-6">
-                        <a href="{% url 'payments:token_history' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
-                            View Token History →
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
