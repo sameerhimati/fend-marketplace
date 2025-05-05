@@ -1,5 +1,13 @@
 {% extends 'base.html' %}
 
+{% if user.is_staff %}
+<li class="sidebar-item">
+  <a href="{% url 'payments:admin_payment_dashboard' %}" class="sidebar-link">
+    <span class="sidebar-text">Payment Management</span>
+  </a>
+</li>
+{% endif %}
+
 {% block content %}
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
