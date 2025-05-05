@@ -979,16 +979,6 @@ def escrow_payment_confirmation(request, payment_id):
 
 @login_required
 @staff_member_required
-def admin_escrow_payments(request):
-    """Admin view for all escrow payments"""
-    payments = EscrowPayment.objects.all().order_by('-created_at')
-    
-    return render(request, 'payments/admin_escrow_payments.html', {
-        'payments': payments
-    })
-
-@login_required
-@staff_member_required
 def admin_escrow_payment_detail(request, payment_id):
     """Admin view for a single escrow payment"""
     payment = get_object_or_404(EscrowPayment, id=payment_id)
@@ -1175,7 +1165,7 @@ def admin_payment_dashboard(request):
     # Recent activity
     recent_logs = EscrowPaymentLog.objects.order_by('-created_at')[:5]
     
-    return render(request, 'payments/admin/dashboard.html', {
+    return render(request, 'payments/admin_payment_dashboard.html', {
         'needs_verification': needs_verification,
         'ready_for_release': ready_for_release,
         'recent_logs': recent_logs,
@@ -1229,23 +1219,13 @@ def admin_escrow_payments(request):
         Q(status='pending') | Q(status='instructions_sent')
     ).count()
     
-    return render(request, 'payments/admin/payment_list.html', {
+    return render(request, 'payments/admin_escrow_payments.html', {
         'payments': page_obj,
         'tab': tab,
         'initiated_count': initiated_count,
         'ready_count': ready_count,
         'released_count': released_count,
         'pending_count': pending_count,
-    })
-
-@login_required
-@staff_member_required
-def admin_escrow_payment_detail(request, payment_id):
-    """Enhanced detail view for a specific payment"""
-    payment = get_object_or_404(EscrowPayment, id=payment_id)
-    
-    return render(request, 'payments/admin/payment_detail.html', {
-        'payment': payment,
     })
 
 @login_required
