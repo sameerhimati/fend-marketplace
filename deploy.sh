@@ -29,8 +29,8 @@ docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py collectstatic
 
 # Run application-specific setup scripts
-docker-compose exec web python create_plans.py
-docker-compose exec web python fix_startup_display.py
+#docker-compose exec web python create_plans.py
+#docker-compose exec web python fix_startup_display.py
 
 # Check if everything is running properly
 docker-compose ps

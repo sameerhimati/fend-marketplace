@@ -163,10 +163,10 @@ def publish_pilot(request, pk):
         messages.error(request, "You need an active subscription to access pilot publishing features. Please complete the payment process.")
         return redirect('payments:subscription_detail')
     
-    # Check token availability
-    if not organization.has_available_tokens():
-        messages.error(request, "You don't have any tokens available. Please purchase tokens to publish this pilot.")
-        return redirect('payments:token_packages')
+    # Check Pilot availability
+    if not organization.get_remaining_pilots():
+        messages.error(request, "You don't have any Pilot opportunities available. Please upgrade your plan to publish this pilot.")
+        return redirect('payments:subscription_detail')
         
     try:
         # Update status to published
@@ -178,10 +178,10 @@ def publish_pilot(request, pk):
             pilot=pilot,
             notification_type='pilot_updated',
             title=f"Pilot published: {pilot.title}",
-            message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups. A token has been consumed."
+            message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups."
         )
         
-        messages.success(request, f"'{pilot.title}' has been published successfully! One token has been consumed.")
+        messages.success(request, f"'{pilot.title}' has been published successfully!")
         
     except ValidationError as e:
         messages.error(request, str(e))

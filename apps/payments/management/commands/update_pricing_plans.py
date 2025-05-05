@@ -15,7 +15,7 @@ class Command(BaseCommand):
                     'name': 'Enterprise Monthly',
                     'price': 100.00,
                     'billing_frequency': 'monthly',
-                    'initial_tokens': 1,
+                    "pilot_limit": 5,
                     'is_active': True
                 }
             )
@@ -26,7 +26,7 @@ class Command(BaseCommand):
                     'name': 'Enterprise Yearly',
                     'price': 1000.00,
                     'billing_frequency': 'yearly', 
-                    'initial_tokens': 2,
+                    "pilot_limit": None,
                     'is_active': True
                 }
             )
@@ -37,7 +37,7 @@ class Command(BaseCommand):
                     'name': 'Startup Monthly',
                     'price': 10.00,
                     'billing_frequency': 'monthly',
-                    'initial_tokens': 0,
+                    "pilot_limit": None,
                     'is_active': True
                 }
             )
@@ -48,7 +48,7 @@ class Command(BaseCommand):
                     'name': 'Startup Yearly',
                     'price': 100.00,
                     'billing_frequency': 'yearly',
-                    'initial_tokens': 0,
+                    "pilot_limit": None,
                     'is_active': True
                 }
             )

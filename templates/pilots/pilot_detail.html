@@ -122,20 +122,11 @@
                             <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="inline">
                                 {% csrf_token %}
                                 <button type="button" 
-                                        onclick="confirmPublish()"
+                                        onclick=submit()
                                         class="text-sm font-medium text-green-600 hover:text-green-900">
                                     Publish
                                 </button>
                             </form>
-                            
-                            <script>
-                            function confirmPublish() {
-                                const confirmed = confirm("Publishing this pilot will consume 1 token from your balance. This action cannot be undone. Do you want to continue?");
-                                if (confirmed) {
-                                    document.querySelector('form[action*="publish"]').submit();
-                                }
-                            }
-                            </script>
                         {% endif %}
 
                         <form method="post" action="{% url 'pilots:delete' pilot.pk %}" class="inline">

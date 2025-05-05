@@ -14,7 +14,7 @@ import csv
 from apps.pilots.models import PilotTransaction, PilotBid
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 
-from .models import PricingPlan, Subscription, Payment, TokenPackage, TokenTransaction, EscrowPayment, EscrowPaymentLog
+from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog
 from apps.organizations.models import Organization
 
 import stripe
@@ -228,34 +228,6 @@ def checkout_success(request):
                 stripe_payment_id=payment_id,
                 status='complete'
             )
-            
-            # Add initial tokens if any are included with the plan
-            if subscription.plan.initial_tokens > 0 and organization.type == 'enterprise':
-                # Don't add tokens if this is a renewal with the same plan
-                is_new_subscription = not hasattr(organization, 'previous_plan') or organization.previous_plan != subscription.plan.id
-                
-                if is_new_subscription:
-                    previous_token_count = organization.token_balance
-                    
-                    # FIX: Calculate the correct number of tokens based on the plan
-                    token_count = subscription.plan.initial_tokens
-                    
-                    # Log for debugging
-                    print(f"Adding {token_count} tokens for plan: {subscription.plan.name}")
-                    
-                    # Update token balance
-                    organization.token_balance = token_count
-                    organization.tokens_purchased = token_count
-                    organization.save()
-                    
-                    # Create notification about tokens added
-                    from apps.notifications.services import create_notification
-                    create_notification(
-                        recipient=request.user,
-                        notification_type='payment_received',
-                        title=f"Subscription Tokens Added",
-                        message=f"Your subscription includes {token_count} token(s), which have been added to your balance."
-                    )
         
         # Mark organization as having completed payment
         organization.onboarding_completed = True
@@ -313,21 +285,20 @@ def stripe_webhook(request):
         subscription_id = session.metadata.get('subscription_id')
         transaction_id = session.metadata.get('transaction_id')
 
-        if transaction_id:
-            try:
-                transaction = TokenTransaction.objects.get(id=transaction_id)
+        # if transaction_id:
+        #     try:
+        #         transaction = TokenTransaction.objects.get(id=transaction_id)
                 
-                # Update transaction with payment intent
-                transaction.stripe_payment_id = session.payment_intent or session.id
+        #         # Update transaction with payment intent
+        #         transaction.stripe_payment_id = session.payment_intent or session.id
                 
-                # Mark transaction as completed (this will add tokens to organization)
-                transaction.mark_completed()
+        #         transaction.mark_completed()
                 
-                print(f"Token purchase completed: {transaction}")
-            except TokenTransaction.DoesNotExist:
-                print(f"Error processing token transaction: Transaction {transaction_id} not found")
-            except Exception as e:
-                print(f"Error processing token transaction: {e}")
+        #         print(f"Token purchase completed: {transaction}")
+        #     except TokenTransaction.DoesNotExist:
+        #         print(f"Error processing token transaction: Transaction {transaction_id} not found")
+        #     except Exception as e:
+        #         print(f"Error processing token transaction: {e}")
         
         if organization_id and subscription_id:
             try:
@@ -739,181 +710,6 @@ def transaction_cancel(request, transaction_id):
     
     messages.warning(request, "Payment was cancelled. You can try again later.")
     return redirect('pilots:bid_detail', pk=transaction.pilot_bid.id)
-
-
-@login_required
-def token_packages(request):
-    """View for listing available token packages"""
-    # Only enterprise users can purchase tokens
-    if request.user.organization.type != 'enterprise':
-        messages.error(request, "Only enterprise organizations can purchase tokens.")
-        return redirect('organizations:dashboard')
-    
-    # Get all active token packages
-    packages = TokenPackage.get_available_packages()
-    
-    return render(request, 'payments/token_packages.html', {
-        'packages': packages,
-        'organization': request.user.organization
-    })
-
-@login_required
-def purchase_tokens(request):
-    """Create Stripe checkout session for token purchase with quantity selection"""
-    # Only enterprise users can purchase tokens
-    if request.user.organization.type != 'enterprise':
-        messages.error(request, "Only enterprise organizations can purchase tokens.")
-        return redirect('organizations:dashboard')
-    
-    if request.method != 'POST':
-        return redirect('payments:token_packages')
-    
-    # Get token quantity from form
-    try:
-        quantity = int(request.POST.get('token_quantity', 1))
-        if quantity < 1:
-            raise ValueError("Quantity must be at least 1")
-    except (ValueError, TypeError):
-        messages.error(request, "Please enter a valid token quantity.")
-        return redirect('payments:token_packages')
-    
-    # Fixed price per token - $100
-    price_per_token = 100.00
-    
-    # Calculate total price
-    amount = price_per_token * quantity
-    
-    try:
-        # Create token transaction
-        transaction = TokenTransaction.objects.create(
-            organization=request.user.organization,
-            package=None,  # No package needed with fixed price
-            token_count=quantity,
-            amount=amount,
-            status='pending'
-        )
-        
-        # Create product and price in Stripe
-        product_name = "Pilot Tokens"
-        
-        # First create product
-        product = stripe.Product.create(
-            name=product_name,
-        )
-        
-        # Then create price using the product ID
-        price = stripe.Price.create(
-            unit_amount=int(price_per_token * 100),  # Convert to cents
-            currency="usd",
-            product=product.id,  # Pass the product ID, not nested product_data object
-        )
-        
-        # Create checkout session
-        checkout_session = stripe.checkout.Session.create(
-            customer=request.user.organization.stripe_customer_id,
-            payment_method_types=['card'],
-            line_items=[{
-                'price': price.id,
-                'quantity': quantity
-            }],
-            mode='payment',
-            success_url=request.build_absolute_uri(
-                reverse('payments:token_purchase_success')
-            ) + f"?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=request.build_absolute_uri(
-                reverse('payments:token_purchase_cancel')
-            ),
-            metadata={
-                'transaction_id': transaction.id,
-                'organization_id': request.user.organization.id,
-                'token_count': quantity
-            }
-        )
-        
-        # Update transaction with checkout ID
-        transaction.stripe_checkout_id = checkout_session.id
-        transaction.save()
-        
-        return redirect(checkout_session.url)
-    
-    except Exception as e:
-        messages.error(request, f"Error creating checkout session: {str(e)}")
-        return redirect('payments:token_packages')
-    
-
-@login_required
-def token_purchase_success(request):
-    """Handle successful token purchase"""
-    session_id = request.GET.get('session_id')
-    if not session_id:
-        messages.error(request, "Invalid checkout session")
-        return redirect('payments:token_packages')
-    
-    try:
-        # Retrieve the session
-        session = stripe.checkout.Session.retrieve(session_id)
-        
-        # Get transaction from metadata
-        transaction_id = session.metadata.get('transaction_id')
-        
-        if not transaction_id:
-            messages.error(request, "Invalid checkout data")
-            return redirect('payments:token_packages')
-        
-        # Get the transaction
-        transaction = get_object_or_404(TokenTransaction, id=transaction_id)
-        
-        # Verify the organization matches the logged in user
-        if request.user.organization.id != transaction.organization.id:
-            messages.error(request, "You do not have permission to access this checkout")
-            return redirect('payments:token_packages')
-        
-        # If payment is complete, finalize the transaction
-        if session.payment_status == 'paid':
-            transaction.stripe_payment_id = session.payment_intent
-            transaction.mark_completed()
-            
-            messages.success(request, f"Successfully purchased {transaction.token_count} tokens!")
-        else:
-            messages.warning(request, "Your payment is still being processed. Tokens will be added once payment is complete.")
-        
-        return redirect('payments:token_history')
-        
-    except Exception as e:
-        messages.error(request, f"Error processing payment: {str(e)}")
-        return redirect('payments:token_packages')
-
-@login_required
-def token_purchase_cancel(request):
-    """Handle cancelled token purchase"""
-    messages.warning(request, "Token purchase cancelled")
-    return redirect('payments:token_packages')
-
-@login_required
-def token_history(request):
-    """View token purchase history"""
-    # Only enterprise users can view token history
-    if request.user.organization.type != 'enterprise':
-        messages.error(request, "Only enterprise organizations can view token history.")
-        return redirect('organizations:dashboard')
-    
-    # Get all token transactions for the organization
-    transactions = TokenTransaction.objects.filter(
-        organization=request.user.organization
-    ).order_by('-created_at')
-    
-    # Get pilots that consumed tokens
-    from apps.pilots.models import Pilot
-    token_pilots = Pilot.objects.filter(
-        organization=request.user.organization,
-        token_consumed=True
-    ).order_by('-published_at')
-    
-    return render(request, 'payments/token_history.html', {
-        'transactions': transactions,
-        'token_pilots': token_pilots,
-        'organization': request.user.organization
-    })
 
 @login_required
 def complete_payment(request):

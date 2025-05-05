@@ -11,7 +11,7 @@ class Command(BaseCommand):
                 "plan_type": "startup_monthly",
                 "price": 10.00,
                 "billing_frequency": "monthly",
-                "initial_tokens": 0,
+                "pilot_limit": None,  # Not applicable for startups
                 "is_active": True
             },
             {
@@ -19,7 +19,7 @@ class Command(BaseCommand):
                 "plan_type": "startup_yearly",
                 "price": 100.00,
                 "billing_frequency": "yearly",
-                "initial_tokens": 0,
+                "pilot_limit": None,  # Not applicable for startups
                 "is_active": True
             },
             {
@@ -27,7 +27,7 @@ class Command(BaseCommand):
                 "plan_type": "enterprise_monthly",
                 "price": 100.00,
                 "billing_frequency": "monthly",
-                "initial_tokens": 1,  # 1 token included
+                "pilot_limit": 5,  # 5 pilots for monthly plan
                 "is_active": True
             },
             {
@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 "plan_type": "enterprise_yearly",
                 "price": 1000.00,
                 "billing_frequency": "yearly",
-                "initial_tokens": 2,  # 2 tokens included
+                "pilot_limit": None,  # Unlimited pilots for yearly plan
                 "is_active": True
             }
         ]
@@ -51,9 +51,9 @@ class Command(BaseCommand):
                     setattr(plan, key, value)
                 
                 plan.save()
-                self.stdout.write(self.style.SUCCESS(f'Updated plan: {plan.name} - {plan.initial_tokens} tokens'))
+                self.stdout.write(self.style.SUCCESS(f'Updated plan: {plan.name}'))
             except PricingPlan.DoesNotExist:
                 # Create new plan
                 plan_data['plan_type'] = plan_type
                 plan = PricingPlan.objects.create(**plan_data)
-                self.stdout.write(self.style.SUCCESS(f'Created plan: {plan.name} - {plan.initial_tokens} tokens'))
+                self.stdout.write(self.style.SUCCESS(f'Created plan: {plan.name}'))

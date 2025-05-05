@@ -63,39 +63,54 @@ class Organization(models.Model):
     bank_name = models.CharField(max_length=255, blank=True, null=True)
     bank_account_number = models.CharField(max_length=255, blank=True, null=True)
     bank_routing_number = models.CharField(max_length=255, blank=True, null=True)
-
-    token_balance = models.IntegerField(default=0, help_text="Current number of available tokens")
-    tokens_used = models.IntegerField(default=0, help_text="Total number of tokens used")
-    tokens_purchased = models.IntegerField(default=0, help_text="Total number of tokens purchased")
-
-    def has_available_tokens(self):
-        """Check if organization has tokens available for publishing pilots"""
-        return self.token_balance > 0
     
-    def consume_token(self):
-        """Consume a token for publishing a pilot. Returns True if successful."""
-        if self.token_balance > 0:
-            self.token_balance -= 1
-            self.tokens_used += 1
-            self.save(update_fields=['token_balance', 'tokens_used'])
+    published_pilot_count = models.IntegerField(default=0, help_text="Number of published pilots")
+
+    def has_active_subscription(self):
+        """
+        Check if the organization has an active subscription.
+        
+        Returns:
+            bool: True if the organization has an active subscription, False otherwise.
+        """
+        try:
+            # Check if the organization has a subscription relation
+            if not hasattr(self, 'subscription'):
+                return False
+                
+            # Check if the subscription exists and is active
+            return self.subscription is not None and self.subscription.status == 'active'
+        except Exception:
+            # Handle any errors gracefully
+            return False
+        
+    def get_remaining_pilots(self):
+        """Get number of remaining pilots that can be published"""
+        try:
+            subscription = self.subscription
+            if not subscription.is_active():
+                return 0
+                
+            if subscription.plan.pilot_limit is None:
+                return float('inf')  # Unlimited
             
-            # Create an audit entry for token consumption
-            from apps.payments.models import TokenConsumptionLog
-            TokenConsumptionLog.objects.create(
-                organization=self,
-                tokens_consumed=1,
-                action_type='pilot_publish',
-                notes="Token consumed for pilot publication"
-            )
+            remaining = max(0, subscription.plan.pilot_limit - self.published_pilot_count)
+            return remaining
+        except (Subscription.DoesNotExist, AttributeError):
+            return 0
+    
+    def can_publish_more_pilots(self):
+        """Check if organization can publish more pilots"""
+        remaining = self.get_remaining_pilots()
+        return remaining > 0 or remaining == float('inf')
+    
+    def increment_published_pilots(self):
+        """Increment the published pilot count. Returns True if successful."""
+        if self.can_publish_more_pilots():
+            self.published_pilot_count += 1
+            self.save(update_fields=['published_pilot_count'])
             return True
         return False
-        
-    def add_tokens(self, quantity):
-        """Add tokens to the organization's balance"""
-        self.token_balance += quantity
-        self.tokens_purchased += quantity
-        self.save(update_fields=['token_balance', 'tokens_purchased'])
-        return self.token_balance
         
     def can_create_pilot(self):
         """Check if the organization can create new pilots (draft only)"""
@@ -106,19 +121,12 @@ class Organization(models.Model):
         return self.has_active_subscription()
             
     def can_publish_pilot(self):
-        """Check if the organization can publish pilots (requires tokens)"""
+        """Check if the organization can publish pilots (requires available pilot slots)"""
         if not self.can_create_pilot():
             return False
             
-        # Check if organization has tokens available
-        return self.has_available_tokens()
-    
-    def has_active_subscription(self):
-        """Check if organization has an active subscription"""
-        try:
-            return self.subscription.is_active()
-        except (Subscription.DoesNotExist, AttributeError):
-            return False
+        # Check if organization has available pilot slots
+        return self.can_publish_more_pilots()
 
     def __str__(self):
         return self.name

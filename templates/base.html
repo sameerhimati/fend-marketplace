@@ -79,17 +79,17 @@
                                     Pilots
                                 </a>
                                 {% endif %}
+                                <a href="{% url 'pilots:bid_list' %}" 
+                                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                    {% if user.organization.type == 'enterprise' %}Received Bids{% else %}Your Bids{% endif %}
+                                </a>
                                 <a href="{% url 'organizations:enterprise_directory' %}" 
                                 class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                    Enterprise Partners
+                                    Enterprise Network
                                 </a>
                                 <a href="{% url 'organizations:startup_directory' %}" 
                                 class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                     Startup Network
-                                </a>
-                                <a href="{% url 'pilots:bid_list' %}" 
-                                class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                    {% if user.organization.type == 'enterprise' %}Received Bids{% else %}Your Bids{% endif %}
                                 </a>
                             </div>
                         {% endif %}
@@ -97,10 +97,15 @@
                     <div class="flex items-center">
                         {% if user.is_authenticated and user.organization.type == 'enterprise' %}
                         <div class="mr-4">
-                            <a href="{% url 'payments:token_history' %}" class="text-sm text-gray-700 hover:text-indigo-600 group">
+                            <a href="{% url 'payments:subscription_detail' %}" class="text-sm text-gray-700 hover:text-indigo-600 group">
                                 <span class="flex items-center">
-                                    <span class="font-medium text-indigo-600">{{ user.organization.token_balance }}</span>
-                                    <span class="ml-1">tokens</span>
+                                    {% if user.organization.subscription.plan.pilot_limit %}
+                                        <span class="font-medium text-indigo-600">{{ user.organization.get_remaining_pilots }}</span>
+                                        <span class="ml-1">pilots left</span>
+                                    {% else %}
+                                        <span class="font-medium text-indigo-600">Unlimited</span>
+                                        <span class="ml-1">pilots</span>
+                                    {% endif %}
                                 </span>
                             </a>
                         </div>
@@ -131,11 +136,6 @@
                                             <a href="{% url 'payments:subscription_detail' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 Manage Subscription
                                             </a>
-                                            {% if user.organization.type == 'enterprise' %}
-                                            <a href="{% url 'payments:token_packages' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                Purchase Tokens
-                                            </a>
-                                            {% endif %}
                                             {% if user.is_staff %}
                                             <li class="py-2">
                                                 <a href="{% url 'payments:admin_payment_dashboard' %}" 
