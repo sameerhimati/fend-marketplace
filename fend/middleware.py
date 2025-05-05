@@ -8,6 +8,19 @@ class AuthenticationFlowMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
+
+            if request.user.is_staff:
+                if (
+                request.path.startswith('/admin/') or 
+                request.path.startswith('/payments/admin/')
+                ):
+                    return self.get_response(request)
+                if request.path == '/':
+                    return redirect('admin:index')
+                if request.path == '/organizations/dashboard/':
+                    return redirect('admin:index')
+                
+                return self.get_response(request)
             # Handle dashboard redirection based on subscription
             if request.path == '/' or request.path == '/organizations/dashboard/':
                 # Check if user has valid subscription
