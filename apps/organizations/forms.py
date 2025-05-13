@@ -14,6 +14,11 @@ class OrganizationBasicForm(forms.ModelForm):
         model = Organization
         fields = ['name', 'type', 'website']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].required = True
+        self.fields['type'].empty_label = None
+
     def clean(self):
         cleaned_data = super().clean()
         password = cleaned_data.get('password')
