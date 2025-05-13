@@ -4,8 +4,34 @@ from apps.organizations.models import Organization, PilotDefinition
 from django.core.exceptions import ValidationError
 from apps.payments.models import PilotTransaction
 from django.utils import timezone as timezone
-from datetime import timedelta
+from django.utils.text import slugify
+import os
 import decimal
+
+
+def pilot_technical_doc_path(instance, filename):
+    """Generate path for technical specs documents"""
+    org_slug = slugify(instance.organization.name)
+    pilot_id = instance.pk or 'temp'
+    ext = os.path.splitext(filename)[1]
+    safe_filename = f"technical_{slugify(instance.title[:30])}{ext}"
+    return f'pilot_specs/{org_slug}/{pilot_id}/technical/{safe_filename}'
+
+def pilot_performance_doc_path(instance, filename):
+    """Generate path for performance metrics documents"""
+    org_slug = slugify(instance.organization.name)
+    pilot_id = instance.pk or 'temp'
+    ext = os.path.splitext(filename)[1]
+    safe_filename = f"performance_{slugify(instance.title[:30])}{ext}"
+    return f'pilot_specs/{org_slug}/{pilot_id}/performance/{safe_filename}'
+
+def pilot_compliance_doc_path(instance, filename):
+    """Generate path for compliance requirements documents"""
+    org_slug = slugify(instance.organization.name)
+    pilot_id = instance.pk or 'temp'
+    ext = os.path.splitext(filename)[1]
+    safe_filename = f"compliance_{slugify(instance.title[:30])}{ext}"
+    return f'pilot_specs/{org_slug}/{pilot_id}/compliance/{safe_filename}'
 
 class Pilot(models.Model):
     STATUS_CHOICES = (
@@ -41,16 +67,16 @@ class Pilot(models.Model):
         default='draft'
     )
     
-    # Auto-populated from PilotDefinition but can be overridden
     technical_specs_doc = models.FileField(
-        upload_to='pilot_specs/',
+        upload_to=pilot_technical_doc_path,
         null=True,
         blank=True
     )
+
     technical_specs_text = models.TextField(null=True, blank=True)
 
     performance_metrics_doc = models.FileField(
-        upload_to='pilot_specs/',
+        upload_to=pilot_performance_doc_path,
         null=True,
         blank=True
     )
@@ -58,10 +84,11 @@ class Pilot(models.Model):
     performance_metrics = models.TextField(null=True, blank=True)
 
     compliance_requirements_doc = models.FileField(
-        upload_to='pilot_specs/',
+        upload_to=pilot_compliance_doc_path,
         null=True,
         blank=True
     )
+
     compliance_requirements = models.TextField(
     null=True, 
     blank=True,

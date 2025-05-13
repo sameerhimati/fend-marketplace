@@ -274,22 +274,42 @@
                         
                         // On form load, check if we have existing data to set the correct toggle
                         document.addEventListener('DOMContentLoaded', function() {
-                            if (pilot.technical_specs_text and not pilot.technical_specs_doc) {
-                                document.querySelector('input[name="technical_specs_type"][value="text"]').checked = true;
-                                toggleFieldType('technical_specs', 'text');
+                            // Check technical specs
+                            const techSpecsTextarea = document.getElementById('{{ form.technical_specs_text.id_for_label }}');
+                            const techSpecsFile = document.getElementById('{{ form.technical_specs_doc.id_for_label }}');
+                            
+                            // If we have text content but no file, switch to text mode
+                            if (techSpecsTextarea && techSpecsTextarea.value && (!techSpecsFile || !techSpecsFile.value)) {
+                                const techTextRadio = document.querySelector('input[name="technical_specs_type"][value="text"]');
+                                if (techTextRadio) {
+                                    techTextRadio.checked = true;
+                                    toggleFieldType('technical_specs', 'text');
+                                }
                             }
                             
-                            {% endif %}
+                            // Check performance metrics
+                            const perfMetricsTextarea = document.getElementById('{{ form.performance_metrics.id_for_label }}');
+                            const perfMetricsFile = document.getElementById('{{ form.performance_metrics_doc.id_for_label }}');
                             
-                            {% if pilot.performance_metrics and not pilot.performance_metrics_doc %}
-                            document.querySelector('input[name="performance_metrics_type"][value="text"]').checked = true;
-                            toggleFieldType('performance_metrics', 'text');
-                            {% endif %}
+                            if (perfMetricsTextarea && perfMetricsTextarea.value && (!perfMetricsFile || !perfMetricsFile.value)) {
+                                const perfTextRadio = document.querySelector('input[name="performance_metrics_type"][value="text"]');
+                                if (perfTextRadio) {
+                                    perfTextRadio.checked = true;
+                                    toggleFieldType('performance_metrics', 'text');
+                                }
+                            }
                             
-                            {% if pilot.compliance_requirements and not pilot.compliance_requirements_doc %}
-                            document.querySelector('input[name="compliance_requirements_type"][value="text"]').checked = true;
-                            toggleFieldType('compliance_requirements', 'text');
-                            {% endif %}
+                            // Check compliance requirements
+                            const compReqTextarea = document.getElementById('{{ form.compliance_requirements.id_for_label }}');
+                            const compReqFile = document.getElementById('{{ form.compliance_requirements_doc.id_for_label }}');
+                            
+                            if (compReqTextarea && compReqTextarea.value && (!compReqFile || !compReqFile.value)) {
+                                const compTextRadio = document.querySelector('input[name="compliance_requirements_type"][value="text"]');
+                                if (compTextRadio) {
+                                    compTextRadio.checked = true;
+                                    toggleFieldType('compliance_requirements', 'text');
+                                }
+                            }
                         });
                     </script>
                 </form>
