@@ -47,7 +47,21 @@ class Pilot(models.Model):
         null=True,
         blank=True
     )
+    technical_specs_text = models.TextField(null=True, blank=True)
+
+    performance_metrics_doc = models.FileField(
+        upload_to='pilot_specs/',
+        null=True,
+        blank=True
+    )
+
     performance_metrics = models.TextField(null=True, blank=True)
+
+    compliance_requirements_doc = models.FileField(
+        upload_to='pilot_specs/',
+        null=True,
+        blank=True
+    )
     compliance_requirements = models.TextField(
     null=True, 
     blank=True,
