@@ -194,11 +194,11 @@ class EscrowPayment(models.Model):
         related_name='escrow_payment'
     )
     reference_code = models.CharField(max_length=50, unique=True)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)  # 102.5% of bid amount
-    startup_amount = models.DecimalField(max_digits=10, decimal_places=2)  # 97.5% of bid amount
-    platform_fee = models.DecimalField(max_digits=10, decimal_places=2)  # 5% fee
-    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50)
-    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    startup_amount = models.DecimalField(max_digits=10, decimal_places=2) 
+    platform_fee = models.DecimalField(max_digits=10, decimal_places=2) 
+    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
+    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
     
     # Status tracking
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

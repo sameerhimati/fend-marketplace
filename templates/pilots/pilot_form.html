@@ -61,10 +61,10 @@
                                 <div class="mt-1 text-sm text-blue-700">
                                     <p>When a bid is accepted and the pilot is completed, a platform fee will be charged as follows:</p>
                                     <ul class="list-disc pl-5 mt-1">
-                                        <li>You (the enterprise) will pay a 2.5% fee</li>
-                                        <li>The startup will also pay a 2.5% fee</li>
+                                        <li>You (the enterprise) will pay a 5% fee</li>
+                                        <li>The startup will also pay a 5% fee</li>
                                     </ul>
-                                    <p class="mt-1">Example: For a $1,000 bid, you would pay the startup $1,000 plus $25 to Fend as a platform fee.</p>
+                                    <p class="mt-1">Example: For a $1,000 bid, you would pay the startup $1,000 plus $50 to Fend as a platform fee.</p>
                                 </div>
                             </div>
                         </div>
@@ -73,7 +73,7 @@
                     <!-- Technical Specs Document -->
                     <div>
                         <label for="{{ form.technical_specs_doc.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Technical Specifications
+                            Technical Specifications <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1">
                             {% if pilot.technical_specs_doc %}
@@ -87,8 +87,10 @@
                             <input type="file" 
                                    name="{{ form.technical_specs_doc.name }}" 
                                    id="{{ form.technical_specs_doc.id_for_label }}"
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                   {% if not pilot.technical_specs_doc %}required{% endif %}>
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Technical specifications document is required</p>
                         {% if form.technical_specs_doc.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.technical_specs_doc.errors.0 }}</p>
                         {% endif %}
@@ -97,14 +99,16 @@
                     <!-- Performance Metrics -->
                     <div>
                         <label for="{{ form.performance_metrics.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Performance Metrics
+                            Performance Metrics <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1">
                             <textarea name="{{ form.performance_metrics.name }}" 
                                       id="{{ form.performance_metrics.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.performance_metrics.value|default:'' }}</textarea>
+                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                      required>{{ form.performance_metrics.value|default:'' }}</textarea>
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Define quantifiable performance metrics (required)</p>
                         {% if form.performance_metrics.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.performance_metrics.errors.0 }}</p>
                         {% endif %}
@@ -113,14 +117,16 @@
                     <!-- Compliance Requirements -->
                     <div>
                         <label for="{{ form.compliance_requirements.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Definition of Done
+                            Definition of Done <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1">
                             <textarea name="{{ form.compliance_requirements.name }}" 
                                       id="{{ form.compliance_requirements.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.compliance_requirements.value|default:'' }}</textarea>
+                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                      required>{{ form.compliance_requirements.value|default:'' }}</textarea>
                         </div>
+                        <p class="mt-1 text-xs text-gray-500">Specify the definition of done (required)</p>
                         {% if form.compliance_requirements.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.compliance_requirements.errors.0 }}</p>
                         {% endif %}
