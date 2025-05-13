@@ -58,21 +58,43 @@
                         <div class="mt-1">
                             <input type="text" name="{{ form.primary_contact_name.name }}" 
                                    id="{{ form.primary_contact_name.id_for_label }}"
+                                   value="{{ form.primary_contact_name.value|default:'' }}"
                                    class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                    required>
                         </div>
                     </div>
-
+                
                     <div>
                         <label for="{{ form.primary_contact_phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             Phone
                         </label>
-                        <div class="mt-1">
-                            <input type="tel" name="{{ form.primary_contact_phone.name }}" 
+                        <div class="mt-1 flex">
+                            <!-- Country Code Dropdown -->
+                            <select name="{{ form.country_code.name }}" 
+                                    id="{{ form.country_code.id_for_label }}"
+                                    class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                {% for value, label in form.country_code.field.choices %}
+                                <option value="{{ value }}" {% if form.country_code.value == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <!-- Phone Number Input -->
+                            <input type="tel" 
+                                   name="{{ form.primary_contact_phone.name }}" 
                                    id="{{ form.primary_contact_phone.id_for_label }}"
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                   value="{{ form.primary_contact_phone.value|default:'' }}"
+                                   placeholder="Phone number"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                    required>
                         </div>
+                        <p class="mt-1 text-xs text-gray-500" id="phone_format_help">
+                            Enter 10 digits for US/Canada numbers
+                        </p>
+                        {% if form.primary_contact_phone.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.primary_contact_phone.errors.0 }}</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -94,6 +116,11 @@
                         const businessRegInput = document.getElementById('{{ form.business_registration_number.id_for_label }}');
                         const registrationLabel = document.getElementById('registration_number_label');
                         const formatHelp = document.getElementById('registration_format_help');
+
+                        // Get phone elements
+                        const countryCodeSelect = document.getElementById('{{ form.country_code.id_for_label }}');
+                        const phoneInput = document.getElementById('{{ form.primary_contact_phone.id_for_label }}');
+                        const phoneFormatHelp = document.getElementById('phone_format_help');
                         
                         // Function to format EIN (for US businesses)
                         function formatEIN(input) {
@@ -143,7 +170,43 @@
                                 }
                             }
                         }
+
+                        // Function to update phone help text based on country
+                        function updatePhoneHelp() {
+                            const countryCode = countryCodeSelect.value;
+                            if (countryCode === '+1') {
+                                phoneFormatHelp.textContent = 'Enter 10 digits for US/Canada numbers';
+                                phoneInput.placeholder = '10 digits for US numbers';
+                                phoneInput.maxLength = '10';
+                            } else {
+                                phoneFormatHelp.textContent = 'Enter phone number without country code';
+                                phoneInput.placeholder = 'Phone number';
+                                phoneInput.maxLength = '15';
+                            }
+                        }
+
+                        // Update phone help on country change
+                        countryCodeSelect.addEventListener('change', updatePhoneHelp);
                         
+                        // Initialize phone help
+                        updatePhoneHelp();
+                        
+                        // Phone number formatting for US/Canada
+                        phoneInput.addEventListener('input', function() {
+                            const countryCode = countryCodeSelect.value;
+                            // Remove ALL non-digits (including parentheses, dashes, spaces)
+                            let value = this.value.replace(/\D/g, '');
+                            
+                            if (countryCode === '+1') {
+                                // Limit to 10 digits for US/Canada
+                                value = value.substring(0, 10);
+                            } else {
+                                // Limit to 15 digits for international (E.164 standard)
+                                value = value.substring(0, 15);
+                            }
+                            
+                            this.value = value;
+                        });
                         // Add change event to business type select
                         businessTypeSelect.addEventListener('change', updateRegistrationField);
                         
