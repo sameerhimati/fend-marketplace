@@ -35,19 +35,30 @@ class OrganizationBasicForm(forms.ModelForm):
         return cleaned_data
 
     def clean_website(self):
-        # Your existing website cleaning logic
+        """Clean and validate website field"""
         website = self.cleaned_data.get('website', '').strip().lower()
         if not website:
             return website
             
+        # Remove http:// or https:// if present
         if website.startswith('http://'):
             website = website[7:]
         elif website.startswith('https://'):
             website = website[8:]
         
+        # Remove www. if present
         if website.startswith('www.'):
             website = website[4:]
-            
+        
+        # Validate website format - must end with .something
+        import re
+        if not re.match(r'.*\.[a-zA-Z]{2,}$', website):
+            raise forms.ValidationError("Website must be a valid domain (e.g., example.com)")
+        
+        # Check max length (50 characters)
+        if len(website) > 50:
+            raise forms.ValidationError("Website must be less than 50 characters")
+        
         return website
     
 def clean_business_registration_number(self):
@@ -95,12 +106,199 @@ def clean_tax_identification_number(self):
 
 class EnterpriseDetailsForm(forms.ModelForm):
     """Second step for enterprise organizations"""
+    
+    # Add country code choices
+    COUNTRY_CODES = [
+        ('+1', 'United States (+1)'),
+        ('+1', 'Canada (+1)'),
+        ('+93', 'Afghanistan (+93)'),
+        ('+355', 'Albania (+355)'),
+        ('+213', 'Algeria (+213)'),
+        ('+376', 'Andorra (+376)'),
+        ('+244', 'Angola (+244)'),
+        ('+54', 'Argentina (+54)'),
+        ('+374', 'Armenia (+374)'),
+        ('+61', 'Australia (+61)'),
+        ('+43', 'Austria (+43)'),
+        ('+994', 'Azerbaijan (+994)'),
+        ('+973', 'Bahrain (+973)'),
+        ('+880', 'Bangladesh (+880)'),
+        ('+375', 'Belarus (+375)'),
+        ('+32', 'Belgium (+32)'),
+        ('+501', 'Belize (+501)'),
+        ('+229', 'Benin (+229)'),
+        ('+975', 'Bhutan (+975)'),
+        ('+591', 'Bolivia (+591)'),
+        ('+387', 'Bosnia and Herzegovina (+387)'),
+        ('+267', 'Botswana (+267)'),
+        ('+55', 'Brazil (+55)'),
+        ('+673', 'Brunei (+673)'),
+        ('+359', 'Bulgaria (+359)'),
+        ('+226', 'Burkina Faso (+226)'),
+        ('+257', 'Burundi (+257)'),
+        ('+855', 'Cambodia (+855)'),
+        ('+237', 'Cameroon (+237)'),
+        ('+238', 'Cape Verde (+238)'),
+        ('+236', 'Central African Republic (+236)'),
+        ('+235', 'Chad (+235)'),
+        ('+56', 'Chile (+56)'),
+        ('+86', 'China (+86)'),
+        ('+57', 'Colombia (+57)'),
+        ('+269', 'Comoros (+269)'),
+        ('+242', 'Congo (+242)'),
+        ('+506', 'Costa Rica (+506)'),
+        ('+385', 'Croatia (+385)'),
+        ('+53', 'Cuba (+53)'),
+        ('+357', 'Cyprus (+357)'),
+        ('+420', 'Czech Republic (+420)'),
+        ('+45', 'Denmark (+45)'),
+        ('+253', 'Djibouti (+253)'),
+        ('+593', 'Ecuador (+593)'),
+        ('+20', 'Egypt (+20)'),
+        ('+503', 'El Salvador (+503)'),
+        ('+240', 'Equatorial Guinea (+240)'),
+        ('+291', 'Eritrea (+291)'),
+        ('+372', 'Estonia (+372)'),
+        ('+251', 'Ethiopia (+251)'),
+        ('+679', 'Fiji (+679)'),
+        ('+358', 'Finland (+358)'),
+        ('+33', 'France (+33)'),
+        ('+241', 'Gabon (+241)'),
+        ('+220', 'Gambia (+220)'),
+        ('+995', 'Georgia (+995)'),
+        ('+49', 'Germany (+49)'),
+        ('+233', 'Ghana (+233)'),
+        ('+30', 'Greece (+30)'),
+        ('+502', 'Guatemala (+502)'),
+        ('+224', 'Guinea (+224)'),
+        ('+592', 'Guyana (+592)'),
+        ('+509', 'Haiti (+509)'),
+        ('+504', 'Honduras (+504)'),
+        ('+852', 'Hong Kong (+852)'),
+        ('+36', 'Hungary (+36)'),
+        ('+354', 'Iceland (+354)'),
+        ('+91', 'India (+91)'),
+        ('+62', 'Indonesia (+62)'),
+        ('+98', 'Iran (+98)'),
+        ('+964', 'Iraq (+964)'),
+        ('+353', 'Ireland (+353)'),
+        ('+972', 'Israel (+972)'),
+        ('+39', 'Italy (+39)'),
+        ('+225', 'Ivory Coast (+225)'),
+        ('+876', 'Jamaica (+876)'),
+        ('+81', 'Japan (+81)'),
+        ('+962', 'Jordan (+962)'),
+        ('+7', 'Kazakhstan (+7)'),
+        ('+254', 'Kenya (+254)'),
+        ('+965', 'Kuwait (+965)'),
+        ('+996', 'Kyrgyzstan (+996)'),
+        ('+856', 'Laos (+856)'),
+        ('+371', 'Latvia (+371)'),
+        ('+961', 'Lebanon (+961)'),
+        ('+266', 'Lesotho (+266)'),
+        ('+231', 'Liberia (+231)'),
+        ('+218', 'Libya (+218)'),
+        ('+423', 'Liechtenstein (+423)'),
+        ('+370', 'Lithuania (+370)'),
+        ('+352', 'Luxembourg (+352)'),
+        ('+853', 'Macau (+853)'),
+        ('+389', 'Macedonia (+389)'),
+        ('+261', 'Madagascar (+261)'),
+        ('+265', 'Malawi (+265)'),
+        ('+60', 'Malaysia (+60)'),
+        ('+960', 'Maldives (+960)'),
+        ('+223', 'Mali (+223)'),
+        ('+356', 'Malta (+356)'),
+        ('+692', 'Marshall Islands (+692)'),
+        ('+222', 'Mauritania (+222)'),
+        ('+230', 'Mauritius (+230)'),
+        ('+52', 'Mexico (+52)'),
+        ('+691', 'Micronesia (+691)'),
+        ('+373', 'Moldova (+373)'),
+        ('+377', 'Monaco (+377)'),
+        ('+976', 'Mongolia (+976)'),
+        ('+382', 'Montenegro (+382)'),
+        ('+212', 'Morocco (+212)'),
+        ('+258', 'Mozambique (+258)'),
+        ('+95', 'Myanmar (+95)'),
+        ('+264', 'Namibia (+264)'),
+        ('+674', 'Nauru (+674)'),
+        ('+977', 'Nepal (+977)'),
+        ('+31', 'Netherlands (+31)'),
+        ('+64', 'New Zealand (+64)'),
+        ('+505', 'Nicaragua (+505)'),
+        ('+227', 'Niger (+227)'),
+        ('+234', 'Nigeria (+234)'),
+        ('+47', 'Norway (+47)'),
+        ('+968', 'Oman (+968)'),
+        ('+92', 'Pakistan (+92)'),
+        ('+680', 'Palau (+680)'),
+        ('+507', 'Panama (+507)'),
+        ('+675', 'Papua New Guinea (+675)'),
+        ('+595', 'Paraguay (+595)'),
+        ('+51', 'Peru (+51)'),
+        ('+63', 'Philippines (+63)'),
+        ('+48', 'Poland (+48)'),
+        ('+351', 'Portugal (+351)'),
+        ('+974', 'Qatar (+974)'),
+        ('+40', 'Romania (+40)'),
+        ('+7', 'Russia (+7)'),
+        ('+250', 'Rwanda (+250)'),
+        ('+966', 'Saudi Arabia (+966)'),
+        ('+221', 'Senegal (+221)'),
+        ('+381', 'Serbia (+381)'),
+        ('+248', 'Seychelles (+248)'),
+        ('+232', 'Sierra Leone (+232)'),
+        ('+65', 'Singapore (+65)'),
+        ('+421', 'Slovakia (+421)'),
+        ('+386', 'Slovenia (+386)'),
+        ('+677', 'Solomon Islands (+677)'),
+        ('+252', 'Somalia (+252)'),
+        ('+27', 'South Africa (+27)'),
+        ('+82', 'South Korea (+82)'),
+        ('+211', 'South Sudan (+211)'),
+        ('+34', 'Spain (+34)'),
+        ('+94', 'Sri Lanka (+94)'),
+        ('+249', 'Sudan (+249)'),
+        ('+597', 'Suriname (+597)'),
+        ('+268', 'Swaziland (+268)'),
+        ('+46', 'Sweden (+46)'),
+        ('+41', 'Switzerland (+41)'),
+        ('+963', 'Syria (+963)'),
+        ('+886', 'Taiwan (+886)'),
+        ('+992', 'Tajikistan (+992)'),
+        ('+255', 'Tanzania (+255)'),
+        ('+66', 'Thailand (+66)'),
+        ('+228', 'Togo (+228)'),
+        ('+676', 'Tonga (+676)'),
+        ('+1868', 'Trinidad and Tobago (+1868)'),
+        ('+216', 'Tunisia (+216)'),
+        ('+90', 'Turkey (+90)'),
+        ('+993', 'Turkmenistan (+993)'),
+        ('+688', 'Tuvalu (+688)'),
+        ('+256', 'Uganda (+256)'),
+        ('+380', 'Ukraine (+380)'),
+        ('+971', 'United Arab Emirates (+971)'),
+        ('+44', 'United Kingdom (+44)'),
+        ('+598', 'Uruguay (+598)'),
+        ('+998', 'Uzbekistan (+998)'),
+        ('+678', 'Vanuatu (+678)'),
+        ('+58', 'Venezuela (+58)'),
+        ('+84', 'Vietnam (+84)'),
+        ('+967', 'Yemen (+967)'),
+        ('+260', 'Zambia (+260)'),
+        ('+263', 'Zimbabwe (+263)'),
+    ]
+    
+    country_code = forms.ChoiceField(choices=COUNTRY_CODES, initial='+1')
+    
     class Meta:
         model = Organization
         fields = [
             'business_type',
             'business_registration_number',
             'primary_contact_name',
+            'country_code',
             'primary_contact_phone'
         ]
         widgets = {
@@ -111,7 +309,43 @@ class EnterpriseDetailsForm(forms.ModelForm):
                     'title': 'Business registration number'
                 }
             ),
+            'primary_contact_phone': forms.TextInput(
+                attrs={
+                    'placeholder': '10 digits for US numbers',
+                    'maxlength': '15'
+                }
+            ),
         }
+    
+    def clean_primary_contact_phone(self):
+        """Validate phone number based on country code"""
+        phone = self.cleaned_data.get('primary_contact_phone')
+        country_code = self.cleaned_data.get('country_code')
+        
+        if not phone:
+            return phone
+        
+        # Remove ALL non-digit characters (parentheses, dashes, spaces, etc.)
+        phone_digits = ''.join(filter(str.isdigit, phone))
+        
+        # Validate US and Canada numbers (both use +1)
+        if country_code == '+1':
+            if len(phone_digits) != 10:
+                raise forms.ValidationError("US/Canada phone numbers must be exactly 10 digits")
+            # Store just the digits - we'll format on display
+            return phone_digits
+        
+        # For other countries, just ensure it's numeric and reasonable length
+        if not phone_digits:
+            raise forms.ValidationError("Phone number must contain digits")
+        
+        if len(phone_digits) < 6:  # Most phone numbers are at least 7 digits
+            raise forms.ValidationError("Phone number seems too short")
+        
+        if len(phone_digits) > 15:  # ITU-T recommendation E.164 max length
+            raise forms.ValidationError("Phone number seems too long")
+        
+        return phone_digits
     
     clean_business_registration_number = clean_business_registration_number
 

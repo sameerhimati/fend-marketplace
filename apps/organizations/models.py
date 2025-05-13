@@ -23,9 +23,9 @@ class Organization(models.Model):
     )
 
     # Basic Organization Info
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=50)
     type = models.CharField(max_length=20, choices=ORGANIZATION_TYPES)
-    website = models.CharField(max_length=255)
+    website = models.CharField(max_length=50)
     business_type = models.CharField(
         max_length=20, 
         choices=BUSINESS_TYPES,
@@ -51,6 +51,7 @@ class Organization(models.Model):
     primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
     # primary_contact_email = models.EmailField(null=True, blank=True)
     primary_contact_phone = models.CharField(max_length=20, null=True, blank=True)
+    country_code = models.CharField(max_length=5, default='+1', null=True, blank=True)
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
