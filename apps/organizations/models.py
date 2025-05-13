@@ -15,6 +15,7 @@ class Organization(models.Model):
     )
     
     BUSINESS_TYPES = (
+        ('', 'Select One'),
         ('c_corp', 'C-Corporation'),
         ('s_corp', 'S-Corporation'),
         ('llc', 'LLC'),
