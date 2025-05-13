@@ -76,6 +76,7 @@ class PilotForm(forms.ModelForm):
 
     
     def clean_doc(self, file_field_name):
+        """Validate uploaded documents"""
         file = self.cleaned_data.get(file_field_name)
         if file:
             # Check file extension
@@ -86,11 +87,20 @@ class PilotForm(forms.ModelForm):
                     f'File type not supported. Allowed types: {", ".join(valid_extensions)}'
                 )
             
-            # Check file size (e.g., 10MB limit)
+            # Check file size (10MB limit)
             if file.size > 10 * 1024 * 1024:
                 raise forms.ValidationError('File too large. Size should not exceed 10MB.')
         
         return file
+    
+    def clean_technical_specs_doc(self):
+        return self.clean_doc('technical_specs_doc')
+    
+    def clean_performance_metrics_doc(self):
+        return self.clean_doc('performance_metrics_doc')
+    
+    def clean_compliance_requirements_doc(self):
+        return self.clean_doc('compliance_requirements_doc')
 
 class PilotBidForm(forms.ModelForm):
     class Meta:
