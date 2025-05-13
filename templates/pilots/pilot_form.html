@@ -17,7 +17,7 @@
                     <!-- Title -->
                     <div>
                         <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Title
+                            Title <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1">
                             <input type="text" 
@@ -35,7 +35,7 @@
                     <!-- Description -->
                     <div>
                         <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Description
+                            Description <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1">
                             <textarea name="{{ form.description.name }}" 
@@ -70,12 +70,27 @@
                         </div>
                     </div>
 
-                    <!-- Technical Specs Document -->
                     <div>
-                        <label for="{{ form.technical_specs_doc.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Technical Specifications <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Technical Specifications
                         </label>
-                        <div class="mt-1">
+                        
+                        <!-- Toggle between file and text -->
+                        <div class="mb-3">
+                            <label class="inline-flex items-center mr-4">
+                                <input type="radio" name="technical_specs_type" value="file" checked
+                                       class="form-radio" onchange="toggleFieldType('technical_specs', 'file')">
+                                <span class="ml-2">Upload Document</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="technical_specs_type" value="text"
+                                       class="form-radio" onchange="toggleFieldType('technical_specs', 'text')">
+                                <span class="ml-2">Enter Text</span>
+                            </label>
+                        </div>
+                        
+                        <!-- File upload option -->
+                        <div id="technical_specs_file" class="mt-1">
                             {% if pilot.technical_specs_doc %}
                             <div class="flex items-center space-x-2 mb-2">
                                 <span class="text-sm">Current file:</span> 
@@ -87,55 +102,112 @@
                             <input type="file" 
                                    name="{{ form.technical_specs_doc.name }}" 
                                    id="{{ form.technical_specs_doc.id_for_label }}"
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                                   {% if not pilot.technical_specs_doc %}required{% endif %}>
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Technical specifications document is required</p>
-                        {% if form.technical_specs_doc.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.technical_specs_doc.errors.0 }}</p>
-                        {% endif %}
+                        
+                        <!-- Text input option -->
+                        <div id="technical_specs_text" class="mt-1" style="display:none;">
+                            <textarea name="{{ form.technical_specs_text.name }}" 
+                                      id="{{ form.technical_specs_text.id_for_label }}"
+                                      rows="3"
+                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.technical_specs_text.value|default:'' }}</textarea>
+                        </div>
                     </div>
-
+                    
                     <!-- Performance Metrics -->
                     <div>
-                        <label for="{{ form.performance_metrics.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Performance Metrics <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Performance Metrics
                         </label>
-                        <div class="mt-1">
+                        
+                        <!-- Toggle between file and text -->
+                        <div class="mb-3">
+                            <label class="inline-flex items-center mr-4">
+                                <input type="radio" name="performance_metrics_type" value="file" checked
+                                       class="form-radio" onchange="toggleFieldType('performance_metrics', 'file')">
+                                <span class="ml-2">Upload Document</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="performance_metrics_type" value="text"
+                                       class="form-radio" onchange="toggleFieldType('performance_metrics', 'text')">
+                                <span class="ml-2">Enter Text</span>
+                            </label>
+                        </div>
+                        
+                        <!-- File upload option -->
+                        <div id="performance_metrics_file" class="mt-1">
+                            {% if pilot.performance_metrics_doc %}
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-sm">Current file:</span> 
+                                <a href="{{ pilot.performance_metrics_doc.url }}" 
+                                   class="text-indigo-600 hover:text-indigo-800 text-sm"
+                                   target="_blank">{{ pilot.performance_metrics_doc.name|default:"Document" }}</a>
+                            </div>
+                            {% endif %}
+                            <input type="file" 
+                                   name="{{ form.performance_metrics_doc.name }}" 
+                                   id="{{ form.performance_metrics_doc.id_for_label }}"
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        </div>
+                        
+                        <!-- Text input option -->
+                        <div id="performance_metrics_text" class="mt-1" style="display:none;">
                             <textarea name="{{ form.performance_metrics.name }}" 
                                       id="{{ form.performance_metrics.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                                      required>{{ form.performance_metrics.value|default:'' }}</textarea>
+                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.performance_metrics.value|default:'' }}</textarea>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Define quantifiable performance metrics (required)</p>
-                        {% if form.performance_metrics.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.performance_metrics.errors.0 }}</p>
-                        {% endif %}
                     </div>
-
+                    
                     <!-- Compliance Requirements -->
                     <div>
-                        <label for="{{ form.compliance_requirements.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Definition of Done <span class="text-red-500">*</span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Definition of Done
                         </label>
-                        <div class="mt-1">
+                        
+                        <!-- Toggle between file and text -->
+                        <div class="mb-3">
+                            <label class="inline-flex items-center mr-4">
+                                <input type="radio" name="compliance_requirements_type" value="file" checked
+                                       class="form-radio" onchange="toggleFieldType('compliance_requirements', 'file')">
+                                <span class="ml-2">Upload Document</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="compliance_requirements_type" value="text"
+                                       class="form-radio" onchange="toggleFieldType('compliance_requirements', 'text')">
+                                <span class="ml-2">Enter Text</span>
+                            </label>
+                        </div>
+                        
+                        <!-- File upload option -->
+                        <div id="compliance_requirements_file" class="mt-1">
+                            {% if pilot.compliance_requirements_doc %}
+                            <div class="flex items-center space-x-2 mb-2">
+                                <span class="text-sm">Current file:</span> 
+                                <a href="{{ pilot.compliance_requirements_doc.url }}" 
+                                   class="text-indigo-600 hover:text-indigo-800 text-sm"
+                                   target="_blank">{{ pilot.compliance_requirements_doc.name|default:"Document" }}</a>
+                            </div>
+                            {% endif %}
+                            <input type="file" 
+                                   name="{{ form.compliance_requirements_doc.name }}" 
+                                   id="{{ form.compliance_requirements_doc.id_for_label }}"
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                        </div>
+                        
+                        <!-- Text input option -->
+                        <div id="compliance_requirements_text" class="mt-1" style="display:none;">
                             <textarea name="{{ form.compliance_requirements.name }}" 
                                       id="{{ form.compliance_requirements.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                                      required>{{ form.compliance_requirements.value|default:'' }}</textarea>
+                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.compliance_requirements.value|default:'' }}</textarea>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Specify the definition of done (required)</p>
-                        {% if form.compliance_requirements.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.compliance_requirements.errors.0 }}</p>
-                        {% endif %}
                     </div>
                     
                     <!-- Pricing Type -->
                     <div>
                         <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Pilot Price (USD)
+                            Pilot Price (USD) <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1 relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -185,6 +257,41 @@
                             {% if pilot.id %}Save Changes{% else %}Create Pilot{% endif %}
                         </button>
                     </div>
+
+                    <script>
+                        function toggleFieldType(fieldName, type) {
+                            const fileDiv = document.getElementById(fieldName + '_file');
+                            const textDiv = document.getElementById(fieldName + '_text');
+                            
+                            if (type === 'file') {
+                                fileDiv.style.display = 'block';
+                                textDiv.style.display = 'none';
+                            } else {
+                                fileDiv.style.display = 'none';
+                                textDiv.style.display = 'block';
+                            }
+                        }
+                        
+                        // On form load, check if we have existing data to set the correct toggle
+                        document.addEventListener('DOMContentLoaded', function() {
+                            if (pilot.technical_specs_text and not pilot.technical_specs_doc) {
+                                document.querySelector('input[name="technical_specs_type"][value="text"]').checked = true;
+                                toggleFieldType('technical_specs', 'text');
+                            }
+                            
+                            {% endif %}
+                            
+                            {% if pilot.performance_metrics and not pilot.performance_metrics_doc %}
+                            document.querySelector('input[name="performance_metrics_type"][value="text"]').checked = true;
+                            toggleFieldType('performance_metrics', 'text');
+                            {% endif %}
+                            
+                            {% if pilot.compliance_requirements and not pilot.compliance_requirements_doc %}
+                            document.querySelector('input[name="compliance_requirements_type"][value="text"]').checked = true;
+                            toggleFieldType('compliance_requirements', 'text');
+                            {% endif %}
+                        });
+                    </script>
                 </form>
             </div>
         </div>
