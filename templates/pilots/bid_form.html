@@ -24,10 +24,10 @@
                                 <div class="mt-1 text-sm text-blue-700">
                                     <p>When the pilot is completed, a platform fee will be charged as follows:</p>
                                     <ul class="list-disc pl-5 mt-1">
-                                        <li>You (the startup) will pay a 2.5% fee</li>
-                                        <li>The enterprise will also pay a 2.5% fee</li>
+                                        <li>You (the startup) will pay a 5% fee</li>
+                                        <li>The enterprise will also pay a 5% fee</li>
                                     </ul>
-                                    <p class="mt-1">Example: For a $1,000 bid, you would pay $25 and the enterprise would pay you $1000 and Fend a $25 fee ($1,000 + $25 fee).</p>
+                                    <p class="mt-1">Example: For a $1,000 bid, you would pay $50 and the enterprise would pay you $1000 and Fend a $50 fee ($1,000 + $50 fee).</p>
                                 </div>
                             </div>
                         </div>
@@ -75,7 +75,7 @@
                         <div class="mt-1 relative rounded-md shadow-sm">
                             <div class="mt-2 text-sm text-gray-500">
                                 <p>Your bid amount: <span id="amount-display">$0.00</span></p>
-                                <p>Your platform fee (2.5%): <span id="fee-amount">$0.00</span></p>
+                                <p>Your platform fee (5%): <span id="fee-amount">$0.00</span></p>
                             </div>
                             <input type="number" 
                                    name="{{ form.amount.name }}" 
@@ -132,7 +132,7 @@
     // Function to update the fee calculation in real-time
     function updateFeeCalculation(bidAmount) {
         const amount = parseFloat(bidAmount) || 0;
-        const feePercentage = 2.5; // 2.5% platform fee for startup
+        const feePercentage = 5.0; 
         const fee = (amount * feePercentage / 100).toFixed(2);
         
         // Update in real-time

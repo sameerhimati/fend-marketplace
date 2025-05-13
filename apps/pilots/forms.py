@@ -1,5 +1,32 @@
 from django import forms
-from .models import PilotBid
+from .models import Pilot, PilotBid
+
+class PilotForm(forms.ModelForm):
+    class Meta:
+        model = Pilot
+        fields = ['title', 'description', 'technical_specs_doc', 'performance_metrics', 
+                  'compliance_requirements', 'is_private', 'price']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4, 'required': True}),
+            'performance_metrics': forms.Textarea(attrs={'rows': 3, 'required': True}),
+            'compliance_requirements': forms.Textarea(attrs={'rows': 3, 'required': True}),
+            'price': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'required': True}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Mark all fields as required
+        self.fields['title'].required = True
+        self.fields['description'].required = True
+        self.fields['technical_specs_doc'].required = True
+        self.fields['performance_metrics'].required = True
+        self.fields['compliance_requirements'].required = True
+        self.fields['price'].required = True
+        
+        # Set help text
+        self.fields['technical_specs_doc'].help_text = "Upload technical specifications document (required)"
+        self.fields['performance_metrics'].help_text = "Define quantifiable performance metrics and KPIs (required)"
+        self.fields['compliance_requirements'].help_text = "Specify the definition of done for this pilot (required)"
 
 class PilotBidForm(forms.ModelForm):
     class Meta:
@@ -19,11 +46,7 @@ class PilotBidForm(forms.ModelForm):
     
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
-        pilot = self.initial.get('pilot')
-        
-        if pilot and amount < pilot.price:
-            raise forms.ValidationError(
-                f"Your bid amount (${amount}) is less than the pilot's required price (${pilot.price})."
-            )
+        if amount <= 0:
+            raise forms.ValidationError("Bid amount must be greater than zero.")
         
         return amount

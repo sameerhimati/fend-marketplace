@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy, reverse
 from .models import Pilot, PilotBid
-from .forms import PilotBidForm
+from .forms import PilotForm, PilotBidForm
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -104,9 +104,8 @@ class PilotDetailView(LoginRequiredMixin, DetailView):
 
 class PilotCreateView(LoginRequiredMixin, CreateView):
     model = Pilot
+    form_class = PilotForm
     template_name = 'pilots/pilot_form.html'
-    fields = ['title', 'description', 'technical_specs_doc', 'performance_metrics', 
-              'compliance_requirements', 'is_private', 'price']
     success_url = reverse_lazy('pilots:list')
 
     def dispatch(self, request, *args, **kwargs):
@@ -122,9 +121,8 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
 
 class PilotUpdateView(LoginRequiredMixin, UpdateView):
     model = Pilot
+    form_class = PilotForm
     template_name = 'pilots/pilot_form.html'
-    fields = ['title', 'description', 'technical_specs_doc', 'performance_metrics', 
-              'compliance_requirements', 'is_private', 'price']
     context_object_name = 'pilot'
     
     def dispatch(self, request, *args, **kwargs):
@@ -217,13 +215,16 @@ def create_bid(request, pilot_id):
             bid_amount = form.cleaned_data['amount']
             
             # Validate bid amount against pilot price
-            if bid_amount < pilot.price:
-                messages.error(request, f"Bid amount must be at least ${pilot.price}")
-                return render(request, 'pilots/bid_form.html', {'form': form, 'pilot': pilot})
+            # if bid_amount < pilot.price:
+            #     messages.error(request, f"Bid amount must be at least ${pilot.price}")
+            #     return render(request, 'pilots/bid_form.html', {'form': form, 'pilot': pilot})
             
             bid = form.save(commit=False)
             bid.pilot = pilot
             bid.startup = user_org
+            bid.startup_fee_percentage = 5.00
+            bid.enterprise_fee_percentage = 5.00 
+            bid.fee_percentage = 10.00 
             bid.save()
             
             create_bid_notification(

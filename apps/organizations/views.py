@@ -19,6 +19,21 @@ class OrganizationRegistrationView(CreateView):
     form_class = OrganizationBasicForm
     template_name = 'organizations/registration/basic.html'
     
+    def get_initial(self):
+        """Pre-populate form with session data if available"""
+        initial = super().get_initial()
+        reg_data = self.request.session.get('registration_data', {})
+        
+        if reg_data:
+            initial.update({
+                'name': reg_data.get('organization_name', ''),
+                'type': reg_data.get('organization_type', ''),
+                'website': reg_data.get('organization_website', ''),
+                'email': reg_data.get('email', ''),
+            })
+            
+        return initial
+    
     @transaction.atomic
     def form_valid(self, form):
         try:
@@ -33,6 +48,8 @@ class OrganizationRegistrationView(CreateView):
                 'email': form.cleaned_data['email'],
                 'password': form.cleaned_data['password'],
             }
+
+            self.request.session.modified = True
             
             # Store the organization in the database without finalizing
             organization.save()
@@ -110,9 +127,19 @@ class EnterpriseDetailsView(UpdateView):
     template_name = 'organizations/registration/enterprise_details.html'
     
     def get_initial(self):
-        """Pre-populate form with session data"""
+        """Pre-populate form with session data if available"""
         initial = super().get_initial()
         reg_data = self.request.session.get('registration_data', {})
+        
+        # Get organization data from session if previous form data exists
+        org_data = self.request.session.get('enterprise_details', {})
+        if org_data:
+            initial.update({
+                'business_type': org_data.get('business_type', ''),
+                'business_registration_number': org_data.get('business_registration_number', ''),
+                'primary_contact_name': org_data.get('primary_contact_name', ''),
+                'primary_contact_phone': org_data.get('primary_contact_phone', ''),
+            })
         
         # Add email from registration data to avoid asking again
         if 'email' in reg_data:
@@ -122,6 +149,15 @@ class EnterpriseDetailsView(UpdateView):
     
     def form_valid(self, form):
         try:
+            # Store form data in session before saving
+            self.request.session['enterprise_details'] = {
+                'business_type': form.cleaned_data.get('business_type'),
+                'business_registration_number': form.cleaned_data.get('business_registration_number'),
+                'primary_contact_name': form.cleaned_data.get('primary_contact_name'),
+                'primary_contact_phone': form.cleaned_data.get('primary_contact_phone'),
+            }
+            self.request.session.modified = True
+            
             organization = form.save(commit=False)
             
             # Get email from session instead of form

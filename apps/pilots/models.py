@@ -154,9 +154,9 @@ class Pilot(models.Model):
 
 class PilotBid(models.Model):
     # Adjust fee_percentage field and add new fields for split fees
-    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Total transaction fee percentage")
-    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50, help_text="Startup's portion of transaction fee")
-    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.50, help_text="Enterprise's portion of transaction fee")
+    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Total transaction fee percentage")
+    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Startup's portion of transaction fee")
+    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Enterprise's portion of transaction fee")
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
