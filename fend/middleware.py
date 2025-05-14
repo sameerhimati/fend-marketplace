@@ -8,11 +8,34 @@ class AuthenticationFlowMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
+            # Skip verification check for these paths
+            verification_exempt_paths = [
+                '/admin/',
+                '/organizations/verify-email/',
+                '/organizations/verification-pending/',
+                '/organizations/resend-verification/',
+                '/organizations/logout/',
+                '/static/',
+                '/media/',
+                '/payments/',  # Add this to allow payment access after verification
+            ]
+            
+            # Check if current path is exempt from verification
+            is_verification_exempt = any(
+                request.path.startswith(path) for path in verification_exempt_paths
+            )
+            
+            # If user is not verified and not on an exempt path
+            if not hasattr(request.user, 'is_verified') or not request.user.is_verified:
+                if not is_verification_exempt:
+                    messages.warning(request, "Please verify your email address to continue.")
+                    return redirect('organizations:verification_pending')
 
+            # Handle staff users
             if request.user.is_staff:
                 if (
-                request.path.startswith('/admin/') or 
-                request.path.startswith('/payments/admin/')
+                    request.path.startswith('/admin/') or 
+                    request.path.startswith('/payments/admin/')
                 ):
                     return self.get_response(request)
                 if request.path == '/':
@@ -21,18 +44,18 @@ class AuthenticationFlowMiddleware:
                     return redirect('admin:index')
                 
                 return self.get_response(request)
+            
+            # Check if user has organization (should have after registration)
+            if not hasattr(request.user, 'organization') or not request.user.organization:
+                # This shouldn't happen for verified users, but just in case
+                from django.contrib.auth import logout
+                logout(request)
+                messages.warning(request, "Your session has expired. Please log in again.")
+                return redirect('landing')
+            
             # Handle dashboard redirection based on subscription
             if request.path == '/' or request.path == '/organizations/dashboard/':
-                # Check if user has valid subscription
-                if not hasattr(request.user, 'organization') or not request.user.organization:
-                    # This shouldn't happen, but just in case - log them out
-                    from django.contrib.auth import logout
-                    logout(request)
-                    messages.warning(request, "Your session has expired. Please log in again.")
-                    return redirect('landing')
-                
                 # For users without active subscription trying to access dashboard
-                # Explicitly handle both startups and enterprises
                 if request.path == '/organizations/dashboard/' and not request.user.organization.has_active_subscription():
                     if request.user.organization.type == 'startup':
                         messages.warning(request, "Your startup account requires an active subscription to access the dashboard.")
@@ -44,16 +67,11 @@ class AuthenticationFlowMiddleware:
                 if request.path == '/' and request.user.organization.has_active_subscription():
                     return redirect('organizations:dashboard')
             
-            if request.path.startswith('/admin/'):
-                return self.get_response(request)
-            
-            # Check if user has completed onboarding
-            if not hasattr(request.user, 'organization') or not request.user.organization.onboarding_completed:
-                # Allow access only to payment pages and logout
+            # Check if user has completed onboarding (this includes having a subscription)
+            if not request.user.organization.onboarding_completed:
+                # For verified users who haven't completed payment yet
                 allowed_paths = [
-                    '/payments/select-plan/',
-                    '/payments/checkout/success/',
-                    '/payments/checkout/cancel/',
+                    '/payments/',  # Allow all payment paths
                     '/organizations/logout/',
                     '/static/',
                     '/media/',
@@ -61,14 +79,10 @@ class AuthenticationFlowMiddleware:
                 ]
                 
                 # Check if current path is allowed
-                is_allowed = False
-                for path in allowed_paths:
-                    if request.path.startswith(path):
-                        is_allowed = True
-                        break
+                is_allowed = any(request.path.startswith(path) for path in allowed_paths)
                 
                 if not is_allowed:
-                    # Redirect to payment selection if onboarding not completed
+                    # Redirect to payment selection for verified but unpaid users
                     return redirect('payments:payment_selection')
         
         response = self.get_response(request)

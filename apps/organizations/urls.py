@@ -28,4 +28,7 @@ urlpatterns = [
      path('profile/remove-logo/', views.remove_logo, name='remove_logo'),
      path('startups/', views.StartupDirectoryView.as_view(), name='startup_directory'),
      path('update-bank-info/', views.update_bank_info, name='update_bank_info'),
+     path('verify-email/<str:token>/', views.EmailVerificationView.as_view(), name='verify_email'),
+    path('verification-pending/', views.VerificationPendingView.as_view(), name='verification_pending'),
+    path('resend-verification/', views.ResendVerificationView.as_view(), name='resend_verification'),
 ]

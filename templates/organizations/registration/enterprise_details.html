@@ -69,24 +69,25 @@
                             Phone
                         </label>
                         <div class="mt-1 flex">
-                            <!-- Country Code Dropdown -->
+                            <!-- Country Code Dropdown - Narrower width -->
                             <select name="{{ form.country_code.name }}" 
                                     id="{{ form.country_code.id_for_label }}"
-                                    class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                    class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm"
+                                    style="min-width: 140px; max-width: 140px;">
                                 {% for value, label in form.country_code.field.choices %}
-                                <option value="{{ value }}" {% if form.country_code.value == value %}selected{% endif %}>
+                                <option value="{{ value }}" {% if forloop.first %}selected{% endif %}>
                                     {{ label }}
                                 </option>
                                 {% endfor %}
                             </select>
                             
-                            <!-- Phone Number Input -->
+                            <!-- Phone Number Input - Now wider -->
                             <input type="tel" 
                                    name="{{ form.primary_contact_phone.name }}" 
                                    id="{{ form.primary_contact_phone.id_for_label }}"
                                    value="{{ form.primary_contact_phone.value|default:'' }}"
                                    placeholder="Phone number"
-                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                   class="appearance-none flex-grow px-3 py-2 border border-gray-300 rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                    required>
                         </div>
                         <p class="mt-1 text-xs text-gray-500" id="phone_format_help">

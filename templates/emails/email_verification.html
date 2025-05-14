@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .header {
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #E0E7FF;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .verification-box {
+            background: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .verification-box h2 {
+            color: #5B21B6;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .verification-box p {
+            color: #6B7280;
+            margin: 0;
+            font-size: 16px;
+        }
+        .mail-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background-color: #5B21B6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+        }
+        .instruction-box {
+            background-color: #F3F4F6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .instruction-box p {
+            margin: 10px 0;
+            color: #374151;
+        }
+        .url-box {
+            background-color: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+            color: #4B5563;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 18px 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 18px;
+            margin: 30px 0;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+            transition: all 0.2s;
+        }
+        .button:hover {
+            box-shadow: 0 6px 8px rgba(79, 70, 229, 0.3);
+        }
+        .warning-box {
+            background-color: #FEF3C7;
+            border: 1px solid #FCD34D;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+        }
+        .warning-box p {
+            color: #92400E;
+            margin: 0;
+            font-size: 14px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .divider {
+            height: 1px;
+            background-color: #E5E7EB;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Verify Your Email Address</h1>
+            <p class="subtitle">Complete your Fend Marketplace registration</p>
+        </div>
+        
+        <div class="content">
+            <div class="verification-box">
+                <div class="mail-icon">✉</div>
+                <h2>Hi {{ user.first_name|default:"there" }}!</h2>
+                <p>Thank you for registering with Fend Marketplace! To access your account and start exploring opportunities, please verify your email address.</p>
+            </div>
+            
+            <div class="instruction-box">
+                <p><strong>Just one more step:</strong></p>
+                <p>Click the button below to verify your email address and complete your registration.</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" 
+                   style="display: inline-block; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); color: #ffffff !important; text-decoration: none; padding: 18px 40px; border-radius: 8px; font-weight: 600; font-size: 18px; margin: 30px 0; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">
+                    Verify My Email Address
+                </a>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="color: #6B7280; text-align: center;">Or copy and paste this link into your browser:</p>
+            
+            <div class="url-box">
+                {{ verification_url }}
+            </div>
+            
+            <div class="warning-box">
+                <p><strong>⏰ Important:</strong> This verification link will expire in 24 hours for security reasons.</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="color: #9CA3AF; text-align: center; font-size: 14px;">
+                If you didn't create an account with Fend Marketplace, please ignore this email.
+            </p>
+            
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Fend Team</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 Fend Marketplace. All rights reserved.</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
