@@ -22,9 +22,14 @@
                 </div>
                 
                 {% if request.user.organization == organization %}
-                    <a href="{% url 'organizations:profile_edit' %}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
-                        Edit Profile
-                    </a>
+                    <div class="flex space-x-3">
+                        <button id="updateBankInfoBtn" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                            Update Bank Info
+                        </button>
+                        <a href="{% url 'organizations:profile_edit' %}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                            Edit Profile
+                        </a>
+                    </div>
                 {% endif %}
             </div>
             
@@ -49,57 +54,117 @@
                         </dd>
                     </div>
                     {% endif %}
+                    
+                    <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Member Since</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{ organization.created_at|date:"F Y" }}
+                        </dd>
+                    </div>
+                    
+                    <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Time on Platform</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            {{ time_on_platform }}
+                        </dd>
+                    </div>
                 </dl>
             </div>
-            <div class="mt-8 border-t border-gray-200 px-4 py-5 sm:px-6">
-                <h3 class="text-lg font-medium text-gray-900">Bank Information</h3>
-                <p class="mt-1 text-sm text-gray-500">This information will be used for receiving payments when bids are approved</p>
-                
-                <form method="post" action="{% url 'organizations:update_bank_info' %}" class="mt-4">
-                    {% csrf_token %}
-                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div class="col-span-2">
-                                <label for="bank_name" class="block text-sm font-medium text-gray-700">Bank Name</label>
-                                <input type="text" name="bank_name" id="bank_name" value="{{ organization.bank_name|default:'' }}" 
-                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            <div>
-                                <label for="bank_account_number" class="block text-sm font-medium text-gray-700">Account Number</label>
-                                <input type="text" name="bank_account_number" id="bank_account_number" value="{{ organization.bank_account_number|default:'' }}" 
-                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
-                            <div>
-                                <label for="bank_routing_number" class="block text-sm font-medium text-gray-700">Routing Number</label>
-                                <input type="text" name="bank_routing_number" id="bank_routing_number" value="{{ organization.bank_routing_number|default:'' }}" 
-                                       class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
-                            </div>
+            
+            {% if organization.type == 'enterprise' %}
+                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                    <h2 class="text-lg font-medium text-gray-900">Pilot Activity</h2>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <dt class="text-sm font-medium text-gray-500">Total Pilots</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ pilot_stats.total }}</dd>
                         </div>
-                        <div class="mt-4">
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Save Bank Information
-                            </button>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <dt class="text-sm font-medium text-gray-500">Published</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ pilot_stats.published }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <dt class="text-sm font-medium text-gray-500">Active</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ pilot_stats.active }}</dd>
                         </div>
                     </div>
-                </form>
-            </div>
-            
-            {% if organization.type == 'enterprise' and published_pilots %}
-                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                    <h2 class="text-lg font-medium text-gray-900">Published Pilots</h2>
-                    <ul class="mt-4 divide-y divide-gray-200">
-                        {% for pilot in published_pilots %}
-                            <li class="py-3">
-                                <a href="{% url 'pilots:detail' pilot.pk %}" class="block hover:bg-gray-50">
-                                    <p class="font-medium text-indigo-600">{{ pilot.title }}</p>
-                                    <p class="text-sm text-gray-500 mt-1">{{ pilot.description|truncatewords:20 }}</p>
-                                </a>
-                            </li>
-                        {% endfor %}
-                    </ul>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<!-- Bank Information Modal (only shown for own organization) -->
+{% if request.user.organization == organization %}
+<div id="bankInfoModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <div class="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                    Update Bank Information
+                </h3>
+                <p class="mt-2 text-sm text-gray-500">
+                    This information will be used for receiving payments when bids are approved.
+                </p>
+                
+                <form method="post" action="{% url 'organizations:update_bank_info' %}" class="mt-4">
+                    {% csrf_token %}
+                    <div class="space-y-4">
+                        <div>
+                            <label for="bank_name" class="block text-sm font-medium text-gray-700">Bank Name</label>
+                            <input type="text" name="bank_name" id="bank_name" value="{{ organization.bank_name|default:'' }}" 
+                                   class="mt-1 form-input">
+                        </div>
+                        <div>
+                            <label for="bank_account_number" class="block text-sm font-medium text-gray-700">Account Number</label>
+                            <input type="text" name="bank_account_number" id="bank_account_number" value="{{ organization.bank_account_number|default:'' }}" 
+                                   class="mt-1 form-input">
+                        </div>
+                        <div>
+                            <label for="bank_routing_number" class="block text-sm font-medium text-gray-700">Routing Number</label>
+                            <input type="text" name="bank_routing_number" id="bank_routing_number" value="{{ organization.bank_routing_number|default:'' }}" 
+                                   class="mt-1 form-input">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm">
+                            Save
+                        </button>
+                        <button type="button" id="cancelBankInfo" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal functionality
+    const modal = document.getElementById('bankInfoModal');
+    const openBtn = document.getElementById('updateBankInfoBtn');
+    const cancelBtn = document.getElementById('cancelBankInfo');
+    
+    openBtn.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+    
+    // Close modal on outside click
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+</script>
+{% endif %}
+
 {% endblock %}

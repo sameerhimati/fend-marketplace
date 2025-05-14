@@ -74,9 +74,9 @@ class PilotDetailView(LoginRequiredMixin, DetailView):
 
         # Check if user has permission to view this pilot
         if user_org.type == 'startup' and (pilot.is_private or pilot.status != 'published'):
-            raise PermissionDenied
+            raise PermissionDenied("You don't have permission to view this pilot")
         elif user_org.type == 'enterprise' and pilot.organization != user_org:
-            raise PermissionDenied
+            raise PermissionDenied("You don't have permission to view this pilot")
         return pilot
 
     def get_context_data(self, **kwargs):

@@ -11,6 +11,7 @@ from django.views.generic import TemplateView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.pilots.models import Pilot, PilotBid
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -420,12 +421,38 @@ class OrganizationProfileView(LoginRequiredMixin, DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add published pilots for enterprises
-        if self.object.type == 'enterprise':
-            context['published_pilots'] = self.object.pilots.filter(
-                status='published',
-                is_private=False
-            )
+        organization = self.object
+        
+        time_since_created = timezone.now() - organization.created_at
+        days = time_since_created.days
+        
+        if days < 30:
+            time_on_platform = f"{days} days"
+        elif days < 365:
+            months = days // 30
+            time_on_platform = f"{months} month{'s' if months > 1 else ''}"
+        else:
+            years = days // 365
+            time_on_platform = f"{years} year{'s' if years > 1 else ''}"
+        
+        context['time_on_platform'] = time_on_platform
+        
+        # Add pilot statistics for enterprises (not the actual pilots)
+        if organization.type == 'enterprise':
+            from apps.pilots.models import Pilot
+            pilot_stats = {
+                'total': Pilot.objects.filter(organization=organization).count(),
+                'published': Pilot.objects.filter(
+                    organization=organization,
+                    status='published'
+                ).count(),
+                'active': Pilot.objects.filter(
+                    organization=organization,
+                    status__in=['published', 'in_progress']
+                ).count()
+            }
+            context['pilot_stats'] = pilot_stats
+        
         return context
 
 class ProfileEditView(LoginRequiredMixin, UpdateView):
