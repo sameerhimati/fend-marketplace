@@ -155,6 +155,31 @@ def publish_pilot(request, pk):
         messages.error(request, "Only draft pilots can be published.")
         return redirect('pilots:detail', pk=pk)
     
+    # Validate required fields before publishing
+    missing_fields = []
+    
+    # Check technical specs (must have either file or text)
+    if not pilot.technical_specs_doc and not pilot.technical_specs_text:
+        missing_fields.append("Technical Specifications")
+    
+    # Check performance metrics (must have either file or text)
+    if not pilot.performance_metrics_doc and not pilot.performance_metrics:
+        missing_fields.append("Performance Metrics")
+    
+    # Check compliance requirements (must have either file or text)
+    if not pilot.compliance_requirements_doc and not pilot.compliance_requirements:
+        missing_fields.append("Compliance Requirements")
+    
+    # Check if price is set and greater than 0
+    if not pilot.price or pilot.price <= 0:
+        missing_fields.append("Price (must be greater than 0)")
+    
+    # If there are missing fields, show error and redirect back
+    if missing_fields:
+        error_message = f"Cannot publish pilot. Missing required fields: {', '.join(missing_fields)}"
+        messages.error(request, error_message)
+        return redirect('pilots:detail', pk=pk)
+    
     # Check subscription status
     organization = request.user.organization
     if not organization.has_active_subscription():
