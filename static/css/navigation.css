@@ -1,0 +1,23 @@
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.25rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6B7280;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #374151;
+    border-bottom-color: #E5E7EB;
+}
+
+.nav-link.active {
+    color: #7C3AED;
+    border-bottom-color: #7C3AED;
+}

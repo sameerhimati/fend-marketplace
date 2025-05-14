@@ -23,7 +23,7 @@
                             <input type="text" 
                                    name="{{ form.title.name }}" 
                                    id="{{ form.title.id_for_label }}"
-                                   class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                   class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                    value="{{ form.title.value|default:'' }}"
                                    required>
                         </div>
@@ -41,7 +41,7 @@
                             <textarea name="{{ form.description.name }}" 
                                       id="{{ form.description.id_for_label }}"
                                       rows="4"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                                       required>{{ form.description.value|default:'' }}</textarea>
                         </div>
                         {% if form.description.errors %}
@@ -49,30 +49,9 @@
                         {% endif %}
                     </div>
 
-                    <div class="mb-6 bg-blue-50 p-4 rounded-md">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3 flex-1">
-                                <h3 class="text-sm font-medium text-blue-700">Platform Fee Information</h3>
-                                <div class="mt-1 text-sm text-blue-700">
-                                    <p>When a bid is accepted and the pilot is completed, a platform fee will be charged as follows:</p>
-                                    <ul class="list-disc pl-5 mt-1">
-                                        <li>You (the enterprise) will pay a 5% fee</li>
-                                        <li>The startup will also pay a 5% fee</li>
-                                    </ul>
-                                    <p class="mt-1">Example: For a $1,000 bid, you would pay the startup $1,000 plus $50 to Fend as a platform fee.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Technical Specifications
+                            Technical Specifications <span class="text-red-500">*</span>
                         </label>
                         
                         <!-- Toggle between file and text -->
@@ -110,14 +89,14 @@
                             <textarea name="{{ form.technical_specs_text.name }}" 
                                       id="{{ form.technical_specs_text.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.technical_specs_text.value|default:'' }}</textarea>
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.technical_specs_text.value|default:'' }}</textarea>
                         </div>
                     </div>
                     
                     <!-- Performance Metrics -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Performance Metrics
+                            Performance Metrics <span class="text-red-500">*</span>
                         </label>
                         
                         <!-- Toggle between file and text -->
@@ -155,14 +134,14 @@
                             <textarea name="{{ form.performance_metrics.name }}" 
                                       id="{{ form.performance_metrics.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.performance_metrics.value|default:'' }}</textarea>
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.performance_metrics.value|default:'' }}</textarea>
                         </div>
                     </div>
                     
                     <!-- Compliance Requirements -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Definition of Done
+                            Definition of Done/Compliance Requirements <span class="text-red-500">*</span>
                         </label>
                         
                         <!-- Toggle between file and text -->
@@ -200,7 +179,7 @@
                             <textarea name="{{ form.compliance_requirements.name }}" 
                                       id="{{ form.compliance_requirements.id_for_label }}"
                                       rows="3"
-                                      class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.compliance_requirements.value|default:'' }}</textarea>
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.compliance_requirements.value|default:'' }}</textarea>
                         </div>
                     </div>
                     
@@ -216,11 +195,11 @@
                             <input type="number" 
                                 name="{{ form.price.name }}" 
                                 id="{{ form.price.id_for_label }}"
-                                step="0.01"
+                                step="100"
                                 min="0"
-                                value="{{ form.price.value|default:'0.00' }}"
-                                class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                                placeholder="1000.00"
+                                value="{{ form.price.value|default:'0' }}"
+                                class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm"
+                                placeholder="1000"
                                 required>
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">USD</span>
@@ -244,6 +223,27 @@
                         <div class="ml-3 text-sm">
                             <label for="{{ form.is_private.id_for_label }}" class="font-medium text-gray-700">Make Private</label>
                             <p class="text-gray-500">Only visible to invited participants</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-6 bg-blue-50 p-4 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <h3 class="text-sm font-medium text-blue-700">Platform Fee Information</h3>
+                                <div class="mt-1 text-sm text-blue-700">
+                                    <p>When a bid is accepted and the pilot is completed, a platform fee will be charged as follows:</p>
+                                    <ul class="list-disc pl-5 mt-1">
+                                        <li>You (the enterprise) will pay a 5% fee</li>
+                                        <li>The startup will also pay a 5% fee</li>
+                                    </ul>
+                                    <p class="mt-1">Example: For a $1,000 bid, you would pay the startup $1,000 plus $50 to Fend as a platform fee.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

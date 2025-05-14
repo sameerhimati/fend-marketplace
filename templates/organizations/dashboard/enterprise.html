@@ -61,7 +61,7 @@
                 <ul class="divide-y divide-gray-200">
                     {% for pilot in active_pilots|slice:":3" %}
                     <li>
-                        <a href="{% url 'pilots:detail' pilot.pk %}" class="block hover:bg-gray-50">
+                        <a href="{% url 'pilots:detail' pilot.pk %}" class="block dashboard-card">
                             <div class="px-4 py-4 sm:px-6">
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1 min-w-0">
@@ -128,8 +128,8 @@
                     {% if enterprises %}
                     <div class="flex flex-wrap gap-6 justify-center">
                         {% for enterprise in enterprises %}
-                        <div class="text-center">
-                            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                        <a href="{% url 'organizations:profile' enterprise.id %}" class="text-center partner-logo">
+                            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center icon-container">
                                 {% if enterprise.logo %}
                                     <img src="{{ enterprise.logo.url }}" alt="{{ enterprise.name }}" class="w-10 h-10 object-contain">
                                 {% else %}
@@ -137,7 +137,7 @@
                                 {% endif %}
                             </div>
                             <div class="mt-2 text-sm font-medium">{{ enterprise.name }}</div>
-                        </div>
+                        </a>
                         {% endfor %}
                     </div>
                     {% else %}
@@ -161,8 +161,8 @@
                     {% if startups %}
                     <div class="flex flex-wrap gap-6 justify-center">
                         {% for startup in startups %}
-                        <div class="text-center">
-                            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                        <a href="{% url 'organizations:profile' startup.id %}" class="text-center partner-logo">
+                            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center icon-container">
                                 {% if startup.logo %}
                                     <img src="{{ startup.logo.url }}" alt="{{ startup.name }}" class="w-10 h-10 object-contain">
                                 {% else %}
@@ -170,7 +170,7 @@
                                 {% endif %}
                             </div>
                             <div class="mt-2 text-sm font-medium">{{ startup.name }}</div>
-                        </div>
+                        </a>
                         {% endfor %}
                     </div>
                     {% else %}

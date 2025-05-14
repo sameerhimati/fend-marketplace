@@ -1,0 +1,29 @@
+.dashboard-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.dashboard-card:hover {
+    background-color: #F9FAFB;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Icon container hover effects */
+.icon-container {
+    transition: all 0.2s ease;
+}
+
+.dashboard-card:hover .icon-container {
+    transform: scale(1.05);
+}
+
+/* Partner logo hover effects */
+.partner-logo {
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.partner-logo:hover {
+    transform: scale(1.1);
+}
