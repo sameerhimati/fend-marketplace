@@ -28,9 +28,10 @@ class PilotForm(forms.ModelForm):
     class Meta:
         model = Pilot
         fields = ['title', 'description', 'technical_specs_doc', 'technical_specs_text',
-                  'performance_metrics', 'performance_metrics_doc', 
-                  'compliance_requirements', 'compliance_requirements_doc',
-                  'is_private', 'price']
+                'performance_metrics', 'performance_metrics_doc', 
+                'compliance_requirements', 'compliance_requirements_doc',
+                'is_private', 'price', 
+                'technical_specs_type', 'performance_metrics_type', 'compliance_requirements_type']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4, 'required': True}),
             'technical_specs_text': forms.Textarea(attrs={'rows': 3}),
@@ -42,38 +43,12 @@ class PilotForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         
-        # Validate technical specs (either file or text required)
-        tech_type = cleaned_data.get('technical_specs_type', 'file')
-        tech_file = cleaned_data.get('technical_specs_doc')
-        tech_text = cleaned_data.get('technical_specs_text')
-        
-        if tech_type == 'file' and not tech_file and not self.instance.technical_specs_doc:
-            raise forms.ValidationError({'technical_specs_doc': 'Technical specifications document is required'})
-        elif tech_type == 'text' and not tech_text and not self.instance.technical_specs_text:
-            raise forms.ValidationError({'technical_specs_text': 'Technical specifications text is required'})
-        
-        # Validate performance metrics (either file or text required)
-        perf_type = cleaned_data.get('performance_metrics_type', 'file')
-        perf_file = cleaned_data.get('performance_metrics_doc')
-        perf_text = cleaned_data.get('performance_metrics')
-        
-        if perf_type == 'file' and not perf_file and not self.instance.performance_metrics_doc:
-            raise forms.ValidationError({'performance_metrics_doc': 'Performance metrics document is required'})
-        elif perf_type == 'text' and not perf_text and not self.instance.performance_metrics:
-            raise forms.ValidationError({'performance_metrics': 'Performance metrics text is required'})
-        
-        # Validate compliance requirements (either file or text required)
-        comp_type = cleaned_data.get('compliance_requirements_type', 'file')
-        comp_file = cleaned_data.get('compliance_requirements_doc')
-        comp_text = cleaned_data.get('compliance_requirements')
-        
-        if comp_type == 'file' and not comp_file and not self.instance.compliance_requirements_doc:
-            raise forms.ValidationError({'compliance_requirements_doc': 'Compliance requirements document is required'})
-        elif comp_type == 'text' and not comp_text and not self.instance.compliance_requirements:
-            raise forms.ValidationError({'compliance_requirements': 'Compliance requirements text is required'})
+        # Validate and clean the uploaded documents
+        cleaned_data['technical_specs_doc'] = self.clean_doc('technical_specs_doc')
+        cleaned_data['performance_metrics_doc'] = self.clean_doc('performance_metrics_doc')
+        cleaned_data['compliance_requirements_doc'] = self.clean_doc('compliance_requirements_doc')
         
         return cleaned_data
-
     
     def clean_doc(self, file_field_name):
         """Validate uploaded documents"""

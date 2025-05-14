@@ -11,37 +11,39 @@
             {% if startups %}
                 <ul class="divide-y divide-gray-200">
                     {% for startup in startups %}
-                    <li class="p-4 hover:bg-gray-50">
-                        <div class="flex items-center space-x-4">
-                            <div class="flex-shrink-0">
-                                {% if startup.logo %}
-                                    <img src="{{ startup.logo.url }}" alt="{{ startup.name }} logo" class="h-12 w-12 rounded-full object-cover">
-                                {% else %}
-                                    <div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                                        <span class="text-xl font-bold text-indigo-600">{{ startup.name|slice:":1" }}</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-lg font-medium text-gray-900 truncate">
-                                    {{ startup.name }}
-                                </p>
-                                <p class="text-sm text-gray-500">
-                                    {% if startup.website %}
-                                        <a href="http://{{ startup.website }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">
-                                            {{ startup.website }}
-                                        </a>
+                    <li class="hover:bg-gray-50">
+                        <a href="{% url 'organizations:profile' startup.id %}" class="block p-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    {% if startup.logo %}
+                                        <img src="{{ startup.logo.url }}" alt="{{ startup.name }} logo" class="h-12 w-12 rounded-full object-cover">
                                     {% else %}
-                                        No website provided
+                                        <div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                                            <span class="text-xl font-bold text-indigo-600">{{ startup.name|slice:":1" }}</span>
+                                        </div>
                                     {% endif %}
-                                </p>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-lg font-medium text-gray-900 truncate">
+                                        {{ startup.name }}
+                                    </p>
+                                    <p class="text-sm text-gray-500">
+                                        {% if startup.website %}
+                                            <span class="text-indigo-600 hover:text-indigo-900">
+                                                {{ startup.website }}
+                                            </span>
+                                        {% else %}
+                                            No website provided
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <!-- <div>
+                                    <span class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100">
+                                        View Profile
+                                    </span>
+                                </div> -->
                             </div>
-                            <div>
-                                <a href="{% url 'organizations:profile' startup.id %}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
-                                    View Profile
-                                </a>
-                            </div>
-                        </div>
+                        </a>
                     </li>
                     {% endfor %}
                 </ul>

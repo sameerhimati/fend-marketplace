@@ -12,6 +12,9 @@
                 </h1>
                 
                 <form method="post" enctype="multipart/form-data" class="space-y-6">
+                    <input type="hidden" name="technical_specs_type" id="technical_specs_type" value="file">
+                    <input type="hidden" name="performance_metrics_type" id="performance_metrics_type" value="file">
+                    <input type="hidden" name="compliance_requirements_type" id="compliance_requirements_type" value="file">
                     {% csrf_token %}
                     
                     <!-- Title -->
@@ -290,6 +293,7 @@
                             const textDiv = document.getElementById(fieldName + '_text');
                             const fileBtn = document.getElementById(fieldName + '_file_btn');
                             const textBtn = document.getElementById(fieldName + '_text_btn');
+                            const typeInput = document.getElementById(fieldName + '_type');
                             
                             if (!fileDiv || !textDiv || !fileBtn || !textBtn) {
                                 console.error('Missing elements for field:', fieldName);
@@ -307,7 +311,11 @@
                                 fileBtn.classList.remove('active');
                                 textBtn.classList.add('active');
                             }
-                            
+
+                            if (typeInput) {
+                                    typeInput.value = type;
+                                }
+                                
                             // Store the state
                             fieldStates[fieldName] = type;
                         }
