@@ -1,9 +1,9 @@
 from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
-from django.contrib.auth import login, get_user_model
+from django.contrib.auth import login as auth_login, get_user_model
 from django.db import transaction
 from .models import Organization, PilotDefinition
 from .forms import OrganizationBasicForm, EnterpriseDetailsForm, PilotDefinitionForm, OrganizationProfileForm
@@ -12,8 +12,10 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.pilots.models import Pilot, PilotBid
 from django.utils import timezone
-
-User = get_user_model()
+from apps.users.models import User, EmailVerificationToken
+from apps.payments.emails import send_verification_email, send_welcome_email
+from django.urls import reverse
+from django.views import View
 
 class OrganizationRegistrationView(CreateView):
     model = Organization
@@ -83,28 +85,39 @@ class OrganizationRegistrationView(CreateView):
             user = User.objects.create_user(
                 username=reg_data['email'],
                 email=reg_data['email'],
-                password=reg_data['password']
+                password=reg_data['password'],
+                is_verified=False  # Start as unverified
             )
             
             # Link user to organization
             user.organization = organization
             user.save()
             
-            # Mark organization as complete
-            organization.onboarding_completed = True
+            # Mark organization as partially complete (waiting for email verification)
+            organization.onboarding_completed = False  # Keep as False until email verified
             organization.save()
+            
+            # Generate verification token
+            token = EmailVerificationToken.generate_token(user)
+            
+            # Build verification URL
+            verification_url = self.request.build_absolute_uri(
+                reverse('organizations:verify_email', args=[token.token])
+            )
+            
+            # Send verification email
+            send_verification_email(user, verification_url)
             
             # Clean up session
             if 'registration_data' in self.request.session:
                 del self.request.session['registration_data']
             if 'organization_id' in self.request.session:
                 del self.request.session['organization_id']
-                
-            # Log the user in now that registration is complete
-            login(self.request, user)
             
-            # Redirect to completion page
-            return redirect('payments:payment_selection')
+            # DON'T log the user in yet - they need to verify email first
+            
+            messages.info(self.request, "Registration successful! Please check your email to verify your account.")
+            return redirect('organizations:verification_pending')
         
         except Exception as e:
             print(f"Error completing registration: {e}")
@@ -121,6 +134,73 @@ class OrganizationRegistrationView(CreateView):
     def form_invalid(self, form):
         print(f"Form errors: {form.errors}")  # Debug log
         return super().form_invalid(form)
+
+class EmailVerificationView(View):
+    def get(self, request, token):
+        verification_token = get_object_or_404(EmailVerificationToken, token=token)
+        
+        if verification_token.used:
+            messages.error(request, "This verification link has already been used.")
+            return redirect('organizations:login')
+            
+        if verification_token.is_expired():
+            messages.error(request, "This verification link has expired. Please request a new one.")
+            return redirect('organizations:resend_verification')
+            
+        # Mark user as verified
+        user = verification_token.user
+        user.is_verified = True
+        user.save()
+        
+        # Mark token as used
+        verification_token.used = True
+        verification_token.save()
+        
+        # Mark organization as complete
+        if user.organization:
+            user.organization.onboarding_completed = True
+            user.organization.save()
+        
+        # Send welcome email
+        send_welcome_email(user)
+        
+        # Log the user in
+        auth_login(request, user)
+        
+        messages.success(request, "Email verified successfully! Please select a subscription plan to continue.")
+        return redirect('payments:payment_selection')
+
+class VerificationPendingView(TemplateView):
+    template_name = 'organizations/verification_pending.html'
+
+class ResendVerificationView(View):
+    def get(self, request):
+        return render(request, 'organizations/resend_verification.html')
+    
+    def post(self, request):
+        email = request.POST.get('email')
+        
+        try:
+            user = User.objects.get(email=email, is_verified=False)
+            
+            # Generate new token
+            token = EmailVerificationToken.generate_token(user)
+            
+            # Build verification URL
+            verification_url = request.build_absolute_uri(
+                reverse('organizations:verify_email', args=[token.token])
+            )
+            
+            # Send verification email
+            send_verification_email(user, verification_url)
+            
+            messages.success(request, "Verification email sent! Please check your inbox.")
+            return redirect('organizations:verification_pending')
+            
+        except User.DoesNotExist:
+            messages.error(request, "No unverified account found with this email address.")
+            return render(request, 'organizations/resend_verification.html')
+        
 
 class EnterpriseDetailsView(UpdateView):
     model = Organization
@@ -396,6 +476,16 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
     
 class CustomLoginView(LoginView):
     template_name = 'organizations/auth/login.html'
+    
+    def form_valid(self, form):
+        """Override form_valid to check email verification"""
+        user = form.get_user()
+        
+        if not user.is_verified:
+            messages.error(self.request, "Please verify your email address before logging in. Check your inbox for the verification link.")
+            return self.form_invalid(form)
+        
+        return super().form_valid(form)
     
     def get_success_url(self):
         return reverse_lazy('organizations:dashboard')

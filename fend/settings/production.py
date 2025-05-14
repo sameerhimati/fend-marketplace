@@ -19,5 +19,13 @@ SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
+# Production Email Settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_SSL = False
+EMAIL_USE_TLS = True
+
+# Additional email security
+EMAIL_TIMEOUT = 30
+
 # Allow CSRF protection to work with HTTPS
 CSRF_TRUSTED_ORIGINS = ['https://marketplace.fend.ai']

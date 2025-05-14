@@ -16,6 +16,7 @@ from apps.notifications.services import create_bid_notification, create_pilot_no
 
 from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog
 from apps.organizations.models import Organization
+from .emails import send_subscription_confirmation, send_subscription_renewal_email, send_payment_received_email
 
 import stripe
 import json
@@ -220,7 +221,7 @@ def checkout_success(request):
             
             # Create a payment record - use session.id if payment_intent is not available
             payment_id = session.payment_intent or session.id
-            Payment.objects.create(
+            payment = Payment.objects.create(
                 organization=organization,
                 subscription=subscription,
                 payment_type='subscription',
@@ -228,6 +229,9 @@ def checkout_success(request):
                 stripe_payment_id=payment_id,
                 status='complete'
             )
+            
+            # Send subscription confirmation email
+            send_subscription_confirmation(request.user, subscription)
         
         # Mark organization as having completed payment
         organization.onboarding_completed = True
@@ -360,7 +364,7 @@ def stripe_webhook(request):
             subscription.save()
             
             # Create payment record
-            Payment.objects.create(
+            payment = Payment.objects.create(
                 organization=organization,
                 subscription=subscription,
                 payment_type='subscription',
@@ -368,6 +372,14 @@ def stripe_webhook(request):
                 stripe_payment_id=invoice.payment_intent,
                 status='complete'
             )
+
+            # Send payment received email
+            send_payment_received_email(organization.primary_contact_user, payment)
+
+            # If this is a renewal (not the first payment)
+            if invoice.billing_reason == 'subscription_cycle':
+                send_subscription_renewal_email(organization.primary_contact_user, subscription)
+                
         except (Organization.DoesNotExist, Subscription.DoesNotExist) as e:
             print(f"Error processing invoice payment: {e}")
     
