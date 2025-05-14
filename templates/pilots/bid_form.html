@@ -19,22 +19,25 @@
                             Bid Amount (USD)
                         </label>
                         <div class="mt-1 relative rounded-md shadow-sm">
-                            <div class="mt-2 text-sm text-gray-500">
-                                <p>Your bid amount: <span id="amount-display">$0.00</span></p>
-                                <p>Your platform fee (5%): <span id="fee-amount">$0.00</span></p>
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-gray-500 sm:text-sm">$</span>
                             </div>
                             <input type="number" 
-                                name="{{ form.amount.name }}" 
-                                id="{{ form.amount.id_for_label }}"
-                                min="{{ pilot.price }}" 
-                                value="{{ form.amount.value|default:pilot.price }}" 
-                                step="100"
-                                class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm"
-                                placeholder="1000"
-                                required>
+                                   name="{{ form.amount.name }}" 
+                                   id="{{ form.amount.id_for_label }}"
+                                   min="{{ pilot.price }}" 
+                                   value="{{ form.amount.value|default:pilot.price }}" 
+                                   step="1"
+                                   class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm"
+                                   placeholder="0"
+                                   required>
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">USD</span>
                             </div>
+                        </div>
+                        <div class="mt-2 flex justify-between text-sm text-gray-500">
+                            <span>Your bid: <span id="amount-display" class="font-medium text-gray-900">$0</span></span>
+                            <span>Platform fee (5%): <span id="fee-amount" class="font-medium text-gray-900">$0</span></span>
                         </div>
                         {% if form.amount.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.amount.errors.0 }}</p>
@@ -48,11 +51,11 @@
                         </label>
                         <div class="mt-1">
                             <textarea name="{{ form.proposal.name }}" 
-                                id="{{ form.proposal.id_for_label }}"
-                                rows="6"
-                                class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
-                                placeholder="Describe your approach, timeline, and why your startup is the best fit for this pilot..."
-                                required></textarea>
+                                      id="{{ form.proposal.id_for_label }}"
+                                      rows="6"
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
+                                      placeholder="Describe your approach, timeline, and why your startup is the best fit for this pilot..."
+                                      required></textarea>
                         </div>
                         {% if form.proposal.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.proposal.errors.0 }}</p>
@@ -60,24 +63,22 @@
                     </div>
 
                     {% if user.organization.type == 'startup' %}
-                    <div class="mb-6 bg-blue-50 p-4 rounded-md">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    <!-- Platform Fee Information - Simplified -->
+                    <div class="fee-info-compact">
+                        <p>Platform fee charged on pilot completion</p>
+                        <div class="fee-split">
+                            <span>
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                            </div>
-                            <div class="ml-3 flex-1">
-                                <h3 class="text-sm font-medium text-blue-700">Platform Fee Information</h3>
-                                <div class="mt-1 text-sm text-blue-700">
-                                    <p>When the pilot is completed, a platform fee will be charged as follows:</p>
-                                    <ul class="list-disc pl-5 mt-1">
-                                        <li>You (the startup) will pay a 5% fee</li>
-                                        <li>The enterprise will also pay a 5% fee</li>
-                                    </ul>
-                                    <p class="mt-1">Example: For a $1,000 bid, you would pay $50 and the enterprise would pay you $1000 and Fend a $50 fee ($1,000 + $50 fee).</p>
-                                </div>
-                            </div>
+                                Your fee: 5%
+                            </span>
+                            <span>
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Enterprise fee: 5%
+                            </span>
                         </div>
                     </div>
                     {% endif %}
@@ -102,11 +103,11 @@
     function updateFeeCalculation(bidAmount) {
         const amount = parseFloat(bidAmount) || 0;
         const feePercentage = 5.0; 
-        const fee = (amount * feePercentage / 100).toFixed(2);
+        const fee = (amount * feePercentage / 100);
         
-        // Update in real-time
-        document.getElementById('amount-display').textContent = `$${amount.toFixed(2)}`;
-        document.getElementById('fee-amount').textContent = `$${fee}`;
+        // Update displays with proper formatting
+        document.getElementById('amount-display').textContent = `$${amount.toLocaleString()}`;
+        document.getElementById('fee-amount').textContent = `$${fee.toLocaleString()}`;
     }
     
     // Initialize with current value

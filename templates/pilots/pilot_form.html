@@ -23,7 +23,7 @@
                             <input type="text" 
                                    name="{{ form.title.name }}" 
                                    id="{{ form.title.id_for_label }}"
-                                   class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                   class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
                                    value="{{ form.title.value|default:'' }}"
                                    required>
                         </div>
@@ -41,7 +41,7 @@
                             <textarea name="{{ form.description.name }}" 
                                       id="{{ form.description.id_for_label }}"
                                       rows="4"
-                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
                                       required>{{ form.description.value|default:'' }}</textarea>
                         </div>
                         {% if form.description.errors %}
@@ -49,47 +49,62 @@
                         {% endif %}
                     </div>
 
+                    <!-- Technical Specifications -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Technical Specifications <span class="text-red-500">*</span>
                         </label>
                         
-                        <!-- Toggle between file and text -->
-                        <div class="mb-3">
-                            <label class="inline-flex items-center mr-4">
-                                <input type="radio" name="technical_specs_type" value="file" checked
-                                       class="form-radio" onchange="toggleFieldType('technical_specs', 'file')">
-                                <span class="ml-2">Upload Document</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="technical_specs_type" value="text"
-                                       class="form-radio" onchange="toggleFieldType('technical_specs', 'text')">
-                                <span class="ml-2">Enter Text</span>
-                            </label>
+                        <div class="tab-toggle mb-3">
+                            <button type="button" id="tech_specs_file_btn" class="active" onclick="toggleFieldType('technical_specs', 'file')">
+                                Upload Document
+                            </button>
+                            <button type="button" id="tech_specs_text_btn" onclick="toggleFieldType('technical_specs', 'text')">
+                                Enter Text
+                            </button>
                         </div>
                         
                         <!-- File upload option -->
-                        <div id="technical_specs_file" class="mt-1">
+                        <div id="technical_specs_file">
                             {% if pilot.technical_specs_doc %}
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="text-sm">Current file:</span> 
-                                <a href="{{ pilot.technical_specs_doc.url }}" 
-                                   class="text-indigo-600 hover:text-indigo-800 text-sm"
-                                   target="_blank">{{ pilot.technical_specs_doc.name|default:"Document" }}</a>
+                            <div class="flex items-center justify-between mb-3 p-3 bg-gray-50 rounded-md">
+                                <div class="flex items-center gap-2">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span class="text-sm font-medium">Current file:</span>
+                                    <a href="{{ pilot.technical_specs_doc.url }}" 
+                                       class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                       target="_blank">{{ pilot.technical_specs_doc.name|default:"Document" }}</a>
+                                </div>
+                                <button type="button" onclick="clearFile('technical_specs')" class="text-red-600 hover:text-red-800 text-sm">
+                                    Remove
+                                </button>
                             </div>
                             {% endif %}
-                            <input type="file" 
-                                   name="{{ form.technical_specs_doc.name }}" 
-                                   id="{{ form.technical_specs_doc.id_for_label }}"
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            
+                            <div class="file-input-wrapper">
+                                <input type="file" 
+                                       name="{{ form.technical_specs_doc.name }}" 
+                                       id="{{ form.technical_specs_doc.id_for_label }}"
+                                       onchange="updateFileName('technical_specs')">
+                                <div class="file-input-button">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span>Choose File</span>
+                                </div>
+                                <div id="technical_specs_file_selected" class="file-input-selected">No file selected</div>
+                            </div>
                         </div>
                         
                         <!-- Text input option -->
-                        <div id="technical_specs_text" class="mt-1" style="display:none;">
+                        <div id="technical_specs_text" style="display:none;">
                             <textarea name="{{ form.technical_specs_text.name }}" 
                                       id="{{ form.technical_specs_text.id_for_label }}"
-                                      rows="3"
-                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.technical_specs_text.value|default:'' }}</textarea>
+                                      rows="4"
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
+                                      placeholder="Enter technical specifications...">{{ form.technical_specs_text.value|default:'' }}</textarea>
                         </div>
                     </div>
                     
@@ -99,42 +114,56 @@
                             Performance Metrics <span class="text-red-500">*</span>
                         </label>
                         
-                        <!-- Toggle between file and text -->
-                        <div class="mb-3">
-                            <label class="inline-flex items-center mr-4">
-                                <input type="radio" name="performance_metrics_type" value="file" checked
-                                       class="form-radio" onchange="toggleFieldType('performance_metrics', 'file')">
-                                <span class="ml-2">Upload Document</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="performance_metrics_type" value="text"
-                                       class="form-radio" onchange="toggleFieldType('performance_metrics', 'text')">
-                                <span class="ml-2">Enter Text</span>
-                            </label>
+                        <div class="tab-toggle mb-3">
+                            <button type="button" id="performance_metrics_file_btn" class="active" onclick="toggleFieldType('performance_metrics', 'file')">
+                                Upload Document
+                            </button>
+                            <button type="button" id="performance_metrics_text_btn" onclick="toggleFieldType('performance_metrics', 'text')">
+                                Enter Text
+                            </button>
                         </div>
                         
                         <!-- File upload option -->
-                        <div id="performance_metrics_file" class="mt-1">
+                        <div id="performance_metrics_file">
                             {% if pilot.performance_metrics_doc %}
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="text-sm">Current file:</span> 
-                                <a href="{{ pilot.performance_metrics_doc.url }}" 
-                                   class="text-indigo-600 hover:text-indigo-800 text-sm"
-                                   target="_blank">{{ pilot.performance_metrics_doc.name|default:"Document" }}</a>
+                            <div class="flex items-center justify-between mb-3 p-3 bg-gray-50 rounded-md">
+                                <div class="flex items-center gap-2">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span class="text-sm font-medium">Current file:</span>
+                                    <a href="{{ pilot.performance_metrics_doc.url }}" 
+                                       class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                       target="_blank">{{ pilot.performance_metrics_doc.name|default:"Document" }}</a>
+                                </div>
+                                <button type="button" onclick="clearFile('performance_metrics')" class="text-red-600 hover:text-red-800 text-sm">
+                                    Remove
+                                </button>
                             </div>
                             {% endif %}
-                            <input type="file" 
-                                   name="{{ form.performance_metrics_doc.name }}" 
-                                   id="{{ form.performance_metrics_doc.id_for_label }}"
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            
+                            <div class="file-input-wrapper">
+                                <input type="file" 
+                                       name="{{ form.performance_metrics_doc.name }}" 
+                                       id="{{ form.performance_metrics_doc.id_for_label }}"
+                                       onchange="updateFileName('performance_metrics')">
+                                <div class="file-input-button">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span>Choose File</span>
+                                </div>
+                                <div id="performance_metrics_file_selected" class="file-input-selected">No file selected</div>
+                            </div>
                         </div>
                         
                         <!-- Text input option -->
-                        <div id="performance_metrics_text" class="mt-1" style="display:none;">
+                        <div id="performance_metrics_text" style="display:none;">
                             <textarea name="{{ form.performance_metrics.name }}" 
                                       id="{{ form.performance_metrics.id_for_label }}"
-                                      rows="3"
-                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.performance_metrics.value|default:'' }}</textarea>
+                                      rows="4"
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
+                                      placeholder="Enter performance metrics...">{{ form.performance_metrics.value|default:'' }}</textarea>
                         </div>
                     </div>
                     
@@ -144,42 +173,56 @@
                             Definition of Done/Compliance Requirements <span class="text-red-500">*</span>
                         </label>
                         
-                        <!-- Toggle between file and text -->
-                        <div class="mb-3">
-                            <label class="inline-flex items-center mr-4">
-                                <input type="radio" name="compliance_requirements_type" value="file" checked
-                                       class="form-radio" onchange="toggleFieldType('compliance_requirements', 'file')">
-                                <span class="ml-2">Upload Document</span>
-                            </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="compliance_requirements_type" value="text"
-                                       class="form-radio" onchange="toggleFieldType('compliance_requirements', 'text')">
-                                <span class="ml-2">Enter Text</span>
-                            </label>
+                        <div class="tab-toggle mb-3">
+                            <button type="button" id="compliance_requirements_file_btn" class="active" onclick="toggleFieldType('compliance_requirements', 'file')">
+                                Upload Document
+                            </button>
+                            <button type="button" id="compliance_requirements_text_btn" onclick="toggleFieldType('compliance_requirements', 'text')">
+                                Enter Text
+                            </button>
                         </div>
                         
                         <!-- File upload option -->
-                        <div id="compliance_requirements_file" class="mt-1">
+                        <div id="compliance_requirements_file">
                             {% if pilot.compliance_requirements_doc %}
-                            <div class="flex items-center space-x-2 mb-2">
-                                <span class="text-sm">Current file:</span> 
-                                <a href="{{ pilot.compliance_requirements_doc.url }}" 
-                                   class="text-indigo-600 hover:text-indigo-800 text-sm"
-                                   target="_blank">{{ pilot.compliance_requirements_doc.name|default:"Document" }}</a>
+                            <div class="flex items-center justify-between mb-3 p-3 bg-gray-50 rounded-md">
+                                <div class="flex items-center gap-2">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span class="text-sm font-medium">Current file:</span>
+                                    <a href="{{ pilot.compliance_requirements_doc.url }}" 
+                                       class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                       target="_blank">{{ pilot.compliance_requirements_doc.name|default:"Document" }}</a>
+                                </div>
+                                <button type="button" onclick="clearFile('compliance_requirements')" class="text-red-600 hover:text-red-800 text-sm">
+                                    Remove
+                                </button>
                             </div>
                             {% endif %}
-                            <input type="file" 
-                                   name="{{ form.compliance_requirements_doc.name }}" 
-                                   id="{{ form.compliance_requirements_doc.id_for_label }}"
-                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            
+                            <div class="file-input-wrapper">
+                                <input type="file" 
+                                       name="{{ form.compliance_requirements_doc.name }}" 
+                                       id="{{ form.compliance_requirements_doc.id_for_label }}"
+                                       onchange="updateFileName('compliance_requirements')">
+                                <div class="file-input-button">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span>Choose File</span>
+                                </div>
+                                <div id="compliance_requirements_file_selected" class="file-input-selected">No file selected</div>
+                            </div>
                         </div>
                         
                         <!-- Text input option -->
-                        <div id="compliance_requirements_text" class="mt-1" style="display:none;">
+                        <div id="compliance_requirements_text" style="display:none;">
                             <textarea name="{{ form.compliance_requirements.name }}" 
                                       id="{{ form.compliance_requirements.id_for_label }}"
-                                      rows="3"
-                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.compliance_requirements.value|default:'' }}</textarea>
+                                      rows="4"
+                                      class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
+                                      placeholder="Enter compliance requirements...">{{ form.compliance_requirements.value|default:'' }}</textarea>
                         </div>
                     </div>
                     
@@ -195,7 +238,7 @@
                             <input type="number" 
                                 name="{{ form.price.name }}" 
                                 id="{{ form.price.id_for_label }}"
-                                step="100"
+                                step="1"
                                 min="0"
                                 value="{{ form.price.value|default:'0' }}"
                                 class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm"
@@ -205,7 +248,7 @@
                                 <span class="text-gray-500 sm:text-sm">USD</span>
                             </div>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Enter fixed price (required).</p>
+                        <p class="mt-1 text-xs text-gray-500">Enter fixed price (whole dollars only)</p>
                         {% if form.price.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.price.errors.0 }}</p>
                         {% endif %}
@@ -226,25 +269,10 @@
                         </div>
                     </div>
 
-                    <div class="mb-6 bg-blue-50 p-4 rounded-md">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3 flex-1">
-                                <h3 class="text-sm font-medium text-blue-700">Platform Fee Information</h3>
-                                <div class="mt-1 text-sm text-blue-700">
-                                    <p>When a bid is accepted and the pilot is completed, a platform fee will be charged as follows:</p>
-                                    <ul class="list-disc pl-5 mt-1">
-                                        <li>You (the enterprise) will pay a 5% fee</li>
-                                        <li>The startup will also pay a 5% fee</li>
-                                    </ul>
-                                    <p class="mt-1">Example: For a $1,000 bid, you would pay the startup $1,000 plus $50 to Fend as a platform fee.</p>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Platform Fee Information - Role Specific -->
+                    <div class="fee-info-compact">
+                        <p><strong>Platform Fee</strong> - On pilot completion, Fend charges a 5% service fee</p>
+                        <p class="text-sm mt-1">This covers escrow management, payment processing, and platform operations</p>
                     </div>
 
                     <div class="flex justify-end space-x-4">
@@ -262,53 +290,75 @@
                         function toggleFieldType(fieldName, type) {
                             const fileDiv = document.getElementById(fieldName + '_file');
                             const textDiv = document.getElementById(fieldName + '_text');
+                            const fileBtn = document.getElementById(fieldName + '_file_btn');
+                            const textBtn = document.getElementById(fieldName + '_text_btn');
                             
                             if (type === 'file') {
                                 fileDiv.style.display = 'block';
                                 textDiv.style.display = 'none';
+                                fileBtn.classList.add('active');
+                                textBtn.classList.remove('active');
                             } else {
                                 fileDiv.style.display = 'none';
                                 textDiv.style.display = 'block';
+                                fileBtn.classList.remove('active');
+                                textBtn.classList.add('active');
                             }
+                        }
+                        
+                        function updateFileName(fieldName) {
+                            let inputId;
+                            if (fieldName === 'technical_specs') {
+                                inputId = '{{ form.technical_specs_doc.id_for_label }}';
+                            } else if (fieldName === 'performance_metrics') {
+                                inputId = '{{ form.performance_metrics_doc.id_for_label }}';
+                            } else if (fieldName === 'compliance_requirements') {
+                                inputId = '{{ form.compliance_requirements_doc.id_for_label }}';
+                            }
+                            
+                            const input = document.getElementById(inputId);
+                            const selectedDiv = document.getElementById(fieldName + '_file_selected');
+                            if (input.files && input.files.length > 0) {
+                                selectedDiv.textContent = input.files[0].name;
+                            } else {
+                                selectedDiv.textContent = 'No file selected';
+                            }
+                        }
+                        
+                        function clearFile(fieldName) {
+                            let inputId;
+                            if (fieldName === 'technical_specs') {
+                                inputId = '{{ form.technical_specs_doc.id_for_label }}';
+                            } else if (fieldName === 'performance_metrics') {
+                                inputId = '{{ form.performance_metrics_doc.id_for_label }}';
+                            } else if (fieldName === 'compliance_requirements') {
+                                inputId = '{{ form.compliance_requirements_doc.id_for_label }}';
+                            }
+                            
+                            const input = document.getElementById(inputId);
+                            const selectedDiv = document.getElementById(fieldName + '_file_selected');
+                            input.value = '';
+                            selectedDiv.textContent = 'No file selected';
                         }
                         
                         // On form load, check if we have existing data to set the correct toggle
                         document.addEventListener('DOMContentLoaded', function() {
                             // Check technical specs
                             const techSpecsTextarea = document.getElementById('{{ form.technical_specs_text.id_for_label }}');
-                            const techSpecsFile = document.getElementById('{{ form.technical_specs_doc.id_for_label }}');
-                            
-                            // If we have text content but no file, switch to text mode
-                            if (techSpecsTextarea && techSpecsTextarea.value && (!techSpecsFile || !techSpecsFile.value)) {
-                                const techTextRadio = document.querySelector('input[name="technical_specs_type"][value="text"]');
-                                if (techTextRadio) {
-                                    techTextRadio.checked = true;
-                                    toggleFieldType('technical_specs', 'text');
-                                }
+                            if (techSpecsTextarea && techSpecsTextarea.value.trim()) {
+                                toggleFieldType('technical_specs', 'text');
                             }
                             
                             // Check performance metrics
                             const perfMetricsTextarea = document.getElementById('{{ form.performance_metrics.id_for_label }}');
-                            const perfMetricsFile = document.getElementById('{{ form.performance_metrics_doc.id_for_label }}');
-                            
-                            if (perfMetricsTextarea && perfMetricsTextarea.value && (!perfMetricsFile || !perfMetricsFile.value)) {
-                                const perfTextRadio = document.querySelector('input[name="performance_metrics_type"][value="text"]');
-                                if (perfTextRadio) {
-                                    perfTextRadio.checked = true;
-                                    toggleFieldType('performance_metrics', 'text');
-                                }
+                            if (perfMetricsTextarea && perfMetricsTextarea.value.trim()) {
+                                toggleFieldType('performance_metrics', 'text');
                             }
                             
                             // Check compliance requirements
                             const compReqTextarea = document.getElementById('{{ form.compliance_requirements.id_for_label }}');
-                            const compReqFile = document.getElementById('{{ form.compliance_requirements_doc.id_for_label }}');
-                            
-                            if (compReqTextarea && compReqTextarea.value && (!compReqFile || !compReqFile.value)) {
-                                const compTextRadio = document.querySelector('input[name="compliance_requirements_type"][value="text"]');
-                                if (compTextRadio) {
-                                    compTextRadio.checked = true;
-                                    toggleFieldType('compliance_requirements', 'text');
-                                }
+                            if (compReqTextarea && compReqTextarea.value.trim()) {
+                                toggleFieldType('compliance_requirements', 'text');
                             }
                         });
                     </script>
