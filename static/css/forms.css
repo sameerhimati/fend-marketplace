@@ -1,15 +1,16 @@
 /* Enhanced form inputs */
 .form-input {
-    border: 1px solid #D1D5DB;
-    border-radius: 0.375rem;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 2px solid #E5E7EB;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
     transition: all 0.2s ease;
+    width: 100%;
+    display: block;
 }
 
 .form-input:focus {
     border-color: #6366F1;
-    outline: 2px solid transparent;
-    outline-offset: 2px;
+    outline: none;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
@@ -26,16 +27,16 @@ input[type="number"] {
 
 /* Enhanced textarea */
 .form-textarea {
-    border: 1px solid #D1D5DB;
-    border-radius: 0.375rem;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 2px solid #E5E7EB;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
     transition: all 0.2s ease;
+    resize: vertical;
 }
 
 .form-textarea:focus {
     border-color: #6366F1;
-    outline: 2px solid transparent;
-    outline-offset: 2px;
+    outline: none;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
@@ -54,49 +55,40 @@ input[type="number"] {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-/* File input enhancement */
-.form-file {
-    border: 1px solid #D1D5DB;
-    border-radius: 0.375rem;
-    padding: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.form-file:hover {
-    border-color: #9CA3AF;
-}
-
-/* Tab toggle styles */
+/* Enhanced tab toggle styles */
 .tab-toggle {
     display: inline-flex;
     background-color: #F3F4F6;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     padding: 0.125rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .tab-toggle button {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.25rem;
     font-size: 0.875rem;
     font-weight: 500;
     color: #6B7280;
     background-color: transparent;
     border: none;
-    border-radius: 0.375rem;
+    border-radius: 0.625rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    outline: none;
 }
 
-.tab-toggle button:hover {
+.tab-toggle button:hover:not(.active) {
     color: #374151;
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
 .tab-toggle button.active {
-    color: #FFFFFF;
-    background-color: #6366F1;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    color: #4F46E5;
+    background-color: #FFFFFF;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
-/* Simplified file input */
+/* Enhanced file input */
 .file-input-wrapper {
     position: relative;
     display: inline-block;
@@ -115,25 +107,62 @@ input[type="number"] {
 .file-input-button {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     padding: 0.75rem 1rem;
-    background-color: #EFF6FF;
-    border: 1px solid #DBEAFE;
-    border-radius: 0.375rem;
-    color: #3730A3;
+    background-color: white;
+    border: 2px dashed #E5E7EB;
+    border-radius: 0.5rem;
+    color: #6B7280;
     font-weight: 500;
     transition: all 0.2s ease;
+    text-align: center;
+    justify-content: center;
 }
 
 .file-input-button:hover {
-    background-color: #DBEAFE;
-    border-color: #BFDBFE;
+    border-color: #9CA3AF;
+    background-color: #F9FAFB;
+}
+
+.file-input-wrapper:focus-within .file-input-button {
+    border-color: #6366F1;
+    background-color: #EFF6FF;
 }
 
 .file-input-selected {
     margin-top: 0.5rem;
     font-size: 0.875rem;
-    color: #6B7280;
+    color: #4B5563;
+    text-align: center;
+}
+
+/* Current file display */
+.current-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background-color: #F3F4F6;
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.current-file a {
+    color: #4F46E5;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.current-file a:hover {
+    text-decoration: underline;
+}
+
+/* Section container for forms */
+.form-section {
+    padding: 1.5rem;
+    background-color: #FAFBFC;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Fee info compact */
