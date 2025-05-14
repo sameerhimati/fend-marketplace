@@ -140,7 +140,7 @@ input[type="number"] {
 .fee-info-compact {
     background-color: #EFF6FF;
     border-left: 3px solid #6366F1;
-    padding: 0.75rem 1rem;
+    padding: 1rem;
     border-radius: 0.375rem;
 }
 
@@ -150,16 +150,7 @@ input[type="number"] {
     margin: 0;
 }
 
-.fee-info-compact .fee-split {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 0.5rem;
-    font-size: 0.8125rem;
+.fee-info-compact p.text-sm {
     color: #6366F1;
-}
-
-.fee-info-compact .fee-split span {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    font-weight: 400;
 }
