@@ -17,7 +17,7 @@ class AuthenticationFlowMiddleware:
                 '/organizations/logout/',
                 '/static/',
                 '/media/',
-                '/payments/',  # Add this to allow payment access after verification
+                '/payments/',  # Allow payment access after verification
             ]
             
             # Check if current path is exempt from verification
@@ -25,11 +25,13 @@ class AuthenticationFlowMiddleware:
                 request.path.startswith(path) for path in verification_exempt_paths
             )
             
-            # If user is not verified and not on an exempt path
-            if not hasattr(request.user, 'is_verified') or not request.user.is_verified:
-                if not is_verification_exempt:
-                    messages.warning(request, "Please verify your email address to continue.")
-                    return redirect('organizations:verification_pending')
+            # Skip verification check for staff and superusers
+            if not request.user.is_staff and not request.user.is_superuser:
+                # If user is not verified and not on an exempt path
+                if not hasattr(request.user, 'is_verified') or not request.user.is_verified:
+                    if not is_verification_exempt:
+                        messages.warning(request, "Please verify your email address to continue.")
+                        return redirect('organizations:verification_pending')
 
             # Handle staff users
             if request.user.is_staff:
