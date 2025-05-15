@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django import forms
-from .models import Pilot
+from .models import Pilot, PilotBid
 
 class PilotAdminForm(forms.ModelForm):
     # Convert JSON field to more user-friendly format
@@ -46,13 +46,13 @@ class PilotAdminForm(forms.ModelForm):
 @admin.register(Pilot)
 class PilotAdmin(admin.ModelAdmin):
     form = PilotAdminForm
-    list_display = ('title', 'organization', 'status', 'created_at')
+    list_display = ('title', 'organization', 'status', 'price', 'created_at')
     list_filter = ('status', 'organization')
     search_fields = ('title', 'description')
     
     fieldsets = (
         (None, {
-            'fields': ('title', 'organization', 'pilot_definition', 'status')
+            'fields': ('title', 'organization', 'pilot_definition', 'status', 'price')
         }),
         ('Details', {
             'fields': ('description', 'technical_specs_doc', 'performance_metrics', 'compliance_requirements')
@@ -100,3 +100,52 @@ class PilotAdmin(admin.ModelAdmin):
         if not change:  # If this is a new pilot
             obj.organization = request.user.organization
         super().save_model(request, obj, form, change)
+
+
+@admin.register(PilotBid)
+class PilotBidAdmin(admin.ModelAdmin):
+    list_display = ('id', 'pilot', 'startup', 'amount', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('pilot__title', 'startup__name')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('pilot', 'startup', 'amount', 'status')
+        }),
+        ('Proposal', {
+            'fields': ('proposal',)
+        }),
+        ('Fees', {
+            'fields': ('fee_percentage', 'startup_fee_percentage', 'enterprise_fee_percentage')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            if hasattr(request.user, 'organization'):
+                if request.user.organization.type == 'enterprise':
+                    # Enterprise sees bids on their pilots
+                    return qs.filter(pilot__organization=request.user.organization)
+                elif request.user.organization.type == 'startup':
+                    # Startup sees their own bids
+                    return qs.filter(startup=request.user.organization)
+        return qs
+    
+    def has_change_permission(self, request, obj=None):
+        if not request.user.is_superuser:
+            if obj is None:
+                return True  # Allow viewing the list
+            # Only allow changing own bids
+            if hasattr(request.user, 'organization'):
+                if request.user.organization.type == 'enterprise':
+                    return obj.pilot.organization == request.user.organization
+                elif request.user.organization.type == 'startup':
+                    return obj.startup == request.user.organization
+            return False
+        return super().has_change_permission(request, obj)

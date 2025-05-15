@@ -386,7 +386,9 @@
                 <div class="model-item">
                     <span class="model-name">Organizations</span>
                     <div class="model-actions">
+                        {% if perms.organizations.add_organization %}
                         <a href="{% url 'admin:organizations_organization_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:organizations_organization_changelist' %}">Change</a>
                     </div>
                 </div>
@@ -402,28 +404,36 @@
                 <div class="model-item">
                     <span class="model-name">Escrow Payments</span>
                     <div class="model-actions">
+                        {% if perms.payments.add_escrowpayment %}
                         <a href="{% url 'admin:payments_escrowpayment_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:payments_escrowpayment_changelist' %}">Change</a>
                     </div>
                 </div>
                 <div class="model-item">
                     <span class="model-name">Payment Logs</span>
                     <div class="model-actions">
+                        {% if perms.payments.add_escrowpaymentlog %}
                         <a href="{% url 'admin:payments_escrowpaymentlog_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:payments_escrowpaymentlog_changelist' %}">Change</a>
                     </div>
                 </div>
                 <div class="model-item">
                     <span class="model-name">Subscriptions</span>
                     <div class="model-actions">
+                        {% if perms.payments.add_subscription %}
                         <a href="{% url 'admin:payments_subscription_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:payments_subscription_changelist' %}">Change</a>
                     </div>
                 </div>
                 <div class="model-item">
                     <span class="model-name">Pricing Plans</span>
                     <div class="model-actions">
+                        {% if perms.payments.add_pricingplan %}
                         <a href="{% url 'admin:payments_pricingplan_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:payments_pricingplan_changelist' %}">Change</a>
                     </div>
                 </div>
@@ -439,21 +449,16 @@
                 <div class="model-item">
                     <span class="model-name">Pilots</span>
                     <div class="model-actions">
+                        {% if perms.pilots.add_pilot %}
                         <a href="{% url 'admin:pilots_pilot_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:pilots_pilot_changelist' %}">Change</a>
-                    </div>
-                </div>
-                <div class="model-item">
-                    <span class="model-name">Pilot Bids</span>
-                    <div class="model-actions">
-                        <a href="{% url 'admin:pilots_pilotbid_add' %}">Add</a>
-                        <a href="{% url 'admin:pilots_pilotbid_changelist' %}">Change</a>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Authentication -->
+        <!-- Authentication and Authorization -->
         <div class="model-group">
             <div class="model-group-header">
                 <h3>Authentication and Authorization</h3>
@@ -462,14 +467,18 @@
                 <div class="model-item">
                     <span class="model-name">Users</span>
                     <div class="model-actions">
-                        <a href="{% url 'admin:auth_user_add' %}">Add</a>
-                        <a href="{% url 'admin:auth_user_changelist' %}">Change</a>
+                        {% if perms.users.add_user %}
+                        <a href="{% url 'admin:users_user_add' %}">Add</a>
+                        {% endif %}
+                        <a href="{% url 'admin:users_user_changelist' %}">Change</a>
                     </div>
                 </div>
                 <div class="model-item">
                     <span class="model-name">Groups</span>
                     <div class="model-actions">
+                        {% if perms.auth.add_group %}
                         <a href="{% url 'admin:auth_group_add' %}">Add</a>
+                        {% endif %}
                         <a href="{% url 'admin:auth_group_changelist' %}">Change</a>
                     </div>
                 </div>
