@@ -19,6 +19,16 @@ class CustomAdminMixin:
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
+        
+        # Add stats for EscrowPayment
+        if self.model._meta.model_name == 'escrowpayment':
+            queryset = self.get_queryset(request)
+            extra_context['payment_initiated_count'] = queryset.filter(status='payment_initiated').count()
+            extra_context['payment_received_count'] = queryset.filter(
+                status='received', pilot_bid__status='completed'
+            ).count()
+            extra_context['payment_released_count'] = queryset.filter(status='released').count()
+        
         return super().changelist_view(request, extra_context=extra_context)
 
 @admin.register(EscrowPayment)

@@ -11,25 +11,26 @@
 {% endblock %}
 
 {% block result_list %}
-    {% if cl.model._meta.label == 'payments.EscrowPayment' %}
+    <!-- Only show stats for EscrowPayment model -->
+    {% if payment_initiated_count is not None %}
         <div style="background-color: #EFF6FF; border: 1px solid #DBEAFE; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
             <h3 style="margin: 0 0 10px 0; color: #1E40AF;">Quick Stats</h3>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                 <div style="text-align: center;">
                     <p style="margin: 0; font-size: 24px; font-weight: bold; color: #3730A3;">
-                        {{ cl.queryset.filter(status='payment_initiated').count }}
+                        {{ payment_initiated_count }}
                     </p>
                     <p style="margin: 0; color: #6366F1;">Awaiting Verification</p>
                 </div>
                 <div style="text-align: center;">
                     <p style="margin: 0; font-size: 24px; font-weight: bold; color: #059669;">
-                        {{ cl.queryset.filter(status='received', pilot_bid__status='completed').count }}
+                        {{ payment_received_count }}
                     </p>
                     <p style="margin: 0; color: #10B981;">Ready for Release</p>
                 </div>
                 <div style="text-align: center;">
                     <p style="margin: 0; font-size: 24px; font-weight: bold; color: #7C3AED;">
-                        {{ cl.queryset.filter(status='released').count }}
+                        {{ payment_released_count }}
                     </p>
                     <p style="margin: 0; color: #8B5CF6;">Released</p>
                 </div>
