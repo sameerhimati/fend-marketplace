@@ -16,7 +16,6 @@ from apps.notifications.services import create_bid_notification, create_pilot_no
 
 from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog
 from apps.organizations.models import Organization
-from .emails import send_subscription_confirmation, send_subscription_renewal_email, send_payment_received_email
 
 import stripe
 import json
@@ -229,9 +228,6 @@ def checkout_success(request):
                 stripe_payment_id=payment_id,
                 status='complete'
             )
-            
-            # Send subscription confirmation email
-            send_subscription_confirmation(request.user, subscription)
         
         # Mark organization as having completed payment
         organization.onboarding_completed = True
@@ -276,7 +272,6 @@ def stripe_webhook(request):
             json.loads(payload), stripe.api_key
         )
     except ValueError as e:
-        # Invalid payload
         return HttpResponse(status=400)
     
     # Handle specific events
@@ -287,23 +282,7 @@ def stripe_webhook(request):
         # Get metadata
         organization_id = session.metadata.get('organization_id')
         subscription_id = session.metadata.get('subscription_id')
-        transaction_id = session.metadata.get('transaction_id')
 
-        # if transaction_id:
-        #     try:
-        #         transaction = TokenTransaction.objects.get(id=transaction_id)
-                
-        #         # Update transaction with payment intent
-        #         transaction.stripe_payment_id = session.payment_intent or session.id
-                
-        #         transaction.mark_completed()
-                
-        #         print(f"Token purchase completed: {transaction}")
-        #     except TokenTransaction.DoesNotExist:
-        #         print(f"Error processing token transaction: Transaction {transaction_id} not found")
-        #     except Exception as e:
-        #         print(f"Error processing token transaction: {e}")
-        
         if organization_id and subscription_id:
             try:
                 organization = Organization.objects.get(id=organization_id)
@@ -319,22 +298,27 @@ def stripe_webhook(request):
                     subscription.current_period_end = datetime.fromtimestamp(stripe_subscription.current_period_end)
                     subscription.save()
                 
-                # Mark organization as having completed payment
+                # Mark organization as having completed payment BUT still pending approval
                 organization.onboarding_completed = True
                 organization.has_payment_method = True
+                # Keep approval_status as 'pending' for admin review
                 organization.save()
                 
-                # Create payment record if not exists
+                # Create payment record
                 Payment.objects.get_or_create(
                     organization=organization,
                     subscription=subscription,
                     payment_type='subscription',
                     defaults={
                         'amount': subscription.plan.price,
-                        'stripe_payment_id': session.payment_intent,
+                        'stripe_payment_id': session.payment_intent or session.id,
                         'status': 'complete'
                     }
                 )
+                
+                # Notify admins about new registration
+                notify_admins_of_new_registration(organization)
+                
             except (Organization.DoesNotExist, Subscription.DoesNotExist) as e:
                 print(f"Error processing webhook: {e}")
     
@@ -373,13 +357,6 @@ def stripe_webhook(request):
                 status='complete'
             )
 
-            # Send payment received email
-            send_payment_received_email(organization.primary_contact_user, payment)
-
-            # If this is a renewal (not the first payment)
-            if invoice.billing_reason == 'subscription_cycle':
-                send_subscription_renewal_email(organization.primary_contact_user, subscription)
-                
         except (Organization.DoesNotExist, Subscription.DoesNotExist) as e:
             print(f"Error processing invoice payment: {e}")
     
@@ -432,6 +409,29 @@ def stripe_webhook(request):
             print(f"Error processing subscription deletion: {e}")
     
     return HttpResponse(status=200)
+
+
+def notify_admins_of_new_registration(organization):
+    """Notify admin users about a new registration using in-app notifications"""
+    from django.contrib.auth import get_user_model
+    from apps.notifications.services import create_notification
+    User = get_user_model()
+    
+    try:
+        # Get admin users
+        admins = User.objects.filter(is_staff=True)
+        
+        for admin in admins:
+            # Create admin notification
+            create_notification(
+                recipient=admin,
+                notification_type='admin_approval',
+                title=f"New {organization.get_type_display()} Registration",
+                message=f"{organization.name} has registered as a {organization.get_type_display().lower()} and is pending approval. Payment has been received.",
+            )
+    except Exception as e:
+        print(f"Error creating admin notification: {e}")
+
 
 @login_required
 def subscription_detail(request):
