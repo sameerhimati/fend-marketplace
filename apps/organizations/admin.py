@@ -3,6 +3,23 @@ from django import forms
 from .models import Organization, PilotDefinition
 from django.utils import timezone
 from django.utils.html import format_html
+from django.shortcuts import render
+from django.urls import path
+from django.contrib.admin.sites import AdminSite
+
+original_index = admin.site.index
+def custom_index(request, extra_context=None):
+    extra_context = extra_context or {}
+    
+    # Add pending approvals count
+    from apps.organizations.models import Organization
+    extra_context['pending_approvals_count'] = Organization.objects.filter(
+        approval_status='pending'
+    ).count()
+    
+    return original_index(request, extra_context)
+
+admin.site.index = custom_index
 
 class PilotDefinitionInline(admin.StackedInline):
     model = PilotDefinition
@@ -90,6 +107,47 @@ class OrganizationAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{count} organizations were rejected.')
     reject_organizations.short_description = "Reject selected organizations"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('pending-approvals/', self.admin_site.admin_view(self.pending_approvals_view), name='pending_approvals'),
+        ]
+        return custom_urls + urls
+
+    def pending_approvals_view(self, request):
+        """Custom admin view to manage pending approvals"""
+        # Get all organizations with pending approval status
+        pending_orgs = Organization.objects.filter(approval_status='pending')
+        
+        # If approving or rejecting organizations
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            org_ids = request.POST.getlist('org_ids')
+            
+            # Handle single organization approval/rejection
+            single_org_id = request.POST.get('single_org_id')
+            if single_org_id and action:
+                org_ids = [single_org_id]
+            
+            if org_ids and action:
+                orgs = Organization.objects.filter(id__in=org_ids)
+                
+                if action == 'approve':
+                    self.approve_organizations(request, orgs)
+                elif action == 'reject':
+                    self.reject_organizations(request, orgs)
+            
+            # Refresh the queryset after actions
+            pending_orgs = Organization.objects.filter(approval_status='pending')
+        
+        context = {
+            'title': 'Pending Organization Approvals',
+            'pending_orgs': pending_orgs,
+            'opts': self.model._meta,
+            **self.admin_site.each_context(request),
+        }
+        return render(request, 'admin/organizations/pending_approvals.html', context)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)

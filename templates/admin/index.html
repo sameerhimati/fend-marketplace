@@ -303,6 +303,12 @@
                 </svg>
                 Audit Logs
             </a>
+            <a href="{% url 'admin:pending_approvals' %}" class="action-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Review Pending Approvals ({{ pending_approvals_count }})
+            </a>
         </div>
     </div>
     
@@ -330,6 +336,12 @@
             <h3>Released This Month</h3>
             <p class="stat-value">${{ payment_stats.released_month }}</p>
             <p class="stat-label">{{ payment_stats.released_count_month }} payments</p>
+        </div>
+
+        <div class="stat-card">
+            <h3>Pending Approvals</h3>
+            <p class="stat-value">{{ pending_approvals_count }}</p>
+            <p class="stat-label">Organizations awaiting approval</p>
         </div>
     </div>
     
