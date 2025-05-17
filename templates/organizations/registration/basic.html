@@ -134,7 +134,7 @@
                 </div>
 
                 <!-- Business Details - Conditionally displayed for enterprises -->
-                <div id="business-details-section" class="space-y-4 pt-4 border-t border-gray-200">
+                <div class="space-y-4 pt-4 border-t border-gray-200">
                     <h3 class="font-semibold text-lg text-gray-700">Business Details</h3>
                     
                     <div>
@@ -289,19 +289,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Function to update display based on organization type
-    function updateOrganizationTypeFields() {
-        const orgType = orgTypeSelect.value;
-        
-        if (orgType === 'enterprise') {
-            // Show business details section for enterprises
-            businessDetailsSection.style.display = 'block';
-        } else {
-            // Hide business details section for startups
-            businessDetailsSection.style.display = 'none';
-        }
-    }
-
     // Function to update phone help text based on country
     function updatePhoneHelp() {
         const countryCode = countryCodeSelect.value;
@@ -317,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add event listeners
-    orgTypeSelect.addEventListener('change', updateOrganizationTypeFields);
     businessTypeSelect.addEventListener('change', updateRegistrationField);
     countryCodeSelect.addEventListener('change', updatePhoneHelp);
     
@@ -339,7 +325,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Initialize the UI
-    updateOrganizationTypeFields();
     updateRegistrationField();
     updatePhoneHelp();
 });

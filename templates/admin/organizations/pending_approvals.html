@@ -1,0 +1,260 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .approval-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .approval-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9fafb;
+    }
+    
+    .approval-body {
+        padding: 1.5rem;
+    }
+    
+    .approval-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+    }
+    
+    .approval-subtitle {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+    
+    .approval-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .approval-section h3 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .approval-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .approval-item {
+        margin-bottom: 0.75rem;
+    }
+    
+    .approval-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+    
+    .approval-value {
+        font-weight: 500;
+        color: #111827;
+    }
+    
+    .approval-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        justify-content: flex-end;
+    }
+    
+    .approve-btn {
+        padding: 0.5rem 1rem;
+        background-color: #10B981;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    
+    .approve-btn:hover {
+        background-color: #059669;
+    }
+    
+    .reject-btn {
+        padding: 0.5rem 1rem;
+        background-color: #EF4444;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    
+    .reject-btn:hover {
+        background-color: #DC2626;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .empty-icon {
+        width: 4rem;
+        height: 4rem;
+        margin: 0 auto 1rem auto;
+        color: #D1D5DB;
+    }
+    
+    .empty-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .empty-desc {
+        color: #6b7280;
+        margin: 0;
+    }
+    
+    .batch-actions {
+        margin-bottom: 1.5rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        padding: 1rem 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="post" id="batch-approval-form">
+    {% csrf_token %}
+    
+    {% if pending_orgs %}
+    <div class="batch-actions">
+        <h3 style="margin-top: 0; margin-bottom: 0.75rem;">Batch Actions</h3>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" name="action" value="approve" class="approve-btn">
+                Approve Selected
+            </button>
+            <button type="submit" name="action" value="reject" class="reject-btn">
+                Reject Selected
+            </button>
+        </div>
+    </div>
+    
+    {% for org in pending_orgs %}
+    <div class="approval-card">
+        <div class="approval-header">
+            <div>
+                <h2 class="approval-title">{{ org.name }}</h2>
+                <p class="approval-subtitle">{{ org.get_type_display }} - Registered {{ org.created_at|date:"M d, Y" }}</p>
+            </div>
+            <div>
+                <input type="checkbox" name="org_ids" value="{{ org.id }}" id="org_{{ org.id }}">
+                <label for="org_{{ org.id }}">Select</label>
+            </div>
+        </div>
+        
+        <div class="approval-body">
+            <div class="approval-section">
+                <h3>Organization Details</h3>
+                <div class="approval-grid">
+                    <div class="approval-item">
+                        <div class="approval-label">Website</div>
+                        <div class="approval-value">
+                            <a href="http://{{ org.website }}" target="_blank">{{ org.website }}</a>
+                        </div>
+                    </div>
+                    <div class="approval-item">
+                        <div class="approval-label">Business Type</div>
+                        <div class="approval-value">{{ org.get_business_type_display }}</div>
+                    </div>
+                    <div class="approval-item">
+                        <div class="approval-label">Registration Number</div>
+                        <div class="approval-value">{{ org.business_registration_number|default:"Not provided" }}</div>
+                    </div>
+                    <div class="approval-item">
+                        <div class="approval-label">Tax ID</div>
+                        <div class="approval-value">{{ org.tax_identification_number|default:"Not provided" }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="approval-section">
+                <h3>Contact Information</h3>
+                <div class="approval-grid">
+                    <div class="approval-item">
+                        <div class="approval-label">Contact Name</div>
+                        <div class="approval-value">{{ org.primary_contact_name }}</div>
+                    </div>
+                    <div class="approval-item">
+                        <div class="approval-label">Contact Phone</div>
+                        <div class="approval-value">{{ org.country_code }} {{ org.primary_contact_phone }}</div>
+                    </div>
+                    <div class="approval-item">
+                        <div class="approval-label">User Email</div>
+                        <div class="approval-value">
+                            {% with user=org.users.first %}
+                                {{ user.email|default:"No user found" }}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="approval-actions">
+                <a href="{% url 'admin:organizations_organization_change' org.id %}" class="button">
+                    View Full Details
+                </a>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="single_org_id" value="{{ org.id }}">
+                    <button type="submit" name="action" value="approve" class="approve-btn">
+                        Approve
+                    </button>
+                </form>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="single_org_id" value="{{ org.id }}">
+                    <button type="submit" name="action" value="reject" class="reject-btn">
+                        Reject
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% else %}
+    <div class="empty-state">
+        <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 class="empty-title">No Pending Approvals</h2>
+        <p class="empty-desc">All organization registrations have been processed.</p>
+    </div>
+    {% endif %}
+</form>
+{% endblock %}

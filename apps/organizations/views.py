@@ -79,47 +79,6 @@ class OrganizationRegistrationView(CreateView):
 class PendingApprovalView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/pending_approval.html'
 
-class PilotDefinitionView(CreateView):
-    model = PilotDefinition
-    form_class = PilotDefinitionForm
-    template_name = 'organizations/registration/pilot_definition.html'
-
-    def form_valid(self, form):
-        try:
-            organization = Organization.objects.get(pk=self.kwargs['pk'])
-            pilot_definition = form.save(commit=False)
-            pilot_definition.organization = organization
-            pilot_definition.save()
-            
-            # Create a draft pilot from this definition
-            if form.cleaned_data.get('description'):
-                from apps.pilots.models import Pilot
-                pilot = Pilot.objects.create(
-                    organization=organization,
-                    pilot_definition=pilot_definition,
-                    title=f"{organization.name} - Initial Pilot",
-                    description=form.cleaned_data.get('description'),
-                    technical_specs_doc=form.cleaned_data.get('technical_specs_doc'),
-                    performance_metrics=form.cleaned_data.get('performance_metrics'),
-                    compliance_requirements=form.cleaned_data.get('compliance_requirements'),
-                    is_private=form.cleaned_data.get('is_private', False),
-                    status='draft',
-                    price=0  # Default price, can be updated later
-                )
-            
-            # Redirect to payment selection for the newly created organization
-            return redirect('payments:payment_selection')
-            
-        except Exception as e:
-            print(f"Error in pilot definition: {e}")
-            messages.error(self.request, "Error creating pilot definition. Please try again.")
-            return self.form_invalid(form)
-
-    def post(self, request, *args, **kwargs):
-        if 'back' in request.POST:
-            return redirect('organizations:register')
-        return super().post(request, *args, **kwargs)
-
 @login_required
 def remove_logo(request):
     """Remove the organization's logo"""
