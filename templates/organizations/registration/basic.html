@@ -4,13 +4,8 @@
 
 {% block content %}
 <style>
-.group {
-    position: relative;
-}
-
-.group:hover .opacity-0 {
-    opacity: 1;
-}
+.group { position: relative; }
+.group:hover .opacity-0 { opacity: 1; }
 </style>
 <div class="md:flex md:items-center md:justify-center">
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -29,133 +24,324 @@
             <form method="post" class="space-y-6">
                 {% csrf_token %}
                 
-                <!-- Email Field -->
-                <div>
-                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Email Address
-                    </label>
-                    <div class="mt-1">
-                        <input type="email" 
-                               name="{{ form.email.name }}" 
-                               id="{{ form.email.id_for_label }}"
-                               value="{{ form.email.value|default:'' }}"
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               required>
+                <!-- Account Fields -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-lg text-gray-700">Account Information</h3>
+
+                    <!-- Email Field -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Email Address
+                        </label>
+                        <div class="mt-1">
+                            <input type="email" name="{{ form.email.name }}" id="{{ form.email.id_for_label }}"
+                                value="{{ form.email.value|default:'' }}"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                        {% if form.email.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                    {% if form.email.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                    {% endif %}
+
+                    <!-- Password Fields -->
+                    <div>
+                        <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Password
+                        </label>
+                        <div class="mt-1">
+                            <input type="password" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.confirm_password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Confirm Password
+                        </label>
+                        <div class="mt-1">
+                            <input type="password" name="{{ form.confirm_password.name }}" id="{{ form.confirm_password.id_for_label }}"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Password Fields -->
-                <div>
-                    <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Password
-                    </label>
-                    <div class="mt-1">
-                        <input type="password" 
-                               name="{{ form.password.name }}" 
-                               id="{{ form.password.id_for_label }}"
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               required>
-                    </div>
-                    {% if form.password.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.password.errors.0 }}</p>
-                    {% endif %}
-                </div>
+                <!-- Organization Fields -->
+                <div class="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 class="font-semibold text-lg text-gray-700">Organization Information</h3>
 
-                <div>
-                    <label for="{{ form.confirm_password.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Confirm Password
-                    </label>
-                    <div class="mt-1">
-                        <input type="password" 
-                               name="{{ form.confirm_password.name }}" 
-                               id="{{ form.confirm_password.id_for_label }}"
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               required>
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Company Name
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" name="{{ form.name.name }}" id="{{ form.name.id_for_label }}" 
+                                value="{{ form.name.value|default:'' }}"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                        {% if form.name.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                    {% if form.confirm_password.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.confirm_password.errors.0 }}</p>
-                    {% endif %}
-                </div>
 
-                <div>
-                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Company Name
-                    </label>
-                    <div class="mt-1">
-                        <input type="text" 
-                               name="{{ form.name.name }}" 
-                               id="{{ form.name.id_for_label }}" 
-                               value="{{ form.name.value|default:'' }}"
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               required>
-                    </div>
-                    {% if form.name.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="{{ form.type.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Organization Type
-                        <span class="ml-1 relative group cursor-help">
-                            <svg class="inline h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-                            </svg>
-                            <div class="absolute left-0 w-72 p-3 mt-1 text-sm bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
-                                <div class="mb-2">
-                                    <span class="font-semibold">Enterprise:</span> Post pilot opportunities
+                    <div>
+                        <label for="{{ form.type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Organization Type
+                            <span class="ml-1 relative group cursor-help">
+                                <svg class="inline h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                </svg>
+                                <div class="absolute left-0 w-72 p-3 mt-1 text-sm bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 pointer-events-none">
+                                    <div class="mb-2">
+                                        <span class="font-semibold">Enterprise:</span> Post pilot opportunities
+                                    </div>
+                                    <div>
+                                        <span class="font-semibold">Startup:</span> Bid on pilot opportunities
+                                    </div>
                                 </div>
-                                <div>
-                                    <span class="font-semibold">Startup:</span> Bid on pilot opportunities
-                                </div>
-                            </div>
-                        </span>
-                    </label>
-                    <div class="mt-1">
-                        <select name="{{ form.type.name }}" 
-                                id="{{ form.type.id_for_label }}"
+                            </span>
+                        </label>
+                        <div class="mt-1">
+                            <select name="{{ form.type.name }}" id="{{ form.type.id_for_label }}"
                                 class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 required>
-                            {% for value, label in form.type.field.choices %}
-                            <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
-                                {{ label }}
-                            </option>
-                            {% endfor %}
-                        </select>
+                                {% for value, label in form.type.field.choices %}
+                                <option value="{{ value }}" {% if form.type.value == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    {% if form.type.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.type.errors.0 }}</p>
-                    {% endif %}
+
+                    <div>
+                        <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Website
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" name="{{ form.website.name }}" id="{{ form.website.id_for_label }}"
+                                value="{{ form.website.value|default:'' }}"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                        {% if form.website.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.website.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div>
-                    <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Website
-                    </label>
-                    <div class="mt-1">
-                        <input type="text" 
-                               name="{{ form.website.name }}" 
-                               id="{{ form.website.id_for_label }}"
-                               value="{{ form.website.value|default:'' }}"
-                               class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                               required>
+                <!-- Business Details - Conditionally displayed for enterprises -->
+                <div id="business-details-section" class="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 class="font-semibold text-lg text-gray-700">Business Details</h3>
+                    
+                    <div>
+                        <label for="{{ form.business_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Business Type
+                        </label>
+                        <div class="mt-1">
+                            <select name="{{ form.business_type.name }}" id="{{ form.business_type.id_for_label }}"
+                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                {% for value, label in form.business_type.field.choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    {% if form.website.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.website.errors.0 }}</p>
-                    {% endif %}
+
+                    <div id="registration_number_field">
+                        <label for="{{ form.business_registration_number.id_for_label }}" class="block text-sm font-medium text-gray-700" id="registration_number_label">
+                            Business Registration Number (EIN)
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" name="{{ form.business_registration_number.name }}" 
+                                id="{{ form.business_registration_number.id_for_label }}"
+                                pattern="\d{2}-\d{7}"
+                                placeholder="XX-XXXXXXX"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500" id="registration_format_help">Format: XX-XXXXXXX (9 digits total)</p>
+                        </div>
+                    </div>                
+                </div>
+
+                <!-- Contact Information -->
+                <div class="space-y-4 pt-4 border-t border-gray-200">
+                    <h3 class="font-semibold text-lg text-gray-700">Contact Information</h3>
+                    
+                    <div>
+                        <label for="{{ form.primary_contact_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Contact Name
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" name="{{ form.primary_contact_name.name }}" 
+                                id="{{ form.primary_contact_name.id_for_label }}"
+                                value="{{ form.primary_contact_name.value|default:'' }}"
+                                class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                    </div>
+                
+                    <div>
+                        <label for="{{ form.primary_contact_phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Phone
+                        </label>
+                        <div class="mt-1 flex">
+                            <!-- Country Code Dropdown -->
+                            <select name="{{ form.country_code.name }}" 
+                                    id="{{ form.country_code.id_for_label }}"
+                                    class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm"
+                                    style="min-width: 140px; max-width: 140px;">
+                                {% for value, label in form.country_code.field.choices %}
+                                <option value="{{ value }}" {% if forloop.first %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <!-- Phone Number Input -->
+                            <input type="tel" name="{{ form.primary_contact_phone.name }}" 
+                                id="{{ form.primary_contact_phone.id_for_label }}"
+                                value="{{ form.primary_contact_phone.value|default:'' }}"
+                                placeholder="Phone number"
+                                class="appearance-none flex-grow px-3 py-2 border border-gray-300 rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                required>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500" id="phone_format_help">
+                            Enter 10 digits for US/Canada numbers
+                        </p>
+                    </div>
                 </div>
 
                 <div>
                     <button type="submit" 
                             class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Continue
+                        Register & Continue to Payment
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get form elements
+    const orgTypeSelect = document.getElementById('{{ form.type.id_for_label }}');
+    const businessDetailsSection = document.getElementById('business-details-section');
+    const businessTypeSelect = document.getElementById('{{ form.business_type.id_for_label }}');
+    const businessRegInput = document.getElementById('{{ form.business_registration_number.id_for_label }}');
+    const registrationLabel = document.getElementById('registration_number_label');
+    const formatHelp = document.getElementById('registration_format_help');
+    
+    // Get phone elements
+    const countryCodeSelect = document.getElementById('{{ form.country_code.id_for_label }}');
+    const phoneInput = document.getElementById('{{ form.primary_contact_phone.id_for_label }}');
+    const phoneFormatHelp = document.getElementById('phone_format_help');
+    
+    // Function to format EIN (for US businesses)
+    function formatEIN(input) {
+        // Remove all non-numeric characters
+        let value = input.value.replace(/\D/g, '');
+        
+        // If we have at least 2 digits, add a hyphen
+        if (value.length > 2) {
+            value = value.substring(0, 2) + '-' + value.substring(2);
+        }
+        
+        // Limit to 10 characters (including hyphen)
+        value = value.substring(0, 10);
+        
+        // Update the input value
+        input.value = value;
+    }
+    
+    // Function to update the registration field based on business type
+    function updateRegistrationField() {
+        const businessType = businessTypeSelect.value;
+        
+        if (businessType === 'international') {
+            // For international businesses, remove formatting restrictions
+            registrationLabel.textContent = 'Business Registration Number';
+            businessRegInput.removeAttribute('pattern');
+            businessRegInput.placeholder = 'Enter your business registration number';
+            formatHelp.style.display = 'none';
+            
+            // Remove any event listeners
+            businessRegInput.oninput = null;
+        } else {
+            // For US businesses, enforce EIN format
+            registrationLabel.textContent = 'Business Registration Number (EIN)';
+            businessRegInput.setAttribute('pattern', '\\d{2}-\\d{7}');
+            businessRegInput.placeholder = 'XX-XXXXXXX';
+            formatHelp.style.display = 'block';
+            
+            // Add the EIN formatting
+            businessRegInput.oninput = function() {
+                formatEIN(this);
+            };
+            
+            // Format initial value if it exists
+            if (businessRegInput.value) {
+                formatEIN(businessRegInput);
+            }
+        }
+    }
+
+    // Function to update display based on organization type
+    function updateOrganizationTypeFields() {
+        const orgType = orgTypeSelect.value;
+        
+        if (orgType === 'enterprise') {
+            // Show business details section for enterprises
+            businessDetailsSection.style.display = 'block';
+        } else {
+            // Hide business details section for startups
+            businessDetailsSection.style.display = 'none';
+        }
+    }
+
+    // Function to update phone help text based on country
+    function updatePhoneHelp() {
+        const countryCode = countryCodeSelect.value;
+        if (countryCode === '+1') {
+            phoneFormatHelp.textContent = 'Enter 10 digits for US/Canada numbers';
+            phoneInput.placeholder = '10 digits for US numbers';
+            phoneInput.maxLength = '10';
+        } else {
+            phoneFormatHelp.textContent = 'Enter phone number without country code';
+            phoneInput.placeholder = 'Phone number';
+            phoneInput.maxLength = '15';
+        }
+    }
+
+    // Add event listeners
+    orgTypeSelect.addEventListener('change', updateOrganizationTypeFields);
+    businessTypeSelect.addEventListener('change', updateRegistrationField);
+    countryCodeSelect.addEventListener('change', updatePhoneHelp);
+    
+    // Phone number formatting
+    phoneInput.addEventListener('input', function() {
+        const countryCode = countryCodeSelect.value;
+        // Remove ALL non-digits (including parentheses, dashes, spaces)
+        let value = this.value.replace(/\D/g, '');
+        
+        if (countryCode === '+1') {
+            // Limit to 10 digits for US/Canada
+            value = value.substring(0, 10);
+        } else {
+            // Limit to 15 digits for international (E.164 standard)
+            value = value.substring(0, 15);
+        }
+        
+        this.value = value;
+    });
+    
+    // Initialize the UI
+    updateOrganizationTypeFields();
+    updateRegistrationField();
+    updatePhoneHelp();
+});
+</script>
 {% endblock %}
