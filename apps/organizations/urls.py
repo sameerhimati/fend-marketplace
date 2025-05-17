@@ -8,9 +8,6 @@ urlpatterns = [
      path('register/', 
          views.OrganizationRegistrationView.as_view(), 
          name='register'),
-     path('register/<int:pk>/enterprise/', 
-         views.EnterpriseDetailsView.as_view(), 
-         name='enterprise_details'),
      path('register/<int:pk>/pilot-definition/', 
          views.PilotDefinitionView.as_view(), 
          name='pilot_definition'),
@@ -28,7 +25,5 @@ urlpatterns = [
      path('profile/remove-logo/', views.remove_logo, name='remove_logo'),
      path('startups/', views.StartupDirectoryView.as_view(), name='startup_directory'),
      path('update-bank-info/', views.update_bank_info, name='update_bank_info'),
-     path('verify-email/<str:token>/', views.EmailVerificationView.as_view(), name='verify_email'),
-    path('verification-pending/', views.VerificationPendingView.as_view(), name='verification_pending'),
-    path('resend-verification/', views.ResendVerificationView.as_view(), name='resend_verification'),
+     path('pending-approval/', views.PendingApprovalView.as_view(), name='pending_approval'),
 ]

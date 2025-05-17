@@ -9,106 +9,11 @@ class OrganizationBasicForm(forms.ModelForm):
     email = forms.EmailField(required=True)
     password = forms.CharField(widget=forms.PasswordInput)
     confirm_password = forms.CharField(widget=forms.PasswordInput)
-
-    class Meta:
-        model = Organization
-        fields = ['name', 'type', 'website']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['name'].required = True
-        self.fields['type'].empty_label = None
-
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get('password')
-        confirm_password = cleaned_data.get('confirm_password')
-        email = cleaned_data.get('email')
-
-        if password and confirm_password and password != confirm_password:
-            raise forms.ValidationError("Passwords don't match")
-        
-        # Check if email is already in use
-        if email and User.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email already registered")
-            
-        return cleaned_data
-
-    def clean_website(self):
-        """Clean and validate website field"""
-        website = self.cleaned_data.get('website', '').strip().lower()
-        if not website:
-            return website
-            
-        # Remove http:// or https:// if present
-        if website.startswith('http://'):
-            website = website[7:]
-        elif website.startswith('https://'):
-            website = website[8:]
-        
-        # Remove www. if present
-        if website.startswith('www.'):
-            website = website[4:]
-        
-        # Validate website format - must end with .something
-        import re
-        if not re.match(r'.*\.[a-zA-Z]{2,}$', website):
-            raise forms.ValidationError("Website must be a valid domain (e.g., example.com)")
-        
-        # Check max length (50 characters)
-        if len(website) > 50:
-            raise forms.ValidationError("Website must be less than 50 characters")
-        
-        return website
     
-def clean_business_registration_number(self):
-    brn = self.cleaned_data.get('business_registration_number')
-    business_type = self.cleaned_data.get('business_type')
-    
-    if not brn:
-        return brn
-    
-    # For international businesses, just return the value as-is
-    if business_type == 'international':
-        return brn
-    
-    # For US businesses, enforce EIN format
-    brn_clean = ''.join(e for e in brn if e.isalnum())
-    
-    # EIN format: XX-XXXXXXX (9 digits)
-    if len(brn_clean) != 9 or not brn_clean.isdigit():
-        raise forms.ValidationError(
-            "EIN must be in the format XX-XXXXXXX (9 digits total)."
-        )
-    
-    # Format as XX-XXXXXXX
-    formatted_brn = f"{brn_clean[:2]}-{brn_clean[2:]}"
-    return formatted_brn
-
-def clean_tax_identification_number(self):
-    tin = self.cleaned_data.get('tax_identification_number')
-    
-    if not tin:
-        return tin
-    
-    # Strip out non-alphanumeric characters
-    tin_clean = ''.join(e for e in tin if e.isalnum())
-    
-    # EIN format: XX-XXXXXXX (9 digits)
-    if len(tin_clean) != 9 or not tin_clean.isdigit():
-        raise forms.ValidationError(
-            "EIN must be in the format XX-XXXXXXX (9 digits total)."
-        )
-    
-    # Format as XX-XXXXXXX
-    formatted_tin = f"{tin_clean[:2]}-{tin_clean[2:]}"
-    return formatted_tin
-
-class EnterpriseDetailsForm(forms.ModelForm):
-    """Second step for enterprise organizations"""
-    
-    # Add country code choices
-    COUNTRY_CODES = [
+    # Add contact fields for all organization types
+    primary_contact_name = forms.CharField(max_length=255, required=True)
+    primary_contact_phone = forms.CharField(max_length=20, required=True)
+    country_code = forms.ChoiceField(choices = [
         ('+1', 'United States (+1)'),
         ('+1', 'Canada (+1)'),
         ('+93', 'Afghanistan (+93)'),
@@ -288,34 +193,98 @@ class EnterpriseDetailsForm(forms.ModelForm):
         ('+967', 'Yemen (+967)'),
         ('+260', 'Zambia (+260)'),
         ('+263', 'Zimbabwe (+263)'),
-    ]
+    ], initial='+1')
     
-    country_code = forms.ChoiceField(choices=COUNTRY_CODES, initial='+1')
-    
+    # Optional fields for all organization types
+    business_type = forms.ChoiceField(
+        choices=Organization.BUSINESS_TYPES,
+        required=False
+    )
+    business_registration_number = forms.CharField(
+        max_length=50,
+        required=False
+    )
+
     class Meta:
         model = Organization
         fields = [
-            'business_type',
-            'business_registration_number',
-            'primary_contact_name',
-            'country_code',
-            'primary_contact_phone'
+            'name', 'type', 'website', 'primary_contact_name', 
+            'primary_contact_phone', 'country_code', 'business_type',
+            'business_registration_number'
         ]
-        widgets = {
-            'business_registration_number': forms.TextInput(
-                attrs={
-                    'placeholder': 'XX-XXXXXXX',
-                    'pattern': '\d{2}-\d{7}',
-                    'title': 'Business registration number'
-                }
-            ),
-            'primary_contact_phone': forms.TextInput(
-                attrs={
-                    'placeholder': '10 digits for US numbers',
-                    'maxlength': '15'
-                }
-            ),
-        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['name'].required = True
+        self.fields['type'].empty_label = None
+        self.fields['primary_contact_name'].required = True
+        self.fields['primary_contact_phone'].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        confirm_password = cleaned_data.get('confirm_password')
+        email = cleaned_data.get('email')
+
+        if password and confirm_password and password != confirm_password:
+            raise forms.ValidationError("Passwords don't match")
+        
+        # Check if email is already in use
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already registered")
+            
+        return cleaned_data
+
+    def clean_website(self):
+        """Clean and validate website field"""
+        website = self.cleaned_data.get('website', '').strip().lower()
+        if not website:
+            return website
+            
+        # Remove http:// or https:// if present
+        if website.startswith('http://'):
+            website = website[7:]
+        elif website.startswith('https://'):
+            website = website[8:]
+        
+        # Remove www. if present
+        if website.startswith('www.'):
+            website = website[4:]
+        
+        # Validate website format - must end with .something
+        import re
+        if not re.match(r'.*\.[a-zA-Z]{2,}$', website):
+            raise forms.ValidationError("Website must be a valid domain (e.g., example.com)")
+        
+        # Check max length (50 characters)
+        if len(website) > 50:
+            raise forms.ValidationError("Website must be less than 50 characters")
+        
+        return website
+    
+    def clean_business_registration_number(self):
+        brn = self.cleaned_data.get('business_registration_number')
+        business_type = self.cleaned_data.get('business_type')
+        
+        if not brn:
+            return brn
+        
+        # For international businesses, just return the value as-is
+        if business_type == 'international':
+            return brn
+        
+        # For US businesses, enforce EIN format
+        brn_clean = ''.join(e for e in brn if e.isalnum())
+        
+        # EIN format: XX-XXXXXXX (9 digits)
+        if len(brn_clean) != 9 or not brn_clean.isdigit():
+            raise forms.ValidationError(
+                "EIN must be in the format XX-XXXXXXX (9 digits total)."
+            )
+        
+        # Format as XX-XXXXXXX
+        formatted_brn = f"{brn_clean[:2]}-{brn_clean[2:]}"
+        return formatted_brn
     
     def clean_primary_contact_phone(self):
         """Validate phone number based on country code"""
@@ -346,8 +315,6 @@ class EnterpriseDetailsForm(forms.ModelForm):
             raise forms.ValidationError("Phone number seems too long")
         
         return phone_digits
-    
-    clean_business_registration_number = clean_business_registration_number
 
 class PilotDefinitionForm(forms.ModelForm):
     """Optional third step for enterprise pilot definition"""

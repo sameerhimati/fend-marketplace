@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Account Pending Approval - Fend{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-md mx-auto px-4">
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <div class="text-center mb-6">
+                <svg class="mx-auto h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h2 class="mt-4 text-2xl font-bold text-gray-900">Account Pending Approval</h2>
+            </div>
+        <p class="text-gray-600 text-center mb-6">
+            Thank you for registering with Fend Marketplace! Your payment has been processed successfully, and your account is now pending admin review.
+        </p>
+        
+        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+            <p class="text-sm text-yellow-800">
+                <strong>Note:</strong> Our team will review your application shortly. You'll receive full access to the platform once your account is approved.
+            </p>
+        </div>
+        
+        <div class="space-y-3">
+            <p class="text-center text-gray-600">
+                You'll be notified via email when your account is approved.
+            </p>
+        </div>
+        
+        <div class="mt-6 text-center">
+            <a href="{% url 'organizations:logout' %}" class="text-indigo-600 hover:text-indigo-500">
+                Logout
+            </a>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

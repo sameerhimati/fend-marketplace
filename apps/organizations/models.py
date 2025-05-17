@@ -6,8 +6,6 @@ from django.conf import settings
 from django.dispatch import receiver
 import phonenumbers
 
-
-
 class Organization(models.Model):
     ORGANIZATION_TYPES = (
         ('enterprise', 'Enterprise'),
@@ -20,6 +18,12 @@ class Organization(models.Model):
         ('s_corp', 'S-Corporation'),
         ('llc', 'LLC'),
         ('international', 'International'),
+    )
+    
+    APPROVAL_STATUS_CHOICES = (
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
     )
 
     # Basic Organization Info
@@ -49,9 +53,16 @@ class Organization(models.Model):
 
     # Primary Contact Info
     primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
-    # primary_contact_email = models.EmailField(null=True, blank=True)
     primary_contact_phone = models.CharField(max_length=20, null=True, blank=True)
     country_code = models.CharField(max_length=5, default='+1', null=True, blank=True)
+
+    # Approval Status
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_STATUS_CHOICES,
+        default='pending'
+    )
+    approval_date = models.DateTimeField(null=True, blank=True)
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -144,7 +155,6 @@ class Organization(models.Model):
                 'business_registration_number',
                 'tax_identification_number',
                 'primary_contact_name',
-                'primary_contact_email',
                 'primary_contact_phone'
             ]
             
@@ -170,7 +180,7 @@ def create_stripe_customer(sender, instance, created, **kwargs):
             stripe.api_key = settings.STRIPE_SECRET_KEY
             
             # Find a user associated with this organization
-            user = instance.members.first()
+            user = instance.users.first()
             
             if user:
                 customer = stripe.Customer.create(
