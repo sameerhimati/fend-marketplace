@@ -79,6 +79,17 @@ class OrganizationRegistrationView(CreateView):
 class PendingApprovalView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/pending_approval.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Check if user has an active subscription
+        has_subscription = False
+        if hasattr(self.request.user.organization, 'has_active_subscription'):
+            has_subscription = self.request.user.organization.has_active_subscription()
+        
+        context['has_subscription'] = has_subscription
+        return context
+
 @login_required
 def remove_logo(request):
     """Remove the organization's logo"""
