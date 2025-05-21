@@ -12,14 +12,19 @@ from django.http import HttpResponseForbidden
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from apps.organizations.mixins import OrganizationRequiredMixin
 
-class PilotListView(LoginRequiredMixin, ListView):
+class PilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListView):
     model = Pilot
     template_name = 'pilots/pilot_list.html'
     context_object_name = 'pilots'
 
     def get_queryset(self):
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            return Pilot.objects.none()  # Return empty queryset
+            
         user_org = self.request.user.organization
+
         if user_org.type == 'startup':
             # Get all published, non-private pilots
             pilots = Pilot.objects.filter(status='published', is_private=False)
