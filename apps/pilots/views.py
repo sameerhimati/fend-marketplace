@@ -7,6 +7,7 @@ from .models import Pilot, PilotBid
 from .forms import PilotForm, PilotBidForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponseForbidden
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 from django.contrib.auth import get_user_model
@@ -246,52 +247,60 @@ def create_bid(request, pilot_id):
         messages.error(request, "Only startups can submit bids")
         return redirect('pilots:detail', pk=pilot_id)
     
-    # Check if startup already has an active bid for this pilot
+    # Check if startup already has ANY bid for this pilot (including declined ones)
     existing_bid = PilotBid.objects.filter(
         pilot=pilot, 
         startup=user_org
-    ).exclude(
-        status='declined'  # Allow resubmission if previous bid was declined
     ).first()
     
-    if existing_bid:
+    # If there's an existing declined bid, we'll update it instead of creating a new one
+    is_resubmission = existing_bid and existing_bid.status == 'declined'
+    
+    if existing_bid and not is_resubmission:
         messages.info(request, "You already have an active bid for this pilot")
         return redirect('pilots:bid_detail', pk=existing_bid.pk)
     
     if request.method == 'POST':
-        form = PilotBidForm(request.POST, initial={'pilot': pilot})
+        form = PilotBidForm(request.POST, instance=existing_bid if is_resubmission else None)
         if form.is_valid():
             bid_amount = form.cleaned_data['amount']
-            
-            # Validate bid amount against pilot price
-            # if bid_amount < pilot.price:
-            #     messages.error(request, f"Bid amount must be at least ${pilot.price}")
-            #     return render(request, 'pilots/bid_form.html', {'form': form, 'pilot': pilot})
             
             bid = form.save(commit=False)
             bid.pilot = pilot
             bid.startup = user_org
             bid.startup_fee_percentage = 5.00
             bid.enterprise_fee_percentage = 5.00 
-            bid.fee_percentage = 10.00 
+            bid.fee_percentage = 10.00
+            
+            # If this is a resubmission, make sure we reset the status to pending
+            if is_resubmission:
+                bid.status = 'pending'
+                
             bid.save()
             
+            # Create notification
             create_bid_notification(
                 bid=bid,
                 notification_type='bid_submitted',
                 title=f"New bid received: {pilot.title}",
-                message=f"{user_org.name} has submitted a new bid of ${bid.amount} for your pilot '{pilot.title}'."
+                message=f"{user_org.name} has submitted a {'new' if not is_resubmission else 'revised'} bid of ${bid.amount} for your pilot '{pilot.title}'."
             )
 
-            messages.success(request, "Your bid has been submitted successfully")
-
+            messages.success(request, f"Your bid has been {'submitted' if not is_resubmission else 'resubmitted'} successfully")
             return redirect('pilots:bid_detail', pk=bid.pk)
     else:
-        form = PilotBidForm(initial={'pilot': pilot, 'amount': pilot.price})
+        # For GET requests, pre-populate with existing bid data if it's a resubmission
+        initial_data = {
+            'pilot': pilot,
+            'amount': existing_bid.amount if is_resubmission else pilot.price,
+            'proposal': existing_bid.proposal if is_resubmission else ''
+        }
+        form = PilotBidForm(initial=initial_data, instance=existing_bid if is_resubmission else None)
     
     return render(request, 'pilots/bid_form.html', {
         'form': form,
-        'pilot': pilot
+        'pilot': pilot,
+        'is_resubmission': is_resubmission
     })
 
 class BidListView(LoginRequiredMixin, ListView):
@@ -419,25 +428,14 @@ def update_bid_status(request, pk):
     if new_status in valid_statuses:
         old_status = bid.status
         if new_status == 'approved':
-            # Check if enterprise has bank information configured
-            if not all([
-                user_org.bank_name, 
-                user_org.bank_account_number,
-                user_org.bank_routing_number
-            ]):
-                messages.error(request, "You must configure your bank information before approving bids. Please update your profile.")
-                return redirect('organizations:profile', pk=user_org.id)
+            # Use the simplified mark_as_approved method
+            success = bid.mark_as_approved()
             
-            # Use the mark_as_approved method which creates the escrow payment
-            escrow_payment = bid.mark_as_approved()
-            
-            if escrow_payment:
-                # Redirect to payment instructions
-                messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
-                return redirect('payments:escrow_payment_instructions', payment_id=escrow_payment.id)
+            if success:
+                messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to Approval Pending. The Fend team will send an invoice shortly.")
             else:
-                messages.error(request, "Error creating escrow payment record")
-                return redirect('pilots:bid_detail', pk=pk)
+                messages.error(request, "Error updating bid status")
+            return redirect('pilots:bid_detail', pk=pk)
         else:
             # Normal status update
             bid.status = new_status
@@ -452,7 +450,6 @@ def update_bid_status(request, pk):
             )
             
             messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
-
     else:
         messages.error(request, "Invalid status")
     
@@ -682,3 +679,36 @@ def admin_reject_pilot(request, pk):
     
     messages.success(request, f"Pilot '{pilot.title}' has been rejected and sent back to draft status.")
     return redirect('pilots:admin_verify_pilots')
+
+@login_required
+@staff_member_required
+def admin_mark_bid_as_live(request, pk):
+    """Admin marks bid as live after payment verification"""
+    if request.method != 'POST':
+        return redirect('admin:pilots_pilotbid_change', object_id=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    
+    # Verify that bid is in approval_pending status
+    if bid.status != 'approval_pending':
+        if bid.status == 'live':
+            messages.warning(request, "This bid is already live")
+        else:
+            messages.error(request, f"Bid is in '{bid.get_status_display()}' status and cannot be marked as live")
+        return redirect('admin:pilots_pilotbid_change', object_id=pk)
+    
+    # Mark as live
+    bid.status = 'live'
+    bid.save()
+    
+    # Create notification for both parties
+    from apps.notifications.services import create_bid_notification
+    create_bid_notification(
+        bid=bid,
+        notification_type='bid_live',
+        title=f"Pilot is now Live: {bid.pilot.title}",
+        message=f"Your pilot '{bid.pilot.title}' payment has been verified and is now live. You may begin work now."
+    )
+    
+    messages.success(request, f"Bid for '{bid.pilot.title}' has been marked as live successfully")
+    return redirect('admin:pilots_pilotbid_change', object_id=pk)
