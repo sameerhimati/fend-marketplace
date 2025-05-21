@@ -36,6 +36,7 @@ def pilot_compliance_doc_path(instance, filename):
 class Pilot(models.Model):
     STATUS_CHOICES = (
         ('draft', 'Draft'),
+        ('pending_approval', 'Pending Approval'),
         ('published', 'Published'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
@@ -103,6 +104,17 @@ class Pilot(models.Model):
         blank=False,
         default=1000,  # Default to 0
         help_text="Enter the fixed price for this pilot (in USD)"
+    )
+
+    legal_agreement_accepted = models.BooleanField(default=False)
+    verified = models.BooleanField(default=False)
+    admin_verified_at = models.DateTimeField(null=True, blank=True)
+    admin_verified_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='verified_pilots'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

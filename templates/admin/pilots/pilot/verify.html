@@ -1,0 +1,142 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Add stylish dashboard styles here, similar to payments/change_list.html */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        background-color: #EFF6FF;
+        border: 1px solid #DBEAFE;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
+    
+    .stat-card {
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #3730A3;
+        margin: 0;
+    }
+    
+    .stat-label {
+        margin: 0;
+        color: #6366F1;
+    }
+    
+    .pending-card {
+        background: white;
+        border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    
+    .pending-header {
+        background: #f9fafb;
+        padding: 10px 15px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .pending-body {
+        padding: 15px;
+    }
+    
+    .pending-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    
+    .pending-subtitle {
+        color: #6b7280;
+        font-size: 14px;
+        margin: 0;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        justify-content: flex-end;
+    }
+    
+    .approve-button {
+        background-color: #10B981;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+    
+    .reject-button {
+        background-color: #EF4444;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <p class="stat-number">{{ pending_pilots.count }}</p>
+            <p class="stat-label">Pending Verification</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-number">{{ verified_today }}</p>
+            <p class="stat-label">Verified Today</p>
+        </div>
+        <div class="stat-card">
+            <p class="stat-number">{{ total_verified }}</p>
+            <p class="stat-label">Total Verified</p>
+        </div>
+    </div>
+    
+    <!-- Pending Pilots List -->
+    {% if pending_pilots %}
+        {% for pilot in pending_pilots %}
+        <div class="pending-card">
+            <div class="pending-header">
+                <h3 class="pending-title">{{ pilot.title }}</h3>
+                <p class="pending-subtitle">By {{ pilot.organization.name }} - Submitted {{ pilot.updated_at|date:"M d, Y" }}</p>
+            </div>
+            <div class="pending-body">
+                <p>{{ pilot.description|truncatewords:30 }}</p>
+                <div class="action-buttons">
+                    <a href="{% url 'admin:admin_verify_pilot_detail' pilot.pk %}" class="button">
+                        Review Details
+                    </a>
+                    <form method="post" action="{% url 'admin:admin_approve_pilot' pilot.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="approve-button">Approve</button>
+                    </form>
+                    <form method="post" action="{% url 'admin:admin_reject_pilot' pilot.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="reject-button">Reject</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="text-align: center; padding: 20px; background: white; border-radius: 5px;">
+            No pilots pending verification.
+        </p>
+    {% endif %}
+</div>
+{% endblock %}

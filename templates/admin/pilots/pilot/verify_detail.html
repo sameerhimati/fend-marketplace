@@ -1,0 +1,219 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .pilot-detail {
+        background: white;
+        border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    
+    .detail-header {
+        background: #f9fafb;
+        padding: 15px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .detail-body {
+        padding: 20px;
+    }
+    
+    .section {
+        margin-bottom: 20px;
+    }
+    
+    .section-title {
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 10px;
+    }
+    
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .detail-item {
+        margin-bottom: 10px;
+    }
+    
+    .detail-label {
+        font-size: 12px;
+        color: #6b7280;
+    }
+    
+    .detail-value {
+        font-weight: 500;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+        justify-content: flex-end;
+    }
+    
+    .approve-button {
+        background-color: #10B981;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+    
+    .reject-button {
+        background-color: #EF4444;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    
+    <div class="pilot-detail">
+        <div class="detail-header">
+            <h2>{{ pilot.title }}</h2>
+            <p>Submitted by {{ pilot.organization.name }} on {{ pilot.updated_at|date:"F j, Y" }}</p>
+        </div>
+        <div class="detail-body">
+            <!-- Detail sections -->
+            <div class="section">
+                <h3 class="section-title">Description</h3>
+                <p>{{ pilot.description }}</p>
+            </div>
+            
+            <div class="section">
+                <h3 class="section-title">Details</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Price</div>
+                        <div class="detail-value">${{ pilot.price }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">Pending Approval</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Legal Agreement</div>
+                        <div class="detail-value">
+                            {% if pilot.legal_agreement_accepted %}
+                                <span style="color: #10B981">Accepted</span>
+                            {% else %}
+                                <span style="color: #EF4444">Not Accepted</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Technical documents -->
+            <div class="section">
+                <h3 class="section-title">Technical Documents</h3>
+                <div class="detail-grid">
+                    {% if pilot.technical_specs_doc %}
+                    <div class="detail-item">
+                        <div class="detail-label">Technical Specifications</div>
+                        <div class="detail-value">
+                            <a href="{{ pilot.technical_specs_doc.url }}" target="_blank">View Document</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pilot.technical_specs_text %}
+                    <div class="detail-item">
+                        <div class="detail-label">Technical Specifications</div>
+                        <div class="detail-value">
+                            {{ pilot.technical_specs_text|linebreaks|truncatewords:50 }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pilot.performance_metrics_doc %}
+                    <div class="detail-item">
+                        <div class="detail-label">Performance Metrics</div>
+                        <div class="detail-value">
+                            <a href="{{ pilot.performance_metrics_doc.url }}" target="_blank">View Document</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pilot.performance_metrics %}
+                    <div class="detail-item">
+                        <div class="detail-label">Performance Metrics</div>
+                        <div class="detail-value">
+                            {{ pilot.performance_metrics|linebreaks|truncatewords:50 }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pilot.compliance_requirements_doc %}
+                    <div class="detail-item">
+                        <div class="detail-label">Compliance Requirements</div>
+                        <div class="detail-value">
+                            <a href="{{ pilot.compliance_requirements_doc.url }}" target="_blank">View Document</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pilot.compliance_requirements %}
+                    <div class="detail-item">
+                        <div class="detail-label">Compliance Requirements</div>
+                        <div class="detail-value">
+                            {{ pilot.compliance_requirements|linebreaks|truncatewords:50 }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Rejection form (hidden by default) -->
+            <div id="rejection-form" style="display: none; margin-top: 20px; padding: 15px; background: #FEF2F2; border-radius: 5px;">
+                <form method="post" action="{% url 'admin:admin_reject_pilot' pilot.pk %}">
+                    {% csrf_token %}
+                    <h3 style="margin-top: 0;">Rejection Feedback</h3>
+                    <p>Please provide feedback to the enterprise about why this pilot was rejected:</p>
+                    <textarea name="feedback" rows="4" style="width: 100%; margin-bottom: 10px;" required></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" onclick="hideRejectionForm()" style="background: #9CA3AF; color: white; border: none; padding: 8px 15px; border-radius: 4px;">Cancel</button>
+                        <button type="submit" style="background: #EF4444; color: white; border: none; padding: 8px 15px; border-radius: 4px;">Confirm Rejection</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Action buttons -->
+            <div class="action-buttons">
+                <a href="{% url 'admin:admin_verify_pilots' %}" class="button">
+                    Back to Verification List
+                </a>
+                <form method="post" action="{% url 'admin:admin_approve_pilot' pilot.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="approve-button">Approve Pilot</button>
+                </form>
+                <button type="button" onclick="showRejectionForm()" class="reject-button">Reject Pilot</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showRejectionForm() {
+        document.getElementById('rejection-form').style.display = 'block';
+    }
+    
+    function hideRejectionForm() {
+        document.getElementById('rejection-form').style.display = 'none';
+    }
+</script>
+{% endblock %}

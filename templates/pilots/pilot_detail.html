@@ -15,10 +15,15 @@
                 <span class="px-2 py-1 text-xs rounded-full 
                     {% if pilot.status == 'published' %}bg-green-100 text-green-800
                     {% elif pilot.status == 'draft' %}bg-gray-100 text-gray-800
+                    {% elif pilot.status == 'pending_approval' %}bg-yellow-100 text-yellow-800
                     {% elif pilot.status == 'in_progress' %}bg-blue-100 text-blue-800
                     {% elif pilot.status == 'completed' %}bg-purple-100 text-purple-800
                     {% else %}bg-red-100 text-red-800{% endif %}">
-                    {{ pilot.status|title }}
+                    {% if pilot.status == 'pending_approval' %}
+                        Pending Approval
+                    {% else %}
+                        {{ pilot.status|title }}
+                    {% endif %}
                 </span>
             </div>
             
@@ -106,6 +111,32 @@
             </div>
             {% endif %}
 
+            {% if request.user.organization == pilot.organization and pilot.status == 'draft' %}
+                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                    <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <div class="relative flex items-start">
+                            <div class="flex items-center h-5">
+                                <input id="legal_agreement_accepted" name="legal_agreement_accepted" type="checkbox" 
+                                    class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" required>
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="legal_agreement_accepted" class="font-medium text-gray-700">Legal Agreement</label>
+                                <p class="text-gray-500">I agree that by publishing this pilot, I am responsible for ensuring accuracy of all information provided. I acknowledge that Fend Marketplace has the right to reject or remove any pilot that violates platform guidelines.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Submit for Approval
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+
             <!-- Actions -->
             <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between">
                 <a href="{% url 'pilots:list' %}" 
@@ -118,16 +149,6 @@
                         <a href="{% url 'pilots:edit' pilot.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                             Edit
                         </a>
-                        {% if pilot.status == 'draft' %}
-                            <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="inline">
-                                {% csrf_token %}
-                                <button type="button" 
-                                        onclick=submit()
-                                        class="text-sm font-medium text-green-600 hover:text-green-900">
-                                    Publish
-                                </button>
-                            </form>
-                        {% endif %}
 
                         <form method="post" action="{% url 'pilots:delete' pilot.pk %}" class="inline">
                             {% csrf_token %}

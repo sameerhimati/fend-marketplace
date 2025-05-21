@@ -5,11 +5,15 @@ class Notification(models.Model):
         ('bid_submitted', 'New Bid Submitted'),
         ('bid_updated', 'Bid Status Updated'),
         ('pilot_updated', 'Pilot Updated'),
-        ('payment_received', 'Payment Received')
+        ('payment_received', 'Payment Received'),
+        ('pilot_pending_approval', 'Pilot Pending Approval'),
+        ('admin_pilot_verification', 'Admin Pilot Verification'),
+        ('pilot_approved', 'Pilot Approved'),
+        ('pilot_rejected', 'Pilot Rejected')
     ]
 
     recipient = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='notifications')
-    type = models.CharField(max_length=20, choices=TYPES)
+    type = models.CharField(max_length=25, choices=TYPES)
     title = models.CharField(max_length=255)
     message = models.TextField()
     read = models.BooleanField(default=False)
