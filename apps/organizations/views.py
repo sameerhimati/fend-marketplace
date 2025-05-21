@@ -145,7 +145,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/dashboard/dashboard.html'
     
     def get(self, request, *args, **kwargs):
-        # Redirect to type-specific dashboard based on organization type
+        # Add defensive check for users without organizations
+        if not hasattr(request.user, 'organization') or request.user.organization is None:
+            # For staff/superusers, provide a special message
+            if request.user.is_staff or request.user.is_superuser:
+                messages.warning(request, "Admin account detected without an organization. Using a default view.")
+                # Return the base template instead of redirecting
+                return render(request, self.template_name, {
+                    'admin_without_org': True,
+                    'user': request.user
+                })
+            else:
+                # For regular users, guide them to complete their profile
+                messages.error(request, "Your account needs to be properly set up. Please contact support or register again.")
+                return redirect('organizations:login')
+        
+        # Original code to handle users with organizations
         if request.user.organization.type == 'enterprise':
             return redirect('organizations:enterprise_dashboard')
         return redirect('organizations:startup_dashboard')
@@ -155,6 +170,11 @@ class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            messages.error(self.request, "Your account is not associated with an organization.")
+            return context
+    
         user_org = self.request.user.organization
         
         # Get all pilots for this enterprise
@@ -185,6 +205,11 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            messages.error(self.request, "Your account is not associated with an organization.")
+            return context
+    
         user_org = self.request.user.organization
         
         # Get available pilots for startups
