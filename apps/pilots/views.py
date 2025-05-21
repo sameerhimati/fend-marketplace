@@ -5,7 +5,6 @@ from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy, reverse
 from .models import Pilot, PilotBid
 from .forms import PilotForm, PilotBidForm
-from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
@@ -160,6 +159,12 @@ def publish_pilot(request, pk):
         messages.error(request, "Only draft pilots can be published.")
         return redirect('pilots:detail', pk=pk)
     
+    # Validate legal agreement acceptance
+    legal_agreement_accepted = request.POST.get('legal_agreement_accepted') == 'on'
+    if not legal_agreement_accepted:
+        messages.error(request, "You must accept the legal agreement to publish this pilot.")
+        return redirect('pilots:detail', pk=pk)
+    
     # Validate required fields before publishing
     missing_fields = []
     
@@ -197,19 +202,33 @@ def publish_pilot(request, pk):
         return redirect('payments:subscription_detail')
         
     try:
-        # Update status to published
-        pilot.status = 'published'
+        # Update status to pending_approval instead of published
+        pilot.status = 'pending_approval'
+        pilot.legal_agreement_accepted = True
         pilot.save()
         
-        # Create notification for pilot publication
+        # Create notification for pilot submission
         create_pilot_notification(
             pilot=pilot,
-            notification_type='pilot_updated',
-            title=f"Pilot published: {pilot.title}",
-            message=f"Your pilot '{pilot.title}' has been published successfully and is now visible to startups."
+            notification_type='pilot_pending_approval',
+            title=f"Pilot pending approval: {pilot.title}",
+            message=f"Your pilot '{pilot.title}' has been submitted for approval. You will be notified when it is approved or if additional information is needed."
         )
         
-        messages.success(request, f"'{pilot.title}' has been published successfully!")
+        # Create notification for admins
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admins = User.objects.filter(is_staff=True)
+        for admin in admins:
+            create_notification(
+                recipient=admin,
+                notification_type='admin_pilot_verification',
+                title=f"New pilot needs verification: {pilot.title}",
+                message=f"A new pilot '{pilot.title}' by {pilot.organization.name} needs verification.",
+                related_pilot=pilot
+            )
+        
+        messages.success(request, f"'{pilot.title}' has been submitted for approval. You will be notified when it is approved.")
         
     except ValidationError as e:
         messages.error(request, str(e))
@@ -572,3 +591,94 @@ def finalize_pilot(request, bid_id):
     
     messages.success(request, "Pilot has been marked as completed. The payment will be released to the startup by the Fend team.")
     return redirect('pilots:bid_detail', pk=bid_id)
+
+
+@login_required
+def admin_verify_pilots(request):
+    """View for admins to see pilots pending approval"""
+    if not request.user.is_staff:
+        raise PermissionDenied
+    
+    pending_pilots = Pilot.objects.filter(status='pending_approval', verified=False)
+    
+    return render(request, 'pilots/admin_verify.html', {
+        'pending_pilots': pending_pilots
+    })
+
+@login_required
+def admin_verify_pilot_detail(request, pk):
+    """View for admins to review a specific pilot"""
+    if not request.user.is_staff:
+        raise PermissionDenied
+    
+    pilot = get_object_or_404(Pilot, pk=pk)
+    
+    return render(request, 'pilots/admin_pilot_detail.html', {
+        'pilot': pilot
+    })
+
+@login_required
+def admin_approve_pilot(request, pk):
+    """View for admins to approve a pilot"""
+    if request.method != 'POST':
+        return redirect('pilots:admin_verify_pilot_detail', pk=pk)
+    
+    if not request.user.is_staff:
+        raise PermissionDenied
+    
+    pilot = get_object_or_404(Pilot, pk=pk)
+    
+    if pilot.status != 'pending_approval':
+        messages.error(request, "This pilot is not pending approval.")
+        return redirect('pilots:admin_verify_pilot_detail', pk=pk)
+    
+    # Update pilot status and verification fields
+    pilot.status = 'published'
+    pilot.verified = True
+    pilot.admin_verified_at = timezone.now()
+    pilot.admin_verified_by = request.user
+    pilot.published_at = timezone.now()  # Set publication time to now
+    pilot.save()
+    
+    # Create notification for enterprise
+    create_pilot_notification(
+        pilot=pilot,
+        notification_type='pilot_approved',
+        title=f"Pilot approved: {pilot.title}",
+        message=f"Your pilot '{pilot.title}' has been approved and is now visible to startups."
+    )
+    
+    messages.success(request, f"Pilot '{pilot.title}' has been approved and published.")
+    return redirect('pilots:admin_verify_pilots')
+
+@login_required
+def admin_reject_pilot(request, pk):
+    """View for admins to reject a pilot with feedback"""
+    if request.method != 'POST':
+        return redirect('pilots:admin_verify_pilot_detail', pk=pk)
+    
+    if not request.user.is_staff:
+        raise PermissionDenied
+    
+    pilot = get_object_or_404(Pilot, pk=pk)
+    
+    if pilot.status != 'pending_approval':
+        messages.error(request, "This pilot is not pending approval.")
+        return redirect('pilots:admin_verify_pilot_detail', pk=pk)
+    
+    feedback = request.POST.get('feedback', '')
+    
+    # Update pilot status back to draft
+    pilot.status = 'draft'
+    pilot.save()
+    
+    # Create notification for enterprise with feedback
+    create_pilot_notification(
+        pilot=pilot,
+        notification_type='pilot_rejected',
+        title=f"Pilot needs revision: {pilot.title}",
+        message=f"Your pilot '{pilot.title}' needs revision before it can be published. Admin feedback: {feedback}"
+    )
+    
+    messages.success(request, f"Pilot '{pilot.title}' has been rejected and sent back to draft status.")
+    return redirect('pilots:admin_verify_pilots')
