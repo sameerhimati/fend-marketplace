@@ -712,3 +712,61 @@ def admin_mark_bid_as_live(request, pk):
     
     messages.success(request, f"Bid for '{bid.pilot.title}' has been marked as live successfully")
     return redirect('admin:pilots_pilotbid_change', object_id=pk)
+
+@login_required
+def request_completion(request, bid_id):
+    """Startup requests completion verification"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check if user has permission (startup that submitted the bid)
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to request completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    # Check if bid is in live status
+    if bid.status != 'live':
+        messages.error(request, "This pilot is not in the appropriate status to request completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    # Mark as completion pending
+    success = bid.mark_completion_requested()
+    
+    if success:
+        messages.success(request, "Completion request submitted. The enterprise will verify completion.")
+    else:
+        messages.error(request, "Unable to request completion at this time.")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)
+
+@login_required
+def verify_completion(request, bid_id):
+    """Enterprise verifies completion"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check if user has permission (enterprise owner of the pilot)
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to verify completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    # Check if bid is in completion_pending status
+    if bid.status != 'completion_pending':
+        messages.error(request, "This pilot is not pending completion verification")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    # Verify completion
+    success = bid.verify_completion()
+    
+    if success:
+        messages.success(request, "Pilot completion verified. The payment will be released to the startup by the Fend team.")
+    else:
+        messages.error(request, "Error verifying pilot completion.")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)
