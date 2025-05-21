@@ -36,7 +36,11 @@
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${{ bid.amount }}</td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ bid.created_at|date:"M d, Y" }}</td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                    {% if bid.status == 'approved' or bid.status == 'live' %}bg-green-100 text-green-800
+                                                    {% elif bid.status == 'approval_pending' or bid.status == 'completion_pending' %}bg-yellow-100 text-yellow-800
+                                                    {% elif bid.status == 'completed' %}bg-purple-100 text-purple-800
+                                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
                                                     {{ bid.get_status_display }}
                                                 </span>
                                             </td>
@@ -75,7 +79,8 @@
                                                 <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                                                     {% if bid.status == 'pending' %}bg-yellow-100 text-yellow-800
                                                     {% elif bid.status == 'under_review' %}bg-blue-100 text-blue-800
-                                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                                    {% elif bid.status == 'declined' %}bg-red-100 text-red-800
+                                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
                                                     {{ bid.get_status_display }}
                                                 </span>
                                             </td>
@@ -106,6 +111,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">Pilot</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">Amount</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">Status</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">Enterprise</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-green-800 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -116,6 +122,15 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ bid.pilot.title }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${{ bid.amount }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ bid.created_at|date:"M d, Y" }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {% if bid.status == 'approved' or bid.status == 'live' %}bg-green-100 text-green-800
+                                        {% elif bid.status == 'approval_pending' or bid.status == 'completion_pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif bid.status == 'completed' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ bid.get_status_display }}
+                                    </span>
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ bid.pilot.organization.name }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <a href="{% url 'pilots:bid_detail' bid.id %}" class="text-indigo-600 hover:text-indigo-900">View</a>
@@ -153,7 +168,8 @@
                                     <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                                         {% if bid.status == 'pending' %}bg-yellow-100 text-yellow-800
                                         {% elif bid.status == 'under_review' %}bg-blue-100 text-blue-800
-                                        {% elif bid.status == 'declined' %}bg-red-100 text-red-800{% endif %}">
+                                        {% elif bid.status == 'declined' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
                                         {{ bid.get_status_display }}
                                     </span>
                                 </td>
