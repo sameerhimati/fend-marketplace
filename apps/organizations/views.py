@@ -145,22 +145,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/dashboard/dashboard.html'
     
     def get(self, request, *args, **kwargs):
-        # Add defensive check for users without organizations
+        # Redirect to type-specific dashboard based on organization type
         if not hasattr(request.user, 'organization') or request.user.organization is None:
-            # For staff/superusers, provide a special message
-            if request.user.is_staff or request.user.is_superuser:
-                messages.warning(request, "Admin account detected without an organization. Using a default view.")
-                # Return the base template instead of redirecting
-                return render(request, self.template_name, {
-                    'admin_without_org': True,
-                    'user': request.user
-                })
-            else:
-                # For regular users, guide them to complete their profile
-                messages.error(request, "Your account needs to be properly set up. Please contact support or register again.")
-                return redirect('organizations:login')
-        
-        # Original code to handle users with organizations
+            # Simply redirect to login for users without organizations
+            messages.error(request, "Your account needs to be properly set up.")
+            return redirect('organizations:login')
+            
         if request.user.organization.type == 'enterprise':
             return redirect('organizations:enterprise_dashboard')
         return redirect('organizations:startup_dashboard')
@@ -267,6 +257,8 @@ class EnterpriseDirectoryView(LoginRequiredMixin, ListView):
     context_object_name = 'enterprises'
     
     def get_queryset(self):
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            return Organization.objects.none() 
         # Show only approved enterprises except the current user's organization
         return Organization.objects.filter(
             type='enterprise',
@@ -335,6 +327,8 @@ class StartupDirectoryView(LoginRequiredMixin, ListView):
     context_object_name = 'startups'
     
     def get_queryset(self):
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            return Organization.objects.none() 
         # Show only approved startups except the current user's organization
         return Organization.objects.filter(
             type='startup',
