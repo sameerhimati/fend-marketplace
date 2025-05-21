@@ -110,23 +110,6 @@ def remove_logo(request):
     
     return redirect('organizations:profile_edit')
 
-@login_required
-def update_bank_info(request):
-    """Update organization bank information"""
-    if request.method != 'POST':
-        return redirect('organizations:profile', pk=request.user.organization.id)
-    
-    organization = request.user.organization
-    
-    # Update only the fields we need
-    organization.bank_name = request.POST.get('bank_name', '')
-    organization.bank_account_number = request.POST.get('bank_account_number', '')
-    organization.bank_routing_number = request.POST.get('bank_routing_number', '')
-    organization.save()
-    
-    messages.success(request, "Bank information updated successfully")
-    return redirect('organizations:profile', pk=organization.id)
-
 class RegistrationCompleteView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/registration/complete.html'
     
