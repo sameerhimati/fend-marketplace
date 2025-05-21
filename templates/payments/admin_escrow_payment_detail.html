@@ -296,6 +296,26 @@
             <!-- Sidebar -->
             <div class="lg:col-span-1">
                 <!-- Admin Actions -->
+                {% if payment.status == 'received' and payment.pilot_bid.status == 'approval_pending' %}
+                <div class="mb-6 bg-blue-50 border-blue-200 rounded-lg overflow-hidden">
+                    <div class="px-6 py-4 bg-blue-100 border-b border-blue-200">
+                        <h3 class="text-lg font-bold text-blue-800">Kick Off Pilot</h3>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-sm text-blue-700 mb-4">
+                            Payment has been received and verified. You can now kick off this pilot, which will notify both parties that work can begin.
+                        </p>
+                        <form method="post" action="{% url 'payments:admin_kickoff_pilot' payment.id %}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                Kick Off Pilot
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+                
                 {% if payment.status == 'payment_initiated' %}
                 <div class="mb-6 bg-white shadow-lg rounded-lg overflow-hidden">
                     <div class="px-6 py-4 bg-yellow-50 border-b border-yellow-100">

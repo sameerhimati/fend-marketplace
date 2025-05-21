@@ -229,6 +229,7 @@ class PilotBidAdmin(admin.ModelAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('pilot__title', 'startup__name')
     readonly_fields = ('created_at', 'updated_at')
+    actions = ['mark_as_live']
     
     fieldsets = (
         (None, {
@@ -245,6 +246,33 @@ class PilotBidAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+    def mark_as_live(self, request, queryset):
+        """Mark selected bids as live after payment verification"""
+        # Only allow this action for approval_pending bids
+        approval_pending = queryset.filter(status='approval_pending')
+        if not approval_pending:
+            self.message_user(request, "No approval pending bids were selected", level=messages.WARNING)
+            return
+            
+        count = 0
+        for bid in approval_pending:
+            bid.status = 'live'
+            bid.save()
+            
+            # Create notification
+            from apps.notifications.services import create_bid_notification
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_live',
+                title=f"Pilot is now Live: {bid.pilot.title}",
+                message=f"Your pilot '{bid.pilot.title}' payment has been verified and is now live. You may begin work now."
+            )
+            count += 1
+            
+        self.message_user(request, f"{count} bid(s) marked as live successfully")
+    
+    mark_as_live.short_description = "Mark selected bids as live"
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -270,3 +298,37 @@ class PilotBidAdmin(admin.ModelAdmin):
                     return obj.startup == request.user.organization
             return False
         return super().has_change_permission(request, obj)
+    
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        """Add a custom button to mark bid as live from the change page"""
+        extra_context = extra_context or {}
+        bid = self.get_object(request, object_id)
+        
+        if bid and bid.status == 'approval_pending':
+            extra_context['show_mark_as_live_button'] = True
+        
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+    
+    def response_change(self, request, obj):
+        """Add custom button action to mark bid as live"""
+        if "_mark_as_live" in request.POST:
+            if obj.status == 'approval_pending':
+                obj.status = 'live'
+                obj.save()
+                
+                # Create notification
+                from apps.notifications.services import create_bid_notification
+                create_bid_notification(
+                    bid=obj,
+                    notification_type='bid_live',
+                    title=f"Pilot is now Live: {obj.pilot.title}",
+                    message=f"Your pilot '{obj.pilot.title}' payment has been verified and is now live. You may begin work now."
+                )
+                
+                self.message_user(request, f"Bid for '{obj.pilot.title}' has been marked as live successfully")
+            else:
+                self.message_user(request, f"Bid cannot be marked as live (current status: {obj.get_status_display()})", level=messages.ERROR)
+            
+            return HttpResponseRedirect(".")
+            
+        return super().response_change(request, obj)

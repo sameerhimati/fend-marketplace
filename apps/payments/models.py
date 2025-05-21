@@ -274,10 +274,13 @@ class EscrowPayment(models.Model):
         
         # Create notifications
         self.create_enterprise_notification("Payment Received", 
-                                           f"Your payment of ${self.total_amount} for pilot '{self.pilot_bid.pilot.title}' has been received.")
+                                        f"Your payment of ${self.total_amount} for pilot '{self.pilot_bid.pilot.title}' has been received.")
         
         self.create_startup_notification("Payment Received", 
-                                        f"Payment for your bid on pilot '{self.pilot_bid.pilot.title}' has been received and is held in escrow.")
+                                        f"Payment for your bid on pilot '{self.pilot_bid.pilot.title}' has been received and is held in escrow. You will be notified when the project is ready to begin.")
+        
+        self.create_admin_notification("Pilot Ready for Kickoff", 
+                                    f"Payment for pilot '{self.pilot_bid.pilot.title}' has been received. Please kick off the pilot.")
     
     def mark_as_approved(self):
         """Mark the bid as approved and create escrow payment"""

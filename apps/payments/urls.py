@@ -28,4 +28,5 @@ urlpatterns = [
     path('admin/escrow-payment/<int:payment_id>/release/', views.admin_release_payment, name='admin_release_payment'),
     path('admin/escrow-payment/<int:payment_id>/update-status/', views.admin_update_payment_status, name='admin_update_payment_status'),
     path('admin/escrow-payments/export-csv/', views.admin_export_payments_csv, name='admin_export_payments_csv'),
+    path('admin/escrow-payment/<int:payment_id>/kickoff/', views.admin_kickoff_pilot, name='admin_kickoff_pilot'),
 ]

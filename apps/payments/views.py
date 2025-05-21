@@ -1154,3 +1154,80 @@ def admin_export_payments_csv(request):
         ])
     
     return response
+
+
+@login_required
+@staff_member_required
+def admin_kickoff_pilot(request, payment_id):
+    """Admin kicks off a pilot after payment verification"""
+    if request.method != 'POST':
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Verify that payment is in 'received' status
+    if payment.status != 'received':
+        messages.error(request, "Payment must be in 'received' status to kick off the pilot")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Verify that bid is in approval_pending status
+    if payment.pilot_bid.status != 'approval_pending':
+        if payment.pilot_bid.status == 'live':
+            messages.warning(request, "This pilot has already been kicked off")
+        else:
+            messages.error(request, f"Pilot is in '{payment.pilot_bid.get_status_display()}' status and cannot be kicked off")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Mark the bid as live
+    try:
+        success = payment.pilot_bid.mark_as_live()
+        
+        if success:
+            # Create log entry
+            EscrowPaymentLog.objects.create(
+                escrow_payment=payment,
+                previous_status=payment.status,
+                new_status=payment.status,  # Status doesn't change
+                changed_by=request.user,
+                notes="Pilot kicked off by admin"
+            )
+            
+            messages.success(request, f"Pilot '{payment.pilot_bid.pilot.title}' has been kicked off successfully")
+        else:
+            messages.error(request, "Error kicking off pilot: status transition failed")
+    except Exception as e:
+        messages.error(request, f"Error kicking off pilot: {str(e)}")
+    
+    return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+
+@login_required
+@staff_member_required
+def admin_payment_dashboard(request):
+    """Admin dashboard focusing on actionable items"""
+    
+    # Payments needing verification (initiated but not received)
+    needs_verification = EscrowPayment.objects.filter(
+        status='payment_initiated'
+    ).order_by('-payment_initiated_at')[:5]
+    
+    # Payments ready for release (received and pilot completed)
+    ready_for_release = EscrowPayment.objects.filter(
+        status='received', 
+        pilot_bid__status='completed'
+    ).order_by('-received_at')[:5]
+    
+    # NEW: Payments received but pilot not yet kicked off
+    payment_received_pilots = EscrowPayment.objects.filter(
+        status='received', 
+        pilot_bid__status='approval_pending'
+    ).order_by('-received_at')[:5]
+    
+    # Recent activity
+    recent_logs = EscrowPaymentLog.objects.order_by('-created_at')[:5]
+    
+    return render(request, 'payments/admin_payment_dashboard.html', {
+        'needs_verification': needs_verification,
+        'ready_for_release': ready_for_release,
+        'payment_received_pilots': payment_received_pilots,
+        'recent_logs': recent_logs,
+    })

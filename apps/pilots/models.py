@@ -214,9 +214,11 @@ class PilotBid(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('under_review', 'Under Review'),
+        ('approval_pending', 'Approval Pending'),
         ('approved', 'Approved'),
+        ('live', 'Live'),
         ('declined', 'Declined'),
-        ('completed', 'Completed'),  # Add this status for completed pilots
+        ('completed', 'Completed'),
         ('paid', 'Paid')
     ]
 
@@ -235,36 +237,13 @@ class PilotBid(models.Model):
         unique_together = ['pilot', 'startup']
     
     def mark_as_approved(self):
-        """Mark bid as approved and create escrow payment object"""
-        # Update bid status
-        self.status = 'approved'
+        """Mark bid as approval_pending and notify admin"""
+        if self.status != 'pending' and self.status != 'under_review':
+            return False
+        
+        # Update bid status to approval_pending
+        self.status = 'approval_pending'
         self.save()
-        
-        # Update the pilot's price to match the approved bid amount
-        pilot = self.pilot
-        pilot.price = self.amount
-        pilot.save(update_fields=['price'])
-        
-        # Calculate payment amounts
-        enterprise_fee_percentage = decimal.Decimal(2.50)
-        startup_fee_percentage = decimal.Decimal(2.50)
-        platform_fee = (self.amount * decimal.Decimal((enterprise_fee_percentage + startup_fee_percentage))) / 100
-        total_amount = self.amount + (self.amount * enterprise_fee_percentage / 100)  # Enterprise pays 102.5%
-        startup_amount = self.amount  # Startup receives base amount
-        
-        # Create escrow payment
-        from apps.payments.models import EscrowPayment
-        try:
-            escrow_payment = EscrowPayment.objects.get(pilot_bid=self)
-        except EscrowPayment.DoesNotExist:
-            escrow_payment = EscrowPayment.objects.create(
-                pilot_bid=self,
-                total_amount=total_amount,
-                startup_amount=startup_amount,
-                platform_fee=platform_fee,
-                enterprise_fee_percentage=enterprise_fee_percentage,
-                startup_fee_percentage=startup_fee_percentage
-            )
         
         # Handle other pending bids - decline them
         other_pending_bids = PilotBid.objects.filter(
@@ -286,15 +265,50 @@ class PilotBid(models.Model):
                     message=f"Another bid has been accepted for '{bid.pilot.title}', so your bid has been declined."
                 )
 
-        escrow_payment.mark_as_instructions_sent()
-    
         # Create notification for both parties
         from apps.notifications.services import create_bid_notification
         create_bid_notification(
             bid=self,
             notification_type='bid_updated',
             title=f"Bid Approved: {self.pilot.title}",
-            message=f"The bid for '{self.pilot.title}' has been approved. Payment instructions have been sent."
+            message=f"The bid for '{self.pilot.title}' has been approved and is pending payment verification. The Fend team will send an invoice shortly."
         )
         
-        return escrow_payment
+        # Create notification for admin
+        from apps.notifications.services import create_notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Notify admins about the approved bid
+        admins = User.objects.filter(is_staff=True)
+        for admin in admins:
+            create_notification(
+                recipient=admin,
+                notification_type='bid_approved',
+                title=f"New Bid Approved: {self.pilot.title}",
+                message=f"A bid for '{self.pilot.title}' has been approved by {self.pilot.organization.name}. Amount: ${self.amount}. Please generate an invoice.",
+                related_pilot=self.pilot,
+                related_bid=self
+            )
+        
+        return True
+    
+
+    def mark_as_live(self):
+        """Mark bid as live after payment verification and admin kickoff"""
+        if self.status != 'approval_pending':
+            return False
+        
+        self.status = 'live'
+        self.save()
+        
+        # Create notification for both parties
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self,
+            notification_type='bid_live',
+            title=f"Pilot is now Live: {self.pilot.title}",
+            message=f"Your pilot '{self.pilot.title}' has been verified and is now live. You may begin work now."
+        )
+        
+        return True
