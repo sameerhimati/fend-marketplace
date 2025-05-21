@@ -218,6 +218,7 @@ class PilotBid(models.Model):
         ('approved', 'Approved'),
         ('live', 'Live'),
         ('declined', 'Declined'),
+        ('completion_pending', 'Completion Pending'),
         ('completed', 'Completed'),
         ('paid', 'Paid')
     ]
@@ -302,6 +303,11 @@ class PilotBid(models.Model):
         self.status = 'live'
         self.save()
         
+        # Update pilot status to in_progress
+        pilot = self.pilot
+        pilot.status = 'in_progress'
+        pilot.save(update_fields=['status'])
+        
         # Create notification for both parties
         from apps.notifications.services import create_bid_notification
         create_bid_notification(
@@ -309,6 +315,64 @@ class PilotBid(models.Model):
             notification_type='bid_live',
             title=f"Pilot is now Live: {self.pilot.title}",
             message=f"Your pilot '{self.pilot.title}' has been verified and is now live. You may begin work now."
+        )
+        
+        return True
+    
+    def mark_completion_requested(self):
+        """Startup marks work as complete, awaiting enterprise verification"""
+        if self.status != 'live':
+            return False
+        
+        self.status = 'completion_pending'
+        self.save()
+        
+        # Create notifications for enterprise
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self,
+            notification_type='completion_requested',
+            title=f"Completion Requested: {self.pilot.title}",
+            message=f"The startup has marked the pilot '{self.pilot.title}' as completed. Please review and verify completion."
+        )
+        return True
+
+    def verify_completion(self):
+        """Enterprise verifies the work is completed satisfactorily"""
+        if self.status != 'completion_pending':
+            return False
+        
+        self.status = 'completed'
+        self.completed_at = timezone.now()
+        self.save()
+        
+        # Also update pilot status
+        pilot = self.pilot
+        pilot.status = 'completed'
+        pilot.save(update_fields=['status'])
+        
+        # Notify admin for payment release
+        from apps.notifications.services import create_notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admins = User.objects.filter(is_staff=True)
+        for admin in admins:
+            create_notification(
+                recipient=admin,
+                notification_type='pilot_completed',
+                title=f"Pilot Verified Complete: {self.pilot.title}",
+                message=f"The pilot '{self.pilot.title}' has been verified as completed by the enterprise. The payment is ready to be released.",
+                related_pilot=self.pilot,
+                related_bid=self
+            )
+        
+        # Notify both parties
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self,
+            notification_type='pilot_completed',
+            title=f"Pilot Completion Verified: {self.pilot.title}",
+            message=f"The pilot '{self.pilot.title}' has been verified as completed by the enterprise. The payment will be released soon."
         )
         
         return True

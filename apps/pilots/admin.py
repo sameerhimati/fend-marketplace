@@ -11,6 +11,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from .models import Pilot, PilotBid
 from apps.notifications.services import create_pilot_notification, create_notification
+from django.contrib import messages
 
 class CustomAdminSite(AdminSite):
     """Custom admin site that adds pilot verification counts to the index context"""

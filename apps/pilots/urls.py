@@ -21,4 +21,6 @@ urlpatterns = [
     path('admin/verify/<int:pk>/approve/', views.admin_approve_pilot, name='admin_approve_pilot'),
     path('admin/verify/<int:pk>/reject/', views.admin_reject_pilot, name='admin_reject_pilot'),
     path('admin/bid/<int:pk>/mark-as-live/', views.admin_mark_bid_as_live, name='admin_mark_bid_as_live'),
+    path('bids/<int:bid_id>/request-completion/', views.request_completion, name='request_completion'),
+    path('bids/<int:bid_id>/verify-completion/', views.verify_completion, name='verify_completion'),
 ]

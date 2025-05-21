@@ -11,6 +11,8 @@ class Notification(models.Model):
         ('pilot_approved', 'Pilot Approved'),
         ('pilot_rejected', 'Pilot Rejected'),
         ('bid_live', 'Bid Live'),
+        ('completion_requested', 'Completion Requested'),
+        ('completion_verified', 'Completion Verified'),
     ]
 
     recipient = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='notifications')

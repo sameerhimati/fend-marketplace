@@ -26,8 +26,15 @@
                         {% elif bid.status == 'under_review' %}bg-blue-100 text-blue-800
                         {% elif bid.status == 'approval_pending' %}bg-yellow-100 text-yellow-800
                         {% elif bid.status == 'live' %}bg-green-100 text-green-800
+                        {% elif bid.status == 'completion_pending' %}bg-yellow-100 text-yellow-800
+                        {% elif bid.status == 'completed' %}bg-purple-100 text-purple-800
+                        {% elif bid.status == 'paid' %}bg-indigo-100 text-indigo-800
                         {% else %}bg-red-100 text-red-800{% endif %}">
-                        {{ bid.get_status_display }}
+                        {% if bid.status == 'completion_pending' %}
+                            Awaiting Verification
+                        {% else %}
+                            {{ bid.get_status_display }}
+                        {% endif %}
                     </span>
                     
                     {% if is_enterprise and bid.status == 'approval_pending' %}
@@ -46,6 +53,14 @@
                     <p class="mt-2 text-sm text-gray-600">
                         Payment verified and pilot is active. You can begin work.
                     </p>
+                    {% elif not is_enterprise and bid.status == 'completion_pending' %}
+                        <p class="mt-2 text-sm text-gray-600">
+                            You've marked this pilot as complete. Waiting for the enterprise to verify completion.
+                        </p>
+                    {% elif is_enterprise and bid.status == 'completion_pending' %}
+                        <p class="mt-2 text-sm text-gray-600">
+                            The startup has marked this pilot as complete. Please review their work and verify completion.
+                        </p>
                     {% endif %}
                 </div>
             </div>
@@ -108,6 +123,26 @@
             </div>
 
             <!-- Startup Payment Section -->
+            {% if not is_enterprise and bid.status == 'live' %}
+            <form method="post" action="{% url 'pilots:request_completion' bid.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Request Completion Verification
+                </button>
+            </form>
+            {% endif %}
+
+            {% if is_enterprise and bid.status == 'completion_pending' %}
+            <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Verify Completion
+                </button>
+            </form>
+            {% endif %}
+
             {% if not is_enterprise and bid.status == 'completed' %}
             <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
                 <div class="bg-yellow-50 p-4 rounded-md">
