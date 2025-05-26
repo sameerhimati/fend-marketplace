@@ -1,0 +1,353 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Payment {{ payment.reference_code }} - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Payment {{ payment.reference_code }}</h1>
+            <p class="mt-1 text-gray-600">{{ payment.pilot_bid.pilot.title }}</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="px-3 py-1 text-sm font-semibold rounded-full 
+                {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                {% elif payment.status == 'instructions_sent' %}bg-blue-100 text-blue-800
+                {% elif payment.status == 'payment_initiated' %}bg-indigo-100 text-indigo-800
+                {% elif payment.status == 'received' %}bg-green-100 text-green-800
+                {% elif payment.status == 'released' %}bg-purple-100 text-purple-800
+                {% else %}bg-red-100 text-red-800{% endif %}">
+                {{ payment.get_status_display }}
+            </span>
+            <a href="{% url 'payments:admin_payment_dashboard' %}" 
+               class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Payment Details (Left Column) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Payment Summary Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Payment Summary</h2>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500">Enterprise</h3>
+                            <p class="mt-1 text-lg font-medium text-gray-900">{{ payment.pilot_bid.pilot.organization.name }}</p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500">Startup</h3>
+                            <p class="mt-1 text-lg font-medium text-gray-900">{{ payment.pilot_bid.startup.name }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Breakdown -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Financial Breakdown</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-blue-600 font-medium">Enterprise Pays</p>
+                                <p class="text-2xl font-bold text-blue-900">${{ payment.total_amount }}</p>
+                                <p class="text-xs text-blue-600 mt-1">Includes {{ payment.enterprise_fee_percentage }}% fee</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-gray-600 font-medium">Platform Fee</p>
+                                <p class="text-2xl font-bold text-gray-900">${{ payment.platform_fee|floatformat:2 }}</p>
+                                <p class="text-xs text-gray-600 mt-1">Total {{ payment.enterprise_fee_percentage|add:payment.startup_fee_percentage }}%</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4 text-center">
+                                <p class="text-sm text-green-600 font-medium">Startup Receives</p>
+                                <p class="text-2xl font-bold text-green-900">${{ payment.startup_amount|floatformat:2 }}</p>
+                                <p class="text-xs text-green-600 mt-1">After {{ payment.startup_fee_percentage }}% fee</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Timeline -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Payment Progress</h2>
+                </div>
+                
+                <div class="p-6">
+                    <div class="flow-root">
+                        <ul class="-mb-8">
+                            <!-- Step 1: Created -->
+                            <li class="relative pb-8">
+                                <div class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"></div>
+                                <div class="relative flex items-start space-x-3">
+                                    <div class="h-9 w-9 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                                        <i class="fas fa-plus text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Payment Record Created</div>
+                                        <p class="text-sm text-gray-500">{{ payment.created_at|date:"M d, Y g:i A" }}</p>
+                                    </div>
+                                </div>
+                            </li>
+                            
+                            <!-- Step 2: Instructions Sent -->
+                            <li class="relative pb-8">
+                                <div class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"></div>
+                                <div class="relative flex items-start space-x-3">
+                                    <div class="h-9 w-9 rounded-full {% if payment.instructions_sent_at %}bg-blue-500{% else %}bg-gray-300{% endif %} flex items-center justify-center ring-8 ring-white">
+                                        <i class="fas fa-envelope text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Invoice Sent to Enterprise</div>
+                                        <p class="text-sm text-gray-500">
+                                            {% if payment.instructions_sent_at %}
+                                                {{ payment.instructions_sent_at|date:"M d, Y g:i A" }}
+                                            {% else %}
+                                                Pending
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                            
+                            <!-- Step 3: Payment Initiated -->
+                            <li class="relative pb-8">
+                                <div class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"></div>
+                                <div class="relative flex items-start space-x-3">
+                                    <div class="h-9 w-9 rounded-full {% if payment.payment_initiated_at %}bg-indigo-500{% else %}bg-gray-300{% endif %} flex items-center justify-center ring-8 ring-white">
+                                        <i class="fas fa-credit-card text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Payment Initiated by Enterprise</div>
+                                        <p class="text-sm text-gray-500">
+                                            {% if payment.payment_initiated_at %}
+                                                {{ payment.payment_initiated_at|date:"M d, Y g:i A" }}
+                                            {% else %}
+                                                Waiting for enterprise
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                            
+                            <!-- Step 4: Payment Received -->
+                            <li class="relative pb-8">
+                                <div class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"></div>
+                                <div class="relative flex items-start space-x-3">
+                                    <div class="h-9 w-9 rounded-full {% if payment.received_at %}bg-green-500{% else %}bg-gray-300{% endif %} flex items-center justify-center ring-8 ring-white">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Payment Verified by Admin</div>
+                                        <p class="text-sm text-gray-500">
+                                            {% if payment.received_at %}
+                                                {{ payment.received_at|date:"M d, Y g:i A" }}
+                                            {% else %}
+                                                Pending verification
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                            
+                            <!-- Step 5: Work Activated -->
+                            <li class="relative pb-8">
+                                <span class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"></span>
+                                <div class="relative flex items-start space-x-3">
+                                    <div class="h-9 w-9 rounded-full {% if payment.pilot_bid.status == 'live' or payment.pilot_bid.status == 'completed' %}bg-blue-500{% else %}bg-gray-300{% endif %} flex items-center justify-center ring-8 ring-white">
+                                        <i class="fas fa-play text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Work Activated</div>
+                                        <p class="text-sm text-gray-500">
+                                            {% if payment.pilot_bid.status == 'live' or payment.pilot_bid.status == 'completed' %}
+                                                Work can begin
+                                            {% else %}
+                                                Waiting for activation
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                            
+                            <!-- Step 6: Payment Released -->
+                            <li class="relative">
+                                <div class="relative flex items-start space-x-3">
+                                    <div class="h-9 w-9 rounded-full {% if payment.released_at %}bg-purple-500{% else %}bg-gray-300{% endif %} flex items-center justify-center ring-8 ring-white">
+                                        <i class="fas fa-paper-plane text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-medium text-gray-900">Payment Released to Startup</div>
+                                        <p class="text-sm text-gray-500">
+                                            {% if payment.released_at %}
+                                                {{ payment.released_at|date:"M d, Y g:i A" }}
+                                            {% else %}
+                                                Waiting for completion
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions Sidebar (Right Column) -->
+        <div class="space-y-6">
+            
+            <!-- Next Action Card -->
+            {% if payment.status == 'payment_initiated' %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-4 border-b border-yellow-100">
+                    <h3 class="text-lg font-semibold text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Action Required
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 mb-4">
+                        The enterprise has indicated they sent payment. Please verify receipt in your bank account.
+                    </p>
+                    
+                    <form method="post" action="{% url 'payments:admin_mark_payment_received' payment.id %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                                Admin Notes (Optional)
+                            </label>
+                            <textarea name="notes" id="notes" rows="3" 
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                      placeholder="Add verification details..."></textarea>
+                        </div>
+                        <button type="submit" 
+                                data-confirm="Confirm that you have received this payment?"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                            <i class="fas fa-check mr-2"></i>
+                            Confirm Payment Received
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            {% elif payment.status == 'received' and payment.pilot_bid.status == 'approval_pending' %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+                    <h3 class="text-lg font-semibold text-blue-800">
+                        <i class="fas fa-rocket mr-2"></i>
+                        Ready to Activate
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 mb-4">
+                        Payment has been verified. You can now activate this pilot so both parties can begin work.
+                    </p>
+                    
+                    <form method="post" action="{% url 'payments:admin_kickoff_pilot' payment.id %}">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                data-confirm="Activate this pilot? Both parties will be notified that work can begin."
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            <i class="fas fa-play mr-2"></i>
+                            Activate Pilot Work
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            {% elif payment.status == 'received' and payment.pilot_bid.status == 'completed' %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
+                    <h3 class="text-lg font-semibold text-green-800">
+                        <i class="fas fa-hand-holding-usd mr-2"></i>
+                        Ready for Release
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p class="text-sm text-green-700">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Work completed by startup
+                        </p>
+                        <p class="text-xs text-green-600 mt-1">
+                            {{ payment.pilot_bid.completed_at|date:"F d, Y" }}
+                        </p>
+                    </div>
+                    
+                    <form method="post" action="{% url 'payments:admin_release_payment' payment.id %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="release_notes" class="block text-sm font-medium text-gray-700 mb-2">
+                                Release Notes (Optional)
+                            </label>
+                            <textarea name="notes" id="release_notes" rows="3" 
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                      placeholder="Add any release notes..."></textarea>
+                        </div>
+                        <button type="submit" 
+                                data-confirm="Release ${{ payment.startup_amount }} to {{ payment.pilot_bid.startup.name }}?"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Release Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Quick Info Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Quick Info</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Reference</dt>
+                        <dd class="mt-1 text-sm font-mono text-gray-900">{{ payment.reference_code }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Bid Status</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if payment.pilot_bid.status == 'live' %}bg-blue-100 text-blue-800
+                                {% elif payment.pilot_bid.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif payment.pilot_bid.status == 'approved' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ payment.pilot_bid.get_status_display }}
+                            </span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ payment.created_at|date:"M d, Y" }}</dd>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Admin Notes -->
+            {% if payment.admin_notes %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Admin Notes</h3>
+                </div>
+                <div class="p-6">
+                    <div class="prose text-sm text-gray-600">
+                        {{ payment.admin_notes|linebreaks }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

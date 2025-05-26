@@ -1,219 +1,449 @@
-{% extends "admin/base_site.html" %}
-{% load i18n admin_urls static admin_list %}
+{% extends 'admin/base_admin.html' %}
 
-{% block extrastyle %}
-{{ block.super }}
-<style>
-    .pilot-detail {
-        background: white;
-        border-radius: 5px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        margin-bottom: 15px;
-        overflow: hidden;
-    }
-    
-    .detail-header {
-        background: #f9fafb;
-        padding: 15px;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .detail-body {
-        padding: 20px;
-    }
-    
-    .section {
-        margin-bottom: 20px;
-    }
-    
-    .section-title {
-        font-size: 14px;
-        font-weight: bold;
-        text-transform: uppercase;
-        color: #6b7280;
-        margin-bottom: 10px;
-    }
-    
-    .detail-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
-    
-    .detail-item {
-        margin-bottom: 10px;
-    }
-    
-    .detail-label {
-        font-size: 12px;
-        color: #6b7280;
-    }
-    
-    .detail-value {
-        font-weight: 500;
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-        justify-content: flex-end;
-    }
-    
-    .approve-button {
-        background-color: #10B981;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-    
-    .reject-button {
-        background-color: #EF4444;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-    }
-</style>
-{% endblock %}
+{% block title %}Review Pilot: {{ pilot.title }} - Fend Admin{% endblock %}
 
 {% block content %}
-<div id="content-main">
-    <h1>{{ title }}</h1>
-    
-    <div class="pilot-detail">
-        <div class="detail-header">
-            <h2>{{ pilot.title }}</h2>
-            <p>Submitted by {{ pilot.organization.name }} on {{ pilot.updated_at|date:"F j, Y" }}</p>
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">{{ pilot.title }}</h1>
+            <div class="flex items-center space-x-2 mt-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                    <i class="fas fa-building mr-2"></i>
+                    {{ pilot.organization.name }}
+                </span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-clock mr-2"></i>
+                    Pending Approval
+                </span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-dollar-sign mr-2"></i>
+                    ${{ pilot.price }}
+                </span>
+            </div>
         </div>
-        <div class="detail-body">
-            <!-- Detail sections -->
-            <div class="section">
-                <h3 class="section-title">Description</h3>
-                <p>{{ pilot.description }}</p>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'pilots:admin_verify_pilots' %}" 
+               class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Verification List
+            </a>
+        </div>
+    </div>
+    
+    <!-- Requirements Checklist Banner -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Submission Completeness</h2>
+            {% with req_count=0 %}
+                {% if pilot.technical_specs_doc or pilot.technical_specs_text %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+                {% if pilot.performance_metrics or pilot.performance_metrics_doc %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+                {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+                {% if pilot.legal_agreement_accepted %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+                {% if pilot.price and pilot.price > 0 %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                    {% if req_count == 5 %}bg-green-100 text-green-800{% elif req_count >= 3 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ req_count }}/5 Requirements Complete
+                    {% if req_count == 5 %}
+                        <i class="fas fa-check ml-2"></i>
+                    {% elif req_count >= 3 %}
+                        <i class="fas fa-exclamation-triangle ml-2"></i>
+                    {% else %}
+                        <i class="fas fa-times ml-2"></i>
+                    {% endif %}
+                </span>
+            {% endwith %}
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Technical Specifications -->
+            <div class="flex items-center p-3 rounded-lg border 
+                {% if pilot.technical_specs_doc or pilot.technical_specs_text %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}">
+                <div class="flex-shrink-0">
+                    {% if pilot.technical_specs_doc or pilot.technical_specs_text %}
+                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium 
+                        {% if pilot.technical_specs_doc or pilot.technical_specs_text %}text-green-800{% else %}text-red-800{% endif %}">
+                        Technical Specs
+                    </p>
+                </div>
             </div>
             
-            <div class="section">
-                <h3 class="section-title">Details</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <div class="detail-label">Price</div>
-                        <div class="detail-value">${{ pilot.price }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value">Pending Approval</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Legal Agreement</div>
-                        <div class="detail-value">
-                            {% if pilot.legal_agreement_accepted %}
-                                <span style="color: #10B981">Accepted</span>
-                            {% else %}
-                                <span style="color: #EF4444">Not Accepted</span>
-                            {% endif %}
-                        </div>
+            <!-- Performance Metrics -->
+            <div class="flex items-center p-3 rounded-lg border 
+                {% if pilot.performance_metrics or pilot.performance_metrics_doc %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}">
+                <div class="flex-shrink-0">
+                    {% if pilot.performance_metrics or pilot.performance_metrics_doc %}
+                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium 
+                        {% if pilot.performance_metrics or pilot.performance_metrics_doc %}text-green-800{% else %}text-red-800{% endif %}">
+                        Performance Metrics
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Definition of Done -->
+            <div class="flex items-center p-3 rounded-lg border 
+                {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}">
+                <div class="flex-shrink-0">
+                    {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}
+                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium 
+                        {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}text-green-800{% else %}text-red-800{% endif %}">
+                        Definition of Done
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Legal Agreement -->
+            <div class="flex items-center p-3 rounded-lg border 
+                {% if pilot.legal_agreement_accepted %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}">
+                <div class="flex-shrink-0">
+                    {% if pilot.legal_agreement_accepted %}
+                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium 
+                        {% if pilot.legal_agreement_accepted %}text-green-800{% else %}text-red-800{% endif %}">
+                        Legal Agreement
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Price -->
+            <div class="flex items-center p-3 rounded-lg border 
+                {% if pilot.price and pilot.price > 0 %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}">
+                <div class="flex-shrink-0">
+                    {% if pilot.price and pilot.price > 0 %}
+                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle text-red-500 text-lg"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium 
+                        {% if pilot.price and pilot.price > 0 %}text-green-800{% else %}text-red-800{% endif %}">
+                        Price Set
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Pilot Details (Left Column) -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Description -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Pilot Description</h2>
+                </div>
+                <div class="p-6">
+                    <div class="prose max-w-none">
+                        <p class="text-gray-700 whitespace-pre-wrap">{{ pilot.description }}</p>
                     </div>
                 </div>
             </div>
             
-            <!-- Technical documents -->
-            <div class="section">
-                <h3 class="section-title">Technical Documents</h3>
-                <div class="detail-grid">
+            <!-- Technical Specifications -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+                    <h2 class="text-lg font-semibold text-blue-900">Technical Specifications</h2>
+                </div>
+                <div class="p-6">
                     {% if pilot.technical_specs_doc %}
-                    <div class="detail-item">
-                        <div class="detail-label">Technical Specifications</div>
-                        <div class="detail-value">
-                            <a href="{{ pilot.technical_specs_doc.url }}" target="_blank">View Document</a>
+                        <div class="mb-4">
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Uploaded Document</h3>
+                            <a href="{{ pilot.technical_specs_doc.url }}" target="_blank" 
+                               class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-file-alt mr-2"></i>
+                                View Technical Specifications
+                                <i class="fas fa-external-link-alt ml-2 text-xs"></i>
+                            </a>
                         </div>
-                    </div>
                     {% endif %}
                     
                     {% if pilot.technical_specs_text %}
-                    <div class="detail-item">
-                        <div class="detail-label">Technical Specifications</div>
-                        <div class="detail-value">
-                            {{ pilot.technical_specs_text|linebreaks|truncatewords:50 }}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Text Description</h3>
+                            <div class="prose max-w-none">
+                                <p class="text-gray-700 whitespace-pre-wrap">{{ pilot.technical_specs_text }}</p>
+                            </div>
                         </div>
-                    </div>
                     {% endif %}
                     
-                    {% if pilot.performance_metrics_doc %}
-                    <div class="detail-item">
-                        <div class="detail-label">Performance Metrics</div>
-                        <div class="detail-value">
-                            <a href="{{ pilot.performance_metrics_doc.url }}" target="_blank">View Document</a>
+                    {% if not pilot.technical_specs_doc and not pilot.technical_specs_text %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-3xl mb-4"></i>
+                            <p class="text-red-600 font-medium">No technical specifications provided</p>
                         </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if pilot.performance_metrics %}
-                    <div class="detail-item">
-                        <div class="detail-label">Performance Metrics</div>
-                        <div class="detail-value">
-                            {{ pilot.performance_metrics|linebreaks|truncatewords:50 }}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if pilot.compliance_requirements_doc %}
-                    <div class="detail-item">
-                        <div class="detail-label">Compliance Requirements</div>
-                        <div class="detail-value">
-                            <a href="{{ pilot.compliance_requirements_doc.url }}" target="_blank">View Document</a>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if pilot.compliance_requirements %}
-                    <div class="detail-item">
-                        <div class="detail-label">Compliance Requirements</div>
-                        <div class="detail-value">
-                            {{ pilot.compliance_requirements|linebreaks|truncatewords:50 }}
-                        </div>
-                    </div>
                     {% endif %}
                 </div>
             </div>
             
-            <!-- Rejection form (hidden by default) -->
-            <div id="rejection-form" style="display: none; margin-top: 20px; padding: 15px; background: #FEF2F2; border-radius: 5px;">
-                <form method="post" action="{% url 'admin:admin_reject_pilot' pilot.pk %}">
-                    {% csrf_token %}
-                    <h3 style="margin-top: 0;">Rejection Feedback</h3>
-                    <p>Please provide feedback to the enterprise about why this pilot was rejected:</p>
-                    <textarea name="feedback" rows="4" style="width: 100%; margin-bottom: 10px;" required></textarea>
-                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                        <button type="button" onclick="hideRejectionForm()" style="background: #9CA3AF; color: white; border: none; padding: 8px 15px; border-radius: 4px;">Cancel</button>
-                        <button type="submit" style="background: #EF4444; color: white; border: none; padding: 8px 15px; border-radius: 4px;">Confirm Rejection</button>
-                    </div>
-                </form>
+            <!-- Performance Metrics -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
+                    <h2 class="text-lg font-semibold text-green-900">Performance Metrics</h2>
+                </div>
+                <div class="p-6">
+                    {% if pilot.performance_metrics_doc %}
+                        <div class="mb-4">
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Uploaded Document</h3>
+                            <a href="{{ pilot.performance_metrics_doc.url }}" target="_blank" 
+                               class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-chart-bar mr-2"></i>
+                                View Performance Metrics
+                                <i class="fas fa-external-link-alt ml-2 text-xs"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if pilot.performance_metrics %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Text Description</h3>
+                            <div class="prose max-w-none">
+                                <p class="text-gray-700 whitespace-pre-wrap">{{ pilot.performance_metrics }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if not pilot.performance_metrics_doc and not pilot.performance_metrics %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-3xl mb-4"></i>
+                            <p class="text-red-600 font-medium">No performance metrics provided</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
             
-            <!-- Action buttons -->
-            <div class="action-buttons">
-                <a href="{% url 'admin:admin_verify_pilots' %}" class="button">
-                    Back to Verification List
-                </a>
-                <form method="post" action="{% url 'admin:admin_approve_pilot' pilot.pk %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="approve-button">Approve Pilot</button>
-                </form>
-                <button type="button" onclick="showRejectionForm()" class="reject-button">Reject Pilot</button>
+            <!-- Definition of Done -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100">
+                    <h2 class="text-lg font-semibold text-purple-900">Definition of Done</h2>
+                </div>
+                <div class="p-6">
+                    {% if pilot.compliance_requirements_doc %}
+                        <div class="mb-4">
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Uploaded Document</h3>
+                            <a href="{{ pilot.compliance_requirements_doc.url }}" target="_blank" 
+                               class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-clipboard-check mr-2"></i>
+                                View Definition of Done
+                                <i class="fas fa-external-link-alt ml-2 text-xs"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    {% if pilot.compliance_requirements %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">Text Description</h3>
+                            <div class="prose max-w-none">
+                                <p class="text-gray-700 whitespace-pre-wrap">{{ pilot.compliance_requirements }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if not pilot.compliance_requirements_doc and not pilot.compliance_requirements %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-3xl mb-4"></i>
+                            <p class="text-red-600 font-medium">No definition of done provided</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions Sidebar (Right Column) -->
+        <div class="space-y-6">
+            
+            <!-- Approval Actions -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
+                    <h3 class="text-lg font-semibold text-green-800">
+                        <i class="fas fa-gavel mr-2"></i>
+                        Verification Decision
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <!-- Approve Button -->
+                    <form method="post" action="{% url 'pilots:admin_approve_pilot' pilot.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                data-confirm="Approve pilot '{{ pilot.title|escapejs }}'? It will be published and visible to startups."
+                                class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                            <i class="fas fa-check mr-2"></i>
+                            Approve & Publish Pilot
+                        </button>
+                    </form>
+                    
+                    <!-- Reject Button -->
+                    <button type="button" 
+                            onclick="showRejectModal()"
+                            class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                        <i class="fas fa-times mr-2"></i>
+                        Reject Pilot
+                    </button>
+                    
+                    <!-- Edit Link -->
+                    <div class="pt-4 border-t border-gray-200">
+                        <a href="{% url 'admin:pilots_pilot_change' pilot.pk %}" 
+                           class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-edit mr-2"></i>
+                            Edit in Django Admin
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pilot Information -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Pilot Information</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Organization</dt>
+                        <dd class="mt-1 text-sm font-medium text-gray-900">{{ pilot.organization.name }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Price</dt>
+                        <dd class="mt-1 text-sm font-medium text-gray-900">
+                            {% if pilot.price %}
+                                ${{ pilot.price }}
+                            {% else %}
+                                <span class="text-red-600">No price set</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ pilot.updated_at|date:"M d, Y g:i A" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ pilot.created_at|date:"M d, Y g:i A" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Visibility</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if pilot.is_private %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                {% if pilot.is_private %}
+                                    <i class="fas fa-lock mr-1"></i>
+                                    Private
+                                {% else %}
+                                    <i class="fas fa-globe mr-1"></i>
+                                    Public
+                                {% endif %}
+                            </span>
+                        </dd>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legal Status -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">Legal Status</h3>
+                </div>
+                <div class="p-6">
+                    <div class="flex items-center">
+                        {% if pilot.legal_agreement_accepted %}
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <div>
+                                <p class="text-sm font-medium text-green-800">Agreement Accepted</p>
+                                <p class="text-xs text-green-600">Legal terms have been accepted</p>
+                            </div>
+                        {% else %}
+                            <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                            <div>
+                                <p class="text-sm font-medium text-red-800">Agreement Not Accepted</p>
+                                <p class="text-xs text-red-600">Legal terms must be accepted</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Rejection Modal -->
+<div id="rejection-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+        
+        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div class="sm:flex sm:items-start">
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                </div>
+                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Reject Pilot
+                    </h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                            You are about to reject "{{ pilot.title }}". Please provide detailed feedback explaining what needs to be corrected for approval.
+                        </p>
+                        <form method="post" action="{% url 'pilots:admin_reject_pilot' pilot.pk %}" id="reject-form" class="mt-4">
+                            {% csrf_token %}
+                            <textarea name="feedback" rows="4" required
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                      placeholder="Please explain what needs to be corrected for this pilot to be approved..."></textarea>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button type="submit" form="reject-form"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Send Feedback & Reject
+                </button>
+                <button type="button" onclick="hideRejectModal()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
-    function showRejectionForm() {
-        document.getElementById('rejection-form').style.display = 'block';
-    }
-    
-    function hideRejectionForm() {
-        document.getElementById('rejection-form').style.display = 'none';
-    }
+function showRejectModal() {
+    document.getElementById('rejection-modal').classList.remove('hidden');
+}
+
+function hideRejectModal() {
+    document.getElementById('rejection-modal').classList.add('hidden');
+}
 </script>
 {% endblock %}

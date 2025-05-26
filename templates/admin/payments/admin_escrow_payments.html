@@ -1,0 +1,315 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}All Payments - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Actions -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Payment Management</h1>
+            <p class="mt-1 text-gray-600">Monitor and manage all escrow payments</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'payments:admin_payment_dashboard' %}" 
+               class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Dashboard
+            </a>
+            <a href="{% url 'payments:admin_export_payments_csv' %}?{{ request.GET.urlencode }}" 
+               class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                <i class="fas fa-download mr-2"></i>
+                Export CSV
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filter Tabs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex" aria-label="Tabs">
+                <a href="?status=all" 
+                   class="{% if not request.GET.status or request.GET.status == 'all' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    All Payments
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium {% if not request.GET.status or request.GET.status == 'all' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-900{% endif %}">
+                        {{ all_count|default:0 }}
+                    </span>
+                </a>
+                <a href="?status=payment_initiated" 
+                   class="{% if request.GET.status == 'payment_initiated' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2 text-yellow-500"></i>
+                    Need Verification
+                    {% if initiated_count > 0 %}
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {{ initiated_count }}
+                    </span>
+                    {% endif %}
+                </a>
+                <a href="?status=received" 
+                   class="{% if request.GET.status == 'received' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-play-circle mr-2 text-blue-500"></i>
+                    Ready for Release
+                    {% if ready_count > 0 %}
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {{ ready_count }}
+                    </span>
+                    {% endif %}
+                </a>
+                <a href="?status=released" 
+                   class="{% if request.GET.status == 'released' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                    Completed
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium {% if request.GET.status == 'released' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-900{% endif %}">
+                        {{ released_count|default:0 }}
+                    </span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Search and Filters -->
+        <div class="p-6 bg-gray-50 border-b border-gray-200">
+            <form method="get" class="flex flex-col sm:flex-row gap-4">
+                <input type="hidden" name="status" value="{{ request.GET.status }}">
+                
+                <!-- Search Input -->
+                <div class="flex-1">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="search" 
+                               name="search" 
+                               value="{{ request.GET.search }}"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                               placeholder="Search by reference, pilot, or organization...">
+                    </div>
+                </div>
+                
+                <!-- Amount Filter -->
+                <div class="flex space-x-2">
+                    <select name="amount_filter" 
+                            class="block py-2 pl-3 pr-10 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+                        <option value="">Any Amount</option>
+                        <option value="small" {% if request.GET.amount_filter == 'small' %}selected{% endif %}>Under $1,000</option>
+                        <option value="medium" {% if request.GET.amount_filter == 'medium' %}selected{% endif %}>$1,000 - $10,000</option>
+                        <option value="large" {% if request.GET.amount_filter == 'large' %}selected{% endif %}>Over $10,000</option>
+                    </select>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Payments List -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {% if payments %}
+        <div class="divide-y divide-gray-200">
+            {% for payment in payments %}
+            <div class="p-6 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <!-- Payment Info (Left) -->
+                    <div class="flex-1">
+                        <div class="flex items-center">
+                            <h3 class="text-lg font-medium text-gray-900">{{ payment.reference_code }}</h3>
+                            <span class="ml-3 px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif payment.status == 'instructions_sent' %}bg-blue-100 text-blue-800
+                                {% elif payment.status == 'payment_initiated' %}bg-orange-100 text-orange-800
+                                {% elif payment.status == 'received' %}bg-green-100 text-green-800
+                                {% elif payment.status == 'released' %}bg-purple-100 text-purple-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ payment.get_status_display }}
+                            </span>
+                            <span class="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                ${{ payment.total_amount }}
+                            </span>
+                        </div>
+                        
+                        <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:60 }}</p>
+                        
+                        <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                            <span class="flex items-center">
+                                <i class="fas fa-building mr-1"></i>
+                                {{ payment.pilot_bid.pilot.organization.name|truncatechars:25 }}
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-rocket mr-1"></i>
+                                {{ payment.pilot_bid.startup.name|truncatechars:25 }}
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-calendar mr-1"></i>
+                                {{ payment.created_at|date:"M d, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions (Right) -->
+                    <div class="flex items-center space-x-3 ml-6">
+                        <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-eye mr-1"></i>
+                            Details
+                        </a>
+                        
+                        <!-- Status-specific quick actions -->
+                        {% if payment.status == 'payment_initiated' %}
+                        <form method="post" action="{% url 'payments:admin_mark_payment_received' payment.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    data-confirm="Confirm that you have received this payment?"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                <i class="fas fa-check mr-1"></i>
+                                Verify Receipt
+                            </button>
+                        </form>
+                        
+                        {% elif payment.status == 'received' and payment.pilot_bid.status == 'approval_pending' %}
+                        <form method="post" action="{% url 'payments:admin_kickoff_pilot' payment.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    data-confirm="Activate this pilot? Both parties will be notified that work can begin."
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                <i class="fas fa-play mr-1"></i>
+                                Activate Work
+                            </button>
+                        </form>
+                        
+                        {% elif payment.status == 'received' and payment.pilot_bid.status == 'completed' %}
+                        <form method="post" action="{% url 'payments:admin_release_payment' payment.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    data-confirm="Release ${{ payment.startup_amount }} to {{ payment.pilot_bid.startup.name }}?"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                                <i class="fas fa-paper-plane mr-1"></i>
+                                Release
+                            </button>
+                        </form>
+                        
+                        {% elif payment.status == 'released' %}
+                        <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Complete
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="mt-4">
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span>Progress</span>
+                        <span>
+                            {% if payment.status == 'pending' %}0%
+                            {% elif payment.status == 'instructions_sent' %}20%
+                            {% elif payment.status == 'payment_initiated' %}40%
+                            {% elif payment.status == 'received' %}60%
+                            {% elif payment.status == 'released' %}100%
+                            {% else %}0%{% endif %}
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="h-2 rounded-full
+                            {% if payment.status == 'pending' %}bg-yellow-400 w-0
+                            {% elif payment.status == 'instructions_sent' %}bg-blue-400 w-1/5
+                            {% elif payment.status == 'payment_initiated' %}bg-orange-400 w-2/5
+                            {% elif payment.status == 'received' %}bg-green-400 w-3/5
+                            {% elif payment.status == 'released' %}bg-purple-400 w-full
+                            {% else %}bg-gray-400 w-0{% endif %}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if payments.has_other_pages %}
+        <div class="bg-white px-6 py-3 border-t border-gray-200 flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if payments.has_previous %}
+                    <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.previous_page_number }}" 
+                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Previous
+                    </a>
+                {% endif %}
+                {% if payments.has_next %}
+                    <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.next_page_number }}" 
+                       class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Next
+                    </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Showing
+                        <span class="font-medium">{{ payments.start_index }}</span>
+                        to
+                        <span class="font-medium">{{ payments.end_index }}</span>
+                        of
+                        <span class="font-medium">{{ payments.paginator.count }}</span>
+                        results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if payments.has_previous %}
+                            <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.previous_page_number }}" 
+                               class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% endif %}
+                        
+                        {% for page_num in payments.paginator.page_range %}
+                            {% if page_num == payments.number %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-indigo-50 text-sm font-medium text-indigo-600">
+                                    {{ page_num }}
+                                </span>
+                            {% elif page_num %}
+                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_num }}" 
+                                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ page_num }}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if payments.has_next %}
+                            <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.next_page_number }}" 
+                               class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- Empty State -->
+        <div class="p-12 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">
+                <i class="fas fa-credit-card text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
+            <p class="text-gray-600 mb-6">
+                {% if request.GET.search or request.GET.status %}
+                    Try adjusting your search or filter criteria.
+                {% else %}
+                    No escrow payments have been created yet.
+                {% endif %}
+            </p>
+            {% if request.GET.search or request.GET.status %}
+            <a href="{% url 'payments:admin_escrow_payments' %}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                Clear Filters
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
