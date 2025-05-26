@@ -349,43 +349,6 @@ class BidListView(LoginRequiredMixin, ListView):
         context['is_enterprise'] = user_org.type == 'enterprise'
         return context
 
-class BidDetailView(LoginRequiredMixin, DetailView):
-    """View for both enterprises and startups to see bid details"""
-    model = PilotBid
-    template_name = 'pilots/bid_detail.html'
-    context_object_name = 'bid'
-    
-    def get_object(self, queryset=None):
-        bid = super().get_object(queryset)
-        user_org = self.request.user.organization
-        
-        # Check permissions
-        if user_org == bid.startup or user_org == bid.pilot.organization:
-            return bid
-        
-        messages.error(self.request, "You don't have permission to view this bid")
-        raise PermissionDenied("You don't have permission to view this bid")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_org = self.request.user.organization
-        bid = self.object
-        
-        # Determine if the current user can delete the bid
-        can_delete = False
-        
-        # Startup can delete their own bids if they're still pending
-        if user_org == bid.startup and bid.status == 'pending':
-            can_delete = True
-        
-        # Enterprise can delete/reject any pending bid on their pilot
-        elif user_org == bid.pilot.organization and bid.status == 'pending':
-            can_delete = True
-        
-        context['is_enterprise'] = user_org == bid.pilot.organization
-        context['can_delete_bid'] = can_delete
-        return context
-
 class SubmittedBidsListView(LoginRequiredMixin, ListView):
     """View for startups to see their submitted bids"""
     model = PilotBid
@@ -411,97 +374,194 @@ class ReceivedBidsListView(LoginRequiredMixin, ListView):
 
 @login_required
 def update_bid_status(request, pk):
-    """Allow enterprises to update bid status"""
+    """Simplified bid status updates"""
     if request.method != 'POST':
         return redirect('pilots:bid_detail', pk=pk)
     
     bid = get_object_or_404(PilotBid, pk=pk)
     user_org = request.user.organization
     
-    # Check if user has permission (enterprise owner of the pilot)
+    # Check permissions - only enterprise can update bid status
     if user_org != bid.pilot.organization:
         messages.error(request, "You don't have permission to update this bid")
         return redirect('pilots:bid_detail', pk=pk)
     
-    new_status = request.POST.get('status')
-    valid_statuses = dict(PilotBid.STATUS_CHOICES)
-    if new_status in valid_statuses:
-        old_status = bid.status
-        if new_status == 'approved':
-            # Use the simplified mark_as_approved method
-            success = bid.mark_as_approved()
-            
-            if success:
-                messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to Approval Pending. The Fend team will send an invoice shortly.")
-            else:
-                messages.error(request, "Error updating bid status")
-            return redirect('pilots:bid_detail', pk=pk)
+    action = request.POST.get('action')
+    
+    if action == 'approve':
+        success = bid.approve_bid()
+        if success:
+            messages.success(request, f"Bid approved! Fend will send an invoice and notify when payment is verified.")
         else:
-            # Normal status update
-            bid.status = new_status
-            bid.save()
-            
-            # Create notification for bid status update
-            create_bid_notification(
-                bid=bid,
-                notification_type='bid_updated',
-                title=f"Bid status updated: {bid.pilot.title}",
-                message=f"The status of your bid for '{bid.pilot.title}' has been updated from '{valid_statuses[old_status]}' to '{valid_statuses[new_status]}'."
-            )
-            
-            messages.success(request, f"Bid status updated from {valid_statuses[old_status]} to {valid_statuses[new_status]}")
+            messages.error(request, "Unable to approve bid at this time.")
+    
+    elif action == 'decline':
+        success = bid.decline_bid(declined_by_enterprise=True)
+        if success:
+            messages.success(request, "Bid has been declined.")
+        else:
+            messages.error(request, "Unable to decline bid at this time.")
+    
+    elif action == 'review':
+        if bid.status == 'pending':
+            bid.status = 'under_review'
+            bid.save(update_fields=['status', 'updated_at'])
+            messages.success(request, "Bid marked as under review.")
+        else:
+            messages.error(request, "Bid is not in pending status.")
+    
     else:
-        messages.error(request, "Invalid status")
+        messages.error(request, "Invalid action.")
     
     return redirect('pilots:bid_detail', pk=pk)
 
+@login_required
+def request_completion(request, bid_id):
+    """Startup requests completion verification"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check permissions - only startup can request completion
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to request completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    success = bid.request_completion()
+    
+    if success:
+        messages.success(request, "Completion verification requested. The enterprise will review your work.")
+    else:
+        messages.error(request, "Unable to request completion at this time.")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)
+
+@login_required
+def verify_completion(request, bid_id):
+    """Enterprise verifies work completion"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check permissions - only enterprise can verify completion
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to verify completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    success = bid.verify_completion()
+    
+    if success:
+        messages.success(request, "Work completion verified! Payment will be released to the startup by the Fend team.")
+    else:
+        messages.error(request, "Unable to verify completion at this time.")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)
+
+@login_required
+@staff_member_required
+def admin_mark_bid_as_live(request, pk):
+    """Admin marks bid as live after payment verification"""
+    if request.method != 'POST':
+        return redirect('admin:pilots_pilotbid_change', object_id=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    
+    success = bid.mark_live()
+    
+    if success:
+        messages.success(request, f"Bid for '{bid.pilot.title}' is now live. Both parties have been notified.")
+    else:
+        messages.error(request, f"Unable to mark bid as live. Current status: {bid.get_status_display()}")
+    
+    return redirect('admin:pilots_pilotbid_change', object_id=pk)
 
 @login_required
 def delete_bid(request, pk):
-    """Allow users to delete bids based on permissions"""
+    """Allow startup to withdraw their pending bid"""
     if request.method != 'POST':
         return redirect('pilots:bid_detail', pk=pk)
     
     bid = get_object_or_404(PilotBid, pk=pk)
     user_org = request.user.organization
     
-    # Determine who can delete the bid
-    can_delete = False
-    delete_reason = None
+    # Check permissions - only startup can withdraw their own bid
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to withdraw this bid")
+        return redirect('pilots:bid_detail', pk=pk)
     
-    # Startup can delete their own bids if they're still in pending status
-    if user_org == bid.startup and bid.status == 'pending':
-        can_delete = True
-        delete_reason = "withdrawn by startup"
-    
-    # Enterprise can delete/reject any pending bid on their pilot
-    elif user_org == bid.pilot.organization and bid.status == 'pending':
-        can_delete = True
-        delete_reason = "rejected by enterprise"
-    
-    if not can_delete:
-        messages.error(request, "You don't have permission to delete this bid")
+    # Only allow withdrawal of pending bids
+    if bid.status != 'pending':
+        messages.error(request, "Only pending bids can be withdrawn")
         return redirect('pilots:bid_detail', pk=pk)
     
     # Create notification before deleting
-    from apps.notifications.services import create_bid_notification
-    create_bid_notification(
-        bid=bid,
-        notification_type='bid_updated',
-        title=f"Bid {delete_reason}: {bid.pilot.title}",
-        message=f"A bid of ${bid.amount} for pilot '{bid.pilot.title}' has been {delete_reason}."
+    from apps.notifications.services import create_pilot_notification
+    create_pilot_notification(
+        pilot=bid.pilot,
+        notification_type='bid_withdrawn',
+        title=f"Bid Withdrawn: {bid.pilot.title}",
+        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
     )
     
     # Delete the bid
     bid.delete()
+    messages.success(request, "Your bid has been withdrawn successfully.")
     
-    messages.success(request, f"Bid has been successfully {delete_reason}.")
+    return redirect('pilots:bid_list')
+
+class BidDetailView(LoginRequiredMixin, DetailView):
+    """Production-ready bid detail view with comprehensive context"""
+    model = PilotBid
+    template_name = 'pilots/bid_detail.html'
+    context_object_name = 'bid'
     
-    # Redirect to appropriate page based on user type
-    if user_org.type == 'startup':
-        return redirect('pilots:bid_list')
-    else:
-        return redirect('pilots:list')
+    def get_object(self, queryset=None):
+        bid = super().get_object(queryset)
+        user_org = self.request.user.organization
+        
+        # Permission check - only relevant parties can view
+        if user_org not in [bid.startup, bid.pilot.organization]:
+            messages.error(self.request, "You don't have permission to view this bid")
+            raise PermissionDenied("Access denied")
+        
+        return bid
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user_org = self.request.user.organization
+        bid = self.object
+        
+        # User role context
+        context['is_enterprise'] = user_org == bid.pilot.organization
+        context['is_startup'] = user_org == bid.startup
+        
+        # Action permissions based on current status and user role
+        context['can_approve'] = (
+            context['is_enterprise'] and 
+            bid.can_be_approved()
+        )
+        context['can_withdraw'] = (
+            context['is_startup'] and 
+            bid.status == 'pending'
+        )
+        context['can_request_completion'] = (
+            context['is_startup'] and 
+            bid.can_request_completion()
+        )
+        context['can_verify_completion'] = (
+            context['is_enterprise'] and 
+            bid.can_verify_completion()
+        )
+        
+        # Payment information if escrow exists
+        if hasattr(bid, 'escrow_payment'):
+            context['escrow_payment'] = bid.escrow_payment
+        
+        return context
     
 
 @login_required
@@ -530,64 +590,6 @@ def delete_pilot(request, pk):
     messages.success(request, "Pilot deleted successfully")
     
     return redirect('pilots:list')
-
-
-@login_required
-def finalize_pilot(request, bid_id):
-    """Mark a pilot as completed and trigger payment release workflow"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check if user has permission (enterprise owner of the pilot)
-    if user_org != bid.pilot.organization:
-        messages.error(request, "You don't have permission to finalize this pilot")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    # Check if escrow payment exists and has been received
-    if not hasattr(bid, 'escrow_payment'):
-        messages.error(request, "No payment record found for this bid")
-        return redirect('pilots:bid_detail', pk=bid_id)
-        
-    if bid.escrow_payment.status != 'received':
-        messages.error(request, "Payment must be received before the pilot can be marked as completed")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    # Update bid status
-    bid.status = 'completed'
-    
-    # Also update pilot status to completed
-    pilot = bid.pilot
-    pilot.status = 'completed'
-    pilot.save(update_fields=['status'])
-    bid.completed_at = timezone.now()
-    bid.save()
-
-    # Create admin notifications
-    User = get_user_model()
-    admins = User.objects.filter(is_staff=True)
-    for admin in admins:
-        create_notification(
-            recipient=admin,
-            notification_type='pilot_completed',
-            title=f"Pilot Completed: {bid.pilot.title}",
-            message=f"The pilot '{bid.pilot.title}' has been marked as completed. The payment is ready to be released to the startup.",
-            related_pilot=bid.pilot,
-            related_bid=bid
-        )
-    
-    # Notify both parties
-    create_bid_notification(
-        bid=bid,
-        notification_type='pilot_completed',
-        title=f"Pilot Completed: {bid.pilot.title}",
-        message=f"The pilot '{bid.pilot.title}' has been marked as completed. The payment will be released to the startup soon."
-    )
-    
-    messages.success(request, "Pilot has been marked as completed. The payment will be released to the startup by the Fend team.")
-    return redirect('pilots:bid_detail', pk=bid_id)
 
 
 @login_required
@@ -679,94 +681,3 @@ def admin_reject_pilot(request, pk):
     
     messages.success(request, f"Pilot '{pilot.title}' has been rejected and sent back to draft status.")
     return redirect('pilots:admin_verify_pilots')
-
-@login_required
-@staff_member_required
-def admin_mark_bid_as_live(request, pk):
-    """Admin marks bid as live after payment verification"""
-    if request.method != 'POST':
-        return redirect('admin:pilots_pilotbid_change', object_id=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    
-    # Verify that bid is in approval_pending status
-    if bid.status != 'approval_pending':
-        if bid.status == 'live':
-            messages.warning(request, "This bid is already live")
-        else:
-            messages.error(request, f"Bid is in '{bid.get_status_display()}' status and cannot be marked as live")
-        return redirect('admin:pilots_pilotbid_change', object_id=pk)
-    
-    # Mark as live
-    bid.status = 'live'
-    bid.save()
-    
-    # Create notification for both parties
-    from apps.notifications.services import create_bid_notification
-    create_bid_notification(
-        bid=bid,
-        notification_type='bid_live',
-        title=f"Pilot is now Live: {bid.pilot.title}",
-        message=f"Your pilot '{bid.pilot.title}' payment has been verified and is now live. You may begin work now."
-    )
-    
-    messages.success(request, f"Bid for '{bid.pilot.title}' has been marked as live successfully")
-    return redirect('admin:pilots_pilotbid_change', object_id=pk)
-
-@login_required
-def request_completion(request, bid_id):
-    """Startup requests completion verification"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check if user has permission (startup that submitted the bid)
-    if user_org != bid.startup:
-        messages.error(request, "You don't have permission to request completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    # Check if bid is in live status
-    if bid.status != 'live':
-        messages.error(request, "This pilot is not in the appropriate status to request completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    # Mark as completion pending
-    success = bid.mark_completion_requested()
-    
-    if success:
-        messages.success(request, "Completion request submitted. The enterprise will verify completion.")
-    else:
-        messages.error(request, "Unable to request completion at this time.")
-    
-    return redirect('pilots:bid_detail', pk=bid_id)
-
-@login_required
-def verify_completion(request, bid_id):
-    """Enterprise verifies completion"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check if user has permission (enterprise owner of the pilot)
-    if user_org != bid.pilot.organization:
-        messages.error(request, "You don't have permission to verify completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    # Check if bid is in completion_pending status
-    if bid.status != 'completion_pending':
-        messages.error(request, "This pilot is not pending completion verification")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    # Verify completion
-    success = bid.verify_completion()
-    
-    if success:
-        messages.success(request, "Pilot completion verified. The payment will be released to the startup by the Fend team.")
-    else:
-        messages.error(request, "Error verifying pilot completion.")
-    
-    return redirect('pilots:bid_detail', pk=bid_id)

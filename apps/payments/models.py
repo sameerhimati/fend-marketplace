@@ -177,17 +177,17 @@ class PilotTransaction(models.Model):
         """Calculate the fee for this transaction"""
         return (self.amount * self.fee_percentage) / 100
 
-
 class EscrowPayment(models.Model):
     STATUS_CHOICES = (
-        ('pending', 'Pending'),        # Initial state when created
-        ('instructions_sent', 'Instructions Sent'),  # Payment instructions sent to enterprise
-        ('payment_initiated', 'Payment Initiated'),  # Enterprise marked as sent
-        ('received', 'Received'),      # Admin confirmed payment received
-        ('released', 'Released'),      # Funds released to startup
-        ('cancelled', 'Cancelled')     # Payment cancelled
+        ('pending', 'Invoice Pending'),           # Waiting for admin to generate invoice
+        ('instructions_sent', 'Invoice Sent'),    # Invoice sent to enterprise  
+        ('payment_initiated', 'Payment Initiated'), # Enterprise confirmed payment sent
+        ('received', 'Payment Received'),         # Payment confirmed by admin
+        ('released', 'Released to Startup'),      # Payment released to startup
+        ('cancelled', 'Cancelled')                # Payment cancelled
     )
     
+    # Core relationships and amounts
     pilot_bid = models.OneToOneField(
         'pilots.PilotBid',
         on_delete=models.CASCADE,
@@ -200,7 +200,7 @@ class EscrowPayment(models.Model):
     enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
     startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
     
-    # Status tracking
+    # Status and audit timestamps - CRITICAL for financial compliance
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     instructions_sent_at = models.DateTimeField(null=True, blank=True)
@@ -208,176 +208,184 @@ class EscrowPayment(models.Model):
     received_at = models.DateTimeField(null=True, blank=True)
     released_at = models.DateTimeField(null=True, blank=True)
     
-    # Wire transfer details provided by enterprise
-    wire_transfer_date = models.DateField(null=True, blank=True)
-    wire_transfer_confirmation = models.CharField(max_length=255, null=True, blank=True)
+    # Payment tracking - for status only (actual payment handled externally)
+    payment_reference = models.CharField(max_length=255, null=True, blank=True, help_text="External payment reference")
     
-    # Bank account details for startup payment
-    startup_bank_name = models.CharField(max_length=255, null=True, blank=True)
-    startup_account_number = models.CharField(max_length=255, null=True, blank=True)
-    startup_routing_number = models.CharField(max_length=255, null=True, blank=True)
-    
-    # Admin notes
+    # Admin tracking - CRITICAL for audit trail
     admin_notes = models.TextField(blank=True, null=True)
     
     def __str__(self):
-        return f"Escrow Payment for Bid #{self.pilot_bid.id} - ${self.total_amount}"
+        return f"Escrow Payment {self.reference_code} - ${self.total_amount}"
     
     def generate_reference_code(self):
-        """Generate a unique reference code for this payment"""
+        """Generate unique reference code for payment tracking"""
+        import time
+        import random
         prefix = "FND-PILOT"
         bid_id = self.pilot_bid.id
-        timestamp = int(self.created_at.timestamp())
-        return f"{prefix}-{bid_id}-{timestamp}"
+        # Use current timestamp + small random number to ensure uniqueness
+        timestamp = int(time.time())
+        random_suffix = random.randint(100, 999)
+        return f"{prefix}-{bid_id}-{timestamp}-{random_suffix}"
     
     def save(self, *args, **kwargs):
-        # Generate reference code if this is a new record
+        # Generate reference code before first save if it doesn't exist
         if not self.pk and not self.reference_code:
-            # Temporarily save to get an ID and timestamp
-            super().save(*args, **kwargs)
             self.reference_code = self.generate_reference_code()
-            
-        # Now save again with the reference code
-            return super().save(*args, **kwargs)
         return super().save(*args, **kwargs)
     
-    def mark_as_instructions_sent(self):
-        """Mark payment instructions as sent to enterprise"""
+    def mark_as_instructions_sent(self, user=None):
+        """Admin marks payment instructions as sent"""
+        old_status = self.status
         self.status = 'instructions_sent'
         self.instructions_sent_at = timezone.now()
         self.save(update_fields=['status', 'instructions_sent_at'])
+        
+        # Log the change
+        EscrowPaymentLog.log_status_change(self, old_status, user, "Payment instructions sent to enterprise")
+        
+        # Notify enterprise
+        self._notify_instructions_sent()
     
-    def mark_as_payment_initiated(self, wire_date=None, confirmation=None):
-        """Enterprise marks payment as initiated"""
+    def mark_as_payment_initiated(self, payment_ref=None, user=None):
+        """Enterprise confirms they initiated payment"""
+        old_status = self.status
         self.status = 'payment_initiated'
         self.payment_initiated_at = timezone.now()
-        if wire_date:
-            self.wire_transfer_date = wire_date
-        if confirmation:
-            self.wire_transfer_confirmation = confirmation
-        self.save(update_fields=['status', 'payment_initiated_at', 
-                                 'wire_transfer_date', 'wire_transfer_confirmation'])
+        if payment_ref:
+            self.payment_reference = payment_ref
+        self.save(update_fields=['status', 'payment_initiated_at', 'payment_reference'])
         
-        # Create notification for admin
-        self.create_admin_notification("Payment Initiated", 
-                                       f"Enterprise has initiated payment of ${self.total_amount} for pilot '{self.pilot_bid.pilot.title}'.")
+        # Log the change
+        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment initiated - Reference: {payment_ref or 'None provided'}")
         
-        # Create notification for startup
-        self.create_startup_notification("Payment In Process", 
-                                        f"Enterprise has initiated payment for your approved bid on pilot '{self.pilot_bid.pilot.title}'.")
+        # Notify admin and startup
+        self._notify_payment_initiated()
     
-    def mark_as_received(self):
-        """Admin marks payment as received"""
+    def mark_as_received(self, user=None, notes=None):
+        """Admin confirms payment received"""
+        old_status = self.status
         self.status = 'received'
         self.received_at = timezone.now()
-        self.save(update_fields=['status', 'received_at'])
+        if notes:
+            self.admin_notes = notes
+        self.save(update_fields=['status', 'received_at', 'admin_notes'])
         
-        # Create notifications
-        self.create_enterprise_notification("Payment Received", 
-                                        f"Your payment of ${self.total_amount} for pilot '{self.pilot_bid.pilot.title}' has been received.")
+        # Log the change
+        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment received and verified. {notes or ''}")
         
-        self.create_startup_notification("Payment Received", 
-                                        f"Payment for your bid on pilot '{self.pilot_bid.pilot.title}' has been received and is held in escrow. You will be notified when the project is ready to begin.")
+        # Mark bid as live so work can begin
+        self.pilot_bid.mark_live()
         
-        self.create_admin_notification("Pilot Ready for Kickoff", 
-                                    f"Payment for pilot '{self.pilot_bid.pilot.title}' has been received. Please kick off the pilot.")
+        # Notify both parties
+        self._notify_payment_received()
     
-    def mark_as_approved(self):
-        """Mark the bid as approved and create escrow payment"""
-        if self.status != 'pending' and self.status != 'under_review':
+    def mark_as_released(self, user=None, notes=None):
+        """Admin releases payment to startup"""
+        if self.status != 'received':
             return False
         
-        # Update bid status
-        self.status = 'approved'
-        self.save(update_fields=['status'])
-        
-        # Calculate payment amounts
-        total_fee_percentage = self.enterprise_fee_percentage + self.startup_fee_percentage
-        total_fee_amount = (self.amount * total_fee_percentage) / 100
-        platform_fee = total_fee_amount
-        total_amount = self.amount + (self.amount * self.enterprise_fee_percentage / 100)  # 102.5%
-        startup_amount = self.amount  # 100%
-        
-        # Create escrow payment
-        from apps.payments.models import EscrowPayment
-        escrow_payment = EscrowPayment.objects.create(
-            pilot_bid=self,
-            total_amount=total_amount,
-            startup_amount=startup_amount,
-            platform_fee=platform_fee,
-            enterprise_fee_percentage=self.enterprise_fee_percentage,
-            startup_fee_percentage=self.startup_fee_percentage
-        )
-        
-        # Mark payment instructions as sent
-        escrow_payment.mark_as_instructions_sent()
-        
-        return escrow_payment
-    
-    def mark_as_released(self):
-        """Admin marks payment as released to startup"""
+        old_status = self.status
         self.status = 'released'
         self.released_at = timezone.now()
-        self.save(update_fields=['status', 'released_at'])
+        if notes:
+            self.admin_notes = (self.admin_notes or '') + f"\n{notes}"
+        self.save(update_fields=['status', 'released_at', 'admin_notes'])
         
-        # Update pilot bid status if not already updated
-        if self.pilot_bid.status != 'paid':
-            self.pilot_bid.status = 'paid'
-            self.pilot_bid.save(update_fields=['status'])
+        # Log the change
+        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment released to startup. {notes or ''}")
         
-        # Create notifications
-        self.create_enterprise_notification("Payment Completed", 
-                                        f"Your payment for pilot '{self.pilot_bid.pilot.title}' has been disbursed to the startup.")
+        # Notify both parties
+        self._notify_payment_released()
         
-        self.create_startup_notification("Payment Released", 
-                                        f"Payment of ${self.startup_amount} for pilot '{self.pilot_bid.pilot.title}' has been released to your account.")
+        return True
     
-    def create_enterprise_notification(self, title, message):
-        """Create notification for the enterprise"""
-        from apps.notifications.services import create_bid_notification
-        return create_bid_notification(
-            bid=self.pilot_bid,
-            notification_type='payment_received',
-            title=title,
-            message=message
+    def cancel_payment(self, reason=None, user=None):
+        """Cancel the escrow payment"""
+        old_status = self.status
+        self.status = 'cancelled'
+        if reason:
+            self.admin_notes = (self.admin_notes or '') + f"\nCancelled: {reason}"
+        self.save(update_fields=['status', 'admin_notes'])
+        
+        # Log the change
+        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment cancelled. Reason: {reason or 'No reason provided'}")
+        
+        # Notify parties
+        self._notify_payment_cancelled()
+    
+    # Payment workflow status checks
+    def can_send_instructions(self):
+        return self.status == 'pending'
+    
+    def can_mark_initiated(self):
+        return self.status == 'instructions_sent'
+    
+    def can_mark_received(self):
+        return self.status == 'payment_initiated'
+    
+    def can_release(self):
+        return self.status == 'received'
+    
+    # Notification methods - essential for transparency
+    def _notify_instructions_sent(self):
+        from apps.notifications.services import create_pilot_notification
+        create_pilot_notification(
+            pilot=self.pilot_bid.pilot,
+            notification_type='payment_instructions',
+            title=f"Invoice Generated: {self.pilot_bid.pilot.title}",
+            message=f"Invoice for ${self.total_amount} has been generated for pilot '{self.pilot_bid.pilot.title}'. Reference: {self.reference_code}"
         )
     
-    def create_startup_notification(self, title, message):
-        """Create notification for the startup"""
-        from apps.notifications.services import create_bid_notification
-        return create_bid_notification(
+    def _notify_payment_initiated(self):
+        from apps.notifications.services import create_admin_notification, create_bid_notification
+        
+        # Notify admin
+        create_admin_notification(
+            title=f"Payment Initiated: {self.pilot_bid.pilot.title}",
+            message=f"Enterprise has initiated payment of ${self.total_amount} for pilot '{self.pilot_bid.pilot.title}'. Please verify receipt.",
+            related_pilot=self.pilot_bid.pilot,
+            related_bid=self.pilot_bid
+        )
+        
+        # Notify startup
+        create_bid_notification(
             bid=self.pilot_bid,
-            notification_type='payment_received',
-            title=title,
-            message=message
+            notification_type='payment_initiated',
+            title=f"Payment In Process: {self.pilot_bid.pilot.title}",
+            message=f"Enterprise has initiated payment for pilot '{self.pilot_bid.pilot.title}'. Work will begin once Fend verifies receipt."
         )
     
-    def create_admin_notification(self, title, message):
-        """Create notification for admin users"""
-        from apps.notifications.services import create_notification
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
-        # Get admin users
-        admins = User.objects.filter(is_staff=True)
-        
-        notifications = []
-        for admin in admins:
-            notification = create_notification(
-                recipient=admin,
-                notification_type='payment_received',
-                title=title,
-                message=message,
-                related_pilot=self.pilot_bid.pilot,
-                related_bid=self.pilot_bid
-            )
-            notifications.append(notification)
-        
-        return notifications
+    def _notify_payment_received(self):
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self.pilot_bid,
+            notification_type='payment_received',
+            title=f"Payment Verified - Work Can Begin: {self.pilot_bid.pilot.title}",
+            message=f"Payment of ${self.total_amount} has been verified for pilot '{self.pilot_bid.pilot.title}'. Work can now begin."
+        )
+    
+    def _notify_payment_released(self):
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self.pilot_bid,
+            notification_type='payment_released',
+            title=f"Payment Released: {self.pilot_bid.pilot.title}",
+            message=f"Payment of ${self.startup_amount} has been released for completed pilot '{self.pilot_bid.pilot.title}'."
+        )
+    
+    def _notify_payment_cancelled(self):
+        from apps.notifications.services import create_bid_notification
+        create_bid_notification(
+            bid=self.pilot_bid,
+            notification_type='payment_cancelled',
+            title=f"Payment Cancelled: {self.pilot_bid.pilot.title}",
+            message=f"Payment for pilot '{self.pilot_bid.pilot.title}' has been cancelled. {self.admin_notes or ''}"
+        )
 
 
 class EscrowPaymentLog(models.Model):
-    """Audit log for escrow payment status changes"""
+    """Comprehensive audit log for escrow payments - REQUIRED for compliance"""
     escrow_payment = models.ForeignKey(
         EscrowPayment,
         on_delete=models.CASCADE,
@@ -395,4 +403,18 @@ class EscrowPaymentLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Payment {self.escrow_payment.reference_code} status changed from {self.previous_status} to {self.new_status}"
+        return f"Payment {self.escrow_payment.reference_code}: {self.previous_status} → {self.new_status}"
+    
+    @classmethod
+    def log_status_change(cls, escrow_payment, previous_status, changed_by=None, notes=None):
+        """Create audit log entry for status changes"""
+        return cls.objects.create(
+            escrow_payment=escrow_payment,
+            previous_status=previous_status,
+            new_status=escrow_payment.status,
+            changed_by=changed_by,
+            notes=notes
+        )
+    
+    class Meta:
+        ordering = ['-created_at']

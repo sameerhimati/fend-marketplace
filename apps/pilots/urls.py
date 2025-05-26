@@ -15,7 +15,6 @@ urlpatterns = [
     path('<int:pk>/edit/', views.PilotUpdateView.as_view(), name='edit'),
     path('bids/<int:pk>/delete/', views.delete_bid, name='delete_bid'),
     path('pilots/<int:pk>/delete/', views.delete_pilot, name='delete'),
-    path('bids/<int:bid_id>/finalize/', views.finalize_pilot, name='finalize_pilot'),
     path('admin/verify/', views.admin_verify_pilots, name='admin_verify_pilots'),
     path('admin/verify/<int:pk>/', views.admin_verify_pilot_detail, name='admin_verify_pilot_detail'),
     path('admin/verify/<int:pk>/approve/', views.admin_approve_pilot, name='admin_approve_pilot'),
