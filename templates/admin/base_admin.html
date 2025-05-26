@@ -55,9 +55,12 @@
                         <i class="fas fa-user-circle mr-2"></i>
                         {{ user.get_full_name|default:user.username }}
                     </div>
-                    <a href="{% url 'admin:logout' %}" class="text-gray-400 hover:text-gray-500">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
+                    <form method="post" action="{% url 'admin:logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="text-gray-400 hover:text-gray-500" title="Sign out">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

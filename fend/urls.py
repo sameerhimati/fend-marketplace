@@ -19,8 +19,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from .views import LandingPageView
+from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
+    path('admin/logout/', LogoutView.as_view(next_page='landing'), name='admin_logout'),
     path('admin/', admin.site.urls),
     path('', LandingPageView.as_view(), name='landing'),
     path('pilots/', include('apps.pilots.urls')),
