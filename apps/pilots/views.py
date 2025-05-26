@@ -6,12 +6,14 @@ from django.urls import reverse_lazy, reverse
 from .models import Pilot, PilotBid
 from .forms import PilotForm, PilotBidForm
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.db.models import Q, Count, Prefetch
+from django.core.paginator import Paginator
 from apps.organizations.mixins import OrganizationRequiredMixin
 
 class PilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListView):
@@ -166,7 +168,7 @@ def publish_pilot(request, pk):
         messages.error(request, "You must accept the legal agreement to publish this pilot.")
         return redirect('pilots:detail', pk=pk)
     
-    # Validate required fields before publishing
+    # Enhanced validation for required fields
     missing_fields = []
     
     # Check technical specs (must have either file or text)
@@ -217,7 +219,6 @@ def publish_pilot(request, pk):
         )
         
         # Create notification for admins
-        from django.contrib.auth import get_user_model
         User = get_user_model()
         admins = User.objects.filter(is_staff=True)
         for admin in admins:
@@ -238,7 +239,7 @@ def publish_pilot(request, pk):
 
 @login_required
 def create_bid(request, pilot_id):
-    """Allow startups to submit bids on pilots"""
+    """Enhanced bid creation with better validation and notifications"""
     pilot = get_object_or_404(Pilot, id=pilot_id, status='published', is_private=False)
     user_org = request.user.organization
     
@@ -265,6 +266,15 @@ def create_bid(request, pilot_id):
         if form.is_valid():
             bid_amount = form.cleaned_data['amount']
             
+            # Enhanced validation
+            if bid_amount <= 0:
+                messages.error(request, "Bid amount must be greater than zero")
+                return render(request, 'pilots/bid_form.html', {
+                    'form': form,
+                    'pilot': pilot,
+                    'is_resubmission': is_resubmission
+                })
+            
             bid = form.save(commit=False)
             bid.pilot = pilot
             bid.startup = user_org
@@ -278,12 +288,12 @@ def create_bid(request, pilot_id):
                 
             bid.save()
             
-            # Create notification
+            # Enhanced notification
             create_bid_notification(
                 bid=bid,
                 notification_type='bid_submitted',
-                title=f"New bid received: {pilot.title}",
-                message=f"{user_org.name} has submitted a {'new' if not is_resubmission else 'revised'} bid of ${bid.amount} for your pilot '{pilot.title}'."
+                title=f"{'New' if not is_resubmission else 'Revised'} bid received: {pilot.title}",
+                message=f"{user_org.name} has submitted a {'new' if not is_resubmission else 'revised'} bid of ${bid.amount} for your pilot '{pilot.title}'. Amount includes platform fees."
             )
 
             messages.success(request, f"Your bid has been {'submitted' if not is_resubmission else 'resubmitted'} successfully")
@@ -304,7 +314,7 @@ def create_bid(request, pilot_id):
     })
 
 class BidListView(LoginRequiredMixin, ListView):
-    """View for listing bids - for both startups and enterprises"""
+    """Enhanced view for listing bids with better organization"""
     model = PilotBid
     template_name = 'pilots/bid_list.html'
     context_object_name = 'bids'
@@ -313,10 +323,14 @@ class BidListView(LoginRequiredMixin, ListView):
         user_org = self.request.user.organization
         if user_org.type == 'startup':
             # Startups see their submitted bids
-            return PilotBid.objects.filter(startup=user_org)
+            return PilotBid.objects.filter(startup=user_org).select_related(
+                'pilot__organization'
+            ).order_by('-created_at')
         elif user_org.type == 'enterprise':
             # Enterprises see bids received on their pilots
-            return PilotBid.objects.filter(pilot__organization=user_org)
+            return PilotBid.objects.filter(pilot__organization=user_org).select_related(
+                'startup', 'pilot'
+            ).order_by('-created_at')
         return PilotBid.objects.none()
     
     def get_context_data(self, **kwargs):
@@ -325,12 +339,12 @@ class BidListView(LoginRequiredMixin, ListView):
         
         if user_org.type == 'startup':
             # Separate approved and other bids
-            all_bids = PilotBid.objects.filter(startup=user_org)
-            context['approved_bids'] = all_bids.filter(status='approved')
-            context['other_bids'] = all_bids.exclude(status='approved')
+            all_bids = self.get_queryset()
+            context['approved_bids'] = all_bids.filter(status__in=['approved', 'live', 'completed'])
+            context['other_bids'] = all_bids.exclude(status__in=['approved', 'live', 'completed'])
         else:
-            # For enterprises, group by pilot
-            all_bids = PilotBid.objects.filter(pilot__organization=user_org)
+            # For enterprises, group by pilot with counts
+            all_bids = self.get_queryset()
             context['grouped_bids'] = {}
             
             for bid in all_bids:
@@ -338,10 +352,13 @@ class BidListView(LoginRequiredMixin, ListView):
                     context['grouped_bids'][bid.pilot_id] = {
                         'pilot': bid.pilot,
                         'approved_bids': [],
-                        'other_bids': []
+                        'other_bids': [],
+                        'total_bids': 0
                     }
                 
-                if bid.status == 'approved':
+                context['grouped_bids'][bid.pilot_id]['total_bids'] += 1
+                
+                if bid.status in ['approved', 'live', 'completed']:
                     context['grouped_bids'][bid.pilot_id]['approved_bids'].append(bid)
                 else:
                     context['grouped_bids'][bid.pilot_id]['other_bids'].append(bid)
@@ -349,172 +366,8 @@ class BidListView(LoginRequiredMixin, ListView):
         context['is_enterprise'] = user_org.type == 'enterprise'
         return context
 
-class SubmittedBidsListView(LoginRequiredMixin, ListView):
-    """View for startups to see their submitted bids"""
-    model = PilotBid
-    template_name = 'pilots/submitted_bids.html'
-    context_object_name = 'bids'
-    
-    def get_queryset(self):
-        if self.request.user.organization.type == 'startup':
-            return PilotBid.objects.filter(startup=self.request.user.organization)
-        return PilotBid.objects.none()
-
-class ReceivedBidsListView(LoginRequiredMixin, ListView):
-    """View for enterprises to see bids received on their pilots"""
-    model = PilotBid
-    template_name = 'pilots/received_bids.html'
-    context_object_name = 'bids'
-    
-    def get_queryset(self):
-        user_org = self.request.user.organization
-        if user_org.type == 'enterprise':
-            return PilotBid.objects.filter(pilot__organization=user_org)
-        return PilotBid.objects.none()
-
-@login_required
-def update_bid_status(request, pk):
-    """Simplified bid status updates"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    user_org = request.user.organization
-    
-    # Check permissions - only enterprise can update bid status
-    if user_org != bid.pilot.organization:
-        messages.error(request, "You don't have permission to update this bid")
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    action = request.POST.get('action')
-    
-    if action == 'approve':
-        success = bid.approve_bid()
-        if success:
-            messages.success(request, f"Bid approved! Fend will send an invoice and notify when payment is verified.")
-        else:
-            messages.error(request, "Unable to approve bid at this time.")
-    
-    elif action == 'decline':
-        success = bid.decline_bid(declined_by_enterprise=True)
-        if success:
-            messages.success(request, "Bid has been declined.")
-        else:
-            messages.error(request, "Unable to decline bid at this time.")
-    
-    elif action == 'review':
-        if bid.status == 'pending':
-            bid.status = 'under_review'
-            bid.save(update_fields=['status', 'updated_at'])
-            messages.success(request, "Bid marked as under review.")
-        else:
-            messages.error(request, "Bid is not in pending status.")
-    
-    else:
-        messages.error(request, "Invalid action.")
-    
-    return redirect('pilots:bid_detail', pk=pk)
-
-@login_required
-def request_completion(request, bid_id):
-    """Startup requests completion verification"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check permissions - only startup can request completion
-    if user_org != bid.startup:
-        messages.error(request, "You don't have permission to request completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    success = bid.request_completion()
-    
-    if success:
-        messages.success(request, "Completion verification requested. The enterprise will review your work.")
-    else:
-        messages.error(request, "Unable to request completion at this time.")
-    
-    return redirect('pilots:bid_detail', pk=bid_id)
-
-@login_required
-def verify_completion(request, bid_id):
-    """Enterprise verifies work completion"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check permissions - only enterprise can verify completion
-    if user_org != bid.pilot.organization:
-        messages.error(request, "You don't have permission to verify completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    success = bid.verify_completion()
-    
-    if success:
-        messages.success(request, "Work completion verified! Payment will be released to the startup by the Fend team.")
-    else:
-        messages.error(request, "Unable to verify completion at this time.")
-    
-    return redirect('pilots:bid_detail', pk=bid_id)
-
-@login_required
-@staff_member_required
-def admin_mark_bid_as_live(request, pk):
-    """Admin marks bid as live after payment verification"""
-    if request.method != 'POST':
-        return redirect('admin:pilots_pilotbid_change', object_id=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    
-    success = bid.mark_live()
-    
-    if success:
-        messages.success(request, f"Bid for '{bid.pilot.title}' is now live. Both parties have been notified.")
-    else:
-        messages.error(request, f"Unable to mark bid as live. Current status: {bid.get_status_display()}")
-    
-    return redirect('admin:pilots_pilotbid_change', object_id=pk)
-
-@login_required
-def delete_bid(request, pk):
-    """Allow startup to withdraw their pending bid"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    user_org = request.user.organization
-    
-    # Check permissions - only startup can withdraw their own bid
-    if user_org != bid.startup:
-        messages.error(request, "You don't have permission to withdraw this bid")
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    # Only allow withdrawal of pending bids
-    if bid.status != 'pending':
-        messages.error(request, "Only pending bids can be withdrawn")
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    # Create notification before deleting
-    from apps.notifications.services import create_pilot_notification
-    create_pilot_notification(
-        pilot=bid.pilot,
-        notification_type='bid_withdrawn',
-        title=f"Bid Withdrawn: {bid.pilot.title}",
-        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
-    )
-    
-    # Delete the bid
-    bid.delete()
-    messages.success(request, "Your bid has been withdrawn successfully.")
-    
-    return redirect('pilots:bid_list')
-
 class BidDetailView(LoginRequiredMixin, DetailView):
-    """Production-ready bid detail view with comprehensive context"""
+    """Enhanced bid detail view with comprehensive workflow context"""
     model = PilotBid
     template_name = 'pilots/bid_detail.html'
     context_object_name = 'bid'
@@ -539,7 +392,7 @@ class BidDetailView(LoginRequiredMixin, DetailView):
         context['is_enterprise'] = user_org == bid.pilot.organization
         context['is_startup'] = user_org == bid.startup
         
-        # Action permissions based on current status and user role
+        # Enhanced action permissions based on current status and user role
         context['can_approve'] = (
             context['is_enterprise'] and 
             bid.can_be_approved()
@@ -561,8 +414,148 @@ class BidDetailView(LoginRequiredMixin, DetailView):
         if hasattr(bid, 'escrow_payment'):
             context['escrow_payment'] = bid.escrow_payment
         
+        # Calculate financial breakdown
+        context['financial_breakdown'] = {
+            'bid_amount': bid.amount,
+            'enterprise_fee': bid.amount * (bid.enterprise_fee_percentage / 100),
+            'total_enterprise_pays': bid.calculate_total_amount_for_enterprise(),
+            'startup_fee': bid.amount * (bid.startup_fee_percentage / 100),
+            'startup_receives': bid.calculate_startup_net_amount(),
+            'platform_total_fee': bid.amount * (bid.fee_percentage / 100)
+        }
+        
         return context
+
+@login_required
+def update_bid_status(request, pk):
+    """Enhanced bid status updates with comprehensive validation"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
     
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    
+    # Check permissions - only enterprise can update bid status
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to update this bid")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    action = request.POST.get('action')
+    
+    if action == 'approve':
+        success = bid.approve_bid()
+        if success:
+            messages.success(request, f"Bid approved! An invoice will be sent and you'll be notified when payment is verified.")
+        else:
+            messages.error(request, "Unable to approve bid at this time.")
+    
+    elif action == 'decline':
+        success = bid.decline_bid(declined_by_enterprise=True)
+        if success:
+            messages.success(request, "Bid has been declined.")
+        else:
+            messages.error(request, "Unable to decline bid at this time.")
+    
+    elif action == 'review':
+        if bid.status == 'pending':
+            bid.status = 'under_review'
+            bid.save(update_fields=['status', 'updated_at'])
+            
+            # Create notification
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_under_review',
+                title=f"Bid under review: {bid.pilot.title}",
+                message=f"Your bid for '{bid.pilot.title}' is now under review by {bid.pilot.organization.name}."
+            )
+            
+            messages.success(request, "Bid marked as under review.")
+        else:
+            messages.error(request, "Bid is not in pending status.")
+    
+    else:
+        messages.error(request, "Invalid action.")
+    
+    return redirect('pilots:bid_detail', pk=pk)
+
+@login_required
+def request_completion(request, bid_id):
+    """Enhanced startup completion request"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check permissions - only startup can request completion
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to request completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    success = bid.request_completion()
+    
+    if success:
+        messages.success(request, "Completion verification requested. The enterprise will review your work.")
+    else:
+        messages.error(request, "Unable to request completion at this time.")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)
+
+@login_required
+def verify_completion(request, bid_id):
+    """Enhanced enterprise completion verification"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check permissions - only enterprise can verify completion
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to verify completion")
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    success = bid.verify_completion()
+    
+    if success:
+        messages.success(request, "Work completion verified! Payment will be released to the startup by the Fend team.")
+    else:
+        messages.error(request, "Unable to verify completion at this time.")
+    
+    return redirect('pilots:bid_detail', pk=bid_id)
+
+@login_required
+def delete_bid(request, pk):
+    """Allow startup to withdraw their pending bid"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    
+    # Check permissions - only startup can withdraw their own bid
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to withdraw this bid")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    # Only allow withdrawal of pending bids
+    if bid.status != 'pending':
+        messages.error(request, "Only pending bids can be withdrawn")
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    # Create notification before deleting
+    create_pilot_notification(
+        pilot=bid.pilot,
+        notification_type='bid_withdrawn',
+        title=f"Bid Withdrawn: {bid.pilot.title}",
+        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
+    )
+    
+    # Delete the bid
+    bid.delete()
+    messages.success(request, "Your bid has been withdrawn successfully.")
+    
+    return redirect('pilots:bid_list')
 
 @login_required
 def delete_pilot(request, pk):
@@ -591,73 +584,120 @@ def delete_pilot(request, pk):
     
     return redirect('pilots:list')
 
+# =============================================================================
+# ADMIN VIEWS - Pilot Approval Workflow
+# =============================================================================
 
 @login_required
+@staff_member_required
 def admin_verify_pilots(request):
-    """View for admins to see pilots pending approval"""
-    if not request.user.is_staff:
-        raise PermissionDenied
+    """Enhanced admin view for pilot verification dashboard"""
+    # Get all pilots pending approval with optimized queries
+    pending_pilots = Pilot.objects.filter(
+        status='pending_approval', 
+        verified=False
+    ).select_related(
+        'organization'
+    ).prefetch_related(
+        'organization__users'
+    ).order_by('-updated_at')
     
-    pending_pilots = Pilot.objects.filter(status='pending_approval', verified=False)
+    # Get stats for the dashboard
+    verified_today = Pilot.objects.filter(
+        verified=True, 
+        admin_verified_at__date=timezone.now().date()
+    ).count()
     
-    return render(request, 'pilots/admin_verify.html', {
-        'pending_pilots': pending_pilots
-    })
+    total_verified = Pilot.objects.filter(verified=True).count()
+    
+    # Handle bulk actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        pilot_ids = request.POST.getlist('pilot_ids')
+        
+        if action == 'bulk_approve' and pilot_ids:
+            pilots = Pilot.objects.filter(id__in=pilot_ids, status='pending_approval')
+            for pilot in pilots:
+                _approve_pilot(request, pilot)
+            messages.success(request, f"{len(pilot_ids)} pilots approved successfully.")
+        
+        # Refresh queryset after actions
+        pending_pilots = Pilot.objects.filter(
+            status='pending_approval', 
+            verified=False
+        ).select_related('organization').order_by('-updated_at')
+    
+    context = {
+        'title': 'Pilot Verification',
+        'pending_pilots': pending_pilots,
+        'verified_today': verified_today,
+        'total_verified': total_verified,
+    }
+    return render(request, 'admin/pilots/pilot/verify.html', context)
 
 @login_required
+@staff_member_required
 def admin_verify_pilot_detail(request, pk):
-    """View for admins to review a specific pilot"""
-    if not request.user.is_staff:
-        raise PermissionDenied
+    """Enhanced admin view for individual pilot verification"""
+    pilot = get_object_or_404(
+        Pilot.objects.select_related('organization'),
+        pk=pk
+    )
     
-    pilot = get_object_or_404(Pilot, pk=pk)
+    # Calculate completion percentage
+    requirements_met = 0
+    total_requirements = 5
     
-    return render(request, 'pilots/admin_pilot_detail.html', {
-        'pilot': pilot
-    })
+    if pilot.technical_specs_doc or pilot.technical_specs_text:
+        requirements_met += 1
+    if pilot.performance_metrics or pilot.performance_metrics_doc:
+        requirements_met += 1
+    if pilot.compliance_requirements or pilot.compliance_requirements_doc:
+        requirements_met += 1
+    if pilot.legal_agreement_accepted:
+        requirements_met += 1
+    if pilot.price and pilot.price > 0:
+        requirements_met += 1
+    
+    completion_percentage = (requirements_met / total_requirements) * 100
+    
+    context = {
+        'title': f'Verify Pilot: {pilot.title}',
+        'pilot': pilot,
+        'requirements_met': requirements_met,
+        'total_requirements': total_requirements,
+        'completion_percentage': completion_percentage,
+    }
+    return render(request, 'admin/pilots/pilot/verify_detail.html', context)
 
 @login_required
+@staff_member_required
 def admin_approve_pilot(request, pk):
-    """View for admins to approve a pilot"""
+    """Enhanced admin view to approve a pilot"""
     if request.method != 'POST':
         return redirect('pilots:admin_verify_pilot_detail', pk=pk)
-    
-    if not request.user.is_staff:
-        raise PermissionDenied
-    
+        
     pilot = get_object_or_404(Pilot, pk=pk)
     
     if pilot.status != 'pending_approval':
         messages.error(request, "This pilot is not pending approval.")
         return redirect('pilots:admin_verify_pilot_detail', pk=pk)
     
-    # Update pilot status and verification fields
-    pilot.status = 'published'
-    pilot.verified = True
-    pilot.admin_verified_at = timezone.now()
-    pilot.admin_verified_by = request.user
-    pilot.published_at = timezone.now()  # Set publication time to now
-    pilot.save()
+    success = _approve_pilot(request, pilot)
     
-    # Create notification for enterprise
-    create_pilot_notification(
-        pilot=pilot,
-        notification_type='pilot_approved',
-        title=f"Pilot approved: {pilot.title}",
-        message=f"Your pilot '{pilot.title}' has been approved and is now visible to startups."
-    )
-    
-    messages.success(request, f"Pilot '{pilot.title}' has been approved and published.")
-    return redirect('pilots:admin_verify_pilots')
+    if success:
+        messages.success(request, f"Pilot '{pilot.title}' has been approved and published.")
+        return redirect('pilots:admin_verify_pilots')
+    else:
+        messages.error(request, "Error approving pilot.")
+        return redirect('pilots:admin_verify_pilot_detail', pk=pk)
 
 @login_required
+@staff_member_required
 def admin_reject_pilot(request, pk):
-    """View for admins to reject a pilot with feedback"""
+    """Enhanced admin view to reject a pilot with detailed feedback"""
     if request.method != 'POST':
         return redirect('pilots:admin_verify_pilot_detail', pk=pk)
-    
-    if not request.user.is_staff:
-        raise PermissionDenied
     
     pilot = get_object_or_404(Pilot, pk=pk)
     
@@ -667,17 +707,83 @@ def admin_reject_pilot(request, pk):
     
     feedback = request.POST.get('feedback', '')
     
+    if not feedback.strip():
+        messages.error(request, "Feedback is required when rejecting a pilot.")
+        return redirect('pilots:admin_verify_pilot_detail', pk=pk)
+    
     # Update pilot status back to draft
     pilot.status = 'draft'
     pilot.save()
     
-    # Create notification for enterprise with feedback
+    # Create detailed notification for enterprise with feedback
     create_pilot_notification(
         pilot=pilot,
         notification_type='pilot_rejected',
         title=f"Pilot needs revision: {pilot.title}",
-        message=f"Your pilot '{pilot.title}' needs revision before it can be published. Admin feedback: {feedback}"
+        message=f"Your pilot '{pilot.title}' needs revision before it can be published.\n\nAdmin feedback: {feedback}\n\nPlease address these issues and resubmit for approval."
     )
     
-    messages.success(request, f"Pilot '{pilot.title}' has been rejected and sent back to draft status.")
+    # Notify all users in the organization
+    for user in pilot.organization.users.all():
+        create_notification(
+            recipient=user,
+            notification_type='pilot_rejected',
+            title=f"Pilot Revision Required: {pilot.title}",
+            message=f"Your pilot '{pilot.title}' requires revision. Please check the pilot details for specific feedback.",
+            related_pilot=pilot
+        )
+    
+    messages.success(request, f"Pilot '{pilot.title}' has been rejected with feedback.")
     return redirect('pilots:admin_verify_pilots')
+
+def _approve_pilot(request, pilot):
+    """Helper function to approve a pilot with all necessary steps"""
+    try:
+        # Update pilot status and verification fields
+        pilot.status = 'published'
+        pilot.verified = True
+        pilot.admin_verified_at = timezone.now()
+        pilot.admin_verified_by = request.user
+        pilot.published_at = timezone.now()
+        pilot.save()
+        
+        # Create notification for enterprise
+        create_pilot_notification(
+            pilot=pilot,
+            notification_type='pilot_approved',
+            title=f"Pilot approved: {pilot.title}",
+            message=f"Congratulations! Your pilot '{pilot.title}' has been approved and is now visible to startups on the platform."
+        )
+        
+        # Notify all users in the organization
+        for user in pilot.organization.users.all():
+            create_notification(
+                recipient=user,
+                notification_type='pilot_approved',
+                title=f"Pilot Published: {pilot.title}",
+                message=f"Your pilot '{pilot.title}' is now live and visible to startups.",
+                related_pilot=pilot
+            )
+        
+        return True
+    except Exception as e:
+        print(f"Error approving pilot: {e}")
+        return False
+
+@login_required
+@staff_member_required
+def admin_mark_bid_as_live(request, pk):
+    """Enhanced admin function to mark bid as live"""
+    if request.method != 'POST':
+        return redirect('admin:pilots_pilotbid_change', object_id=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    
+    success = bid.mark_as_live()
+    
+    if success:
+        messages.success(request, f"Bid for '{bid.pilot.title}' is now live. Both parties have been notified.")
+    else:
+        messages.error(request, f"Unable to mark bid as live. Current status: {bid.get_status_display()}")
+    
+    return redirect('admin:pilots_pilotbid_change', object_id=pk)
