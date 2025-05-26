@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+
 import stripe
 
 class PricingPlan(models.Model):
@@ -178,12 +179,12 @@ class PilotTransaction(models.Model):
         return (self.amount * self.fee_percentage) / 100
 
 class EscrowPayment(models.Model):
+    # Updated 4-stage workflow status choices
     STATUS_CHOICES = (
-        ('pending', 'Invoice Pending'),           # Waiting for admin to generate invoice
-        ('instructions_sent', 'Invoice Sent'),    # Invoice sent to enterprise  
-        ('payment_initiated', 'Payment Initiated'), # Enterprise confirmed payment sent
-        ('received', 'Payment Received'),         # Payment confirmed by admin
-        ('released', 'Released to Startup'),      # Payment released to startup
+        ('pending', 'Invoice Pending'),           # Stage 1: Waiting for admin to generate invoice
+        ('instructions_sent', 'Invoice Sent'),    # Stage 2: Invoice sent to enterprise  
+        ('received', 'Payment Received & Work Active'), # Stage 3: Payment confirmed and work activated
+        ('released', 'Released to Startup'),      # Stage 4: Payment released to startup
         ('cancelled', 'Cancelled')                # Payment cancelled
     )
     
@@ -204,6 +205,7 @@ class EscrowPayment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     instructions_sent_at = models.DateTimeField(null=True, blank=True)
+    # Keep this field for backward compatibility but don't use it in new workflow
     payment_initiated_at = models.DateTimeField(null=True, blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
     released_at = models.DateTimeField(null=True, blank=True)
@@ -247,23 +249,8 @@ class EscrowPayment(models.Model):
         # Notify enterprise
         self._notify_instructions_sent()
     
-    def mark_as_payment_initiated(self, payment_ref=None, user=None):
-        """Enterprise confirms they initiated payment"""
-        old_status = self.status
-        self.status = 'payment_initiated'
-        self.payment_initiated_at = timezone.now()
-        if payment_ref:
-            self.payment_reference = payment_ref
-        self.save(update_fields=['status', 'payment_initiated_at', 'payment_reference'])
-        
-        # Log the change
-        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment initiated - Reference: {payment_ref or 'None provided'}")
-        
-        # Notify admin and startup
-        self._notify_payment_initiated()
-    
-    def mark_as_received(self, user=None, notes=None):
-        """Admin confirms payment received"""
+    def mark_as_received_and_activate(self, user=None, notes=None):
+        """Admin confirms payment received AND activates work in one step"""
         old_status = self.status
         self.status = 'received'
         self.received_at = timezone.now()
@@ -272,13 +259,13 @@ class EscrowPayment(models.Model):
         self.save(update_fields=['status', 'received_at', 'admin_notes'])
         
         # Log the change
-        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment received and verified. {notes or ''}")
+        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment received and work activated. {notes or ''}")
         
         # Mark bid as live so work can begin
         self.pilot_bid.mark_live()
         
-        # Notify both parties
-        self._notify_payment_received()
+        # Notify both parties with SHORTENED notification types
+        self._notify_payment_received_and_activated()
     
     def mark_as_released(self, user=None, notes=None):
         """Admin releases payment to startup"""
@@ -314,15 +301,13 @@ class EscrowPayment(models.Model):
         # Notify parties
         self._notify_payment_cancelled()
     
-    # Payment workflow status checks
+    # Updated payment workflow status checks for 4-stage workflow
     def can_send_instructions(self):
         return self.status == 'pending'
     
-    def can_mark_initiated(self):
+    def can_confirm_and_activate(self):
+        """Can move directly from instructions_sent to received & activated"""
         return self.status == 'instructions_sent'
-    
-    def can_mark_received(self):
-        return self.status == 'payment_initiated'
     
     def can_release(self):
         return self.status == 'received'
@@ -337,34 +322,32 @@ class EscrowPayment(models.Model):
             message=f"Invoice for ${self.total_amount} has been generated for pilot '{self.pilot_bid.pilot.title}'. Reference: {self.reference_code}"
         )
     
-    def _notify_payment_initiated(self):
-        from apps.notifications.services import create_admin_notification, create_bid_notification
+    def _notify_payment_received_and_activated(self):
+        """Notify both parties that payment was received and work is activated"""
+        from apps.notifications.services import create_notification
         
-        # Notify admin
-        create_admin_notification(
-            title=f"Payment Initiated: {self.pilot_bid.pilot.title}",
-            message=f"Enterprise has initiated payment of ${self.total_amount} for pilot '{self.pilot_bid.pilot.title}'. Please verify receipt.",
-            related_pilot=self.pilot_bid.pilot,
-            related_bid=self.pilot_bid
-        )
+        # Notify enterprise - SHORTENED notification type
+        for user in self.pilot_bid.pilot.organization.users.all():
+            create_notification(
+                recipient=user,
+                notification_type='payment_verified', 
+                title=f"Payment Verified & Work Activated: {self.pilot_bid.pilot.title}",
+                message=f"Your payment for pilot '{self.pilot_bid.pilot.title}' has been verified and work has been activated. {self.pilot_bid.startup.name} can now begin work.",
+                related_pilot=self.pilot_bid.pilot,
+                related_bid=self.pilot_bid
+            )
         
-        # Notify startup
-        create_bid_notification(
-            bid=self.pilot_bid,
-            notification_type='payment_initiated',
-            title=f"Payment In Process: {self.pilot_bid.pilot.title}",
-            message=f"Enterprise has initiated payment for pilot '{self.pilot_bid.pilot.title}'. Work will begin once Fend verifies receipt."
-        )
-    
-    def _notify_payment_received(self):
-        from apps.notifications.services import create_bid_notification
-        create_bid_notification(
-            bid=self.pilot_bid,
-            notification_type='payment_received',
-            title=f"Payment Verified - Work Can Begin: {self.pilot_bid.pilot.title}",
-            message=f"Payment of ${self.total_amount} has been verified for pilot '{self.pilot_bid.pilot.title}'. Work can now begin."
-        )
-    
+        # Notify startup - SHORTENED notification type  
+        for user in self.pilot_bid.startup.users.all():
+            create_notification(
+                recipient=user,
+                notification_type='work_activated',
+                title=f"Payment Verified - Work Activated: {self.pilot_bid.pilot.title}",
+                message=f"Great news! Payment has been verified for pilot '{self.pilot_bid.pilot.title}' and work is now live. You can begin immediately.",
+                related_pilot=self.pilot_bid.pilot,
+                related_bid=self.pilot_bid
+            )
+
     def _notify_payment_released(self):
         from apps.notifications.services import create_bid_notification
         create_bid_notification(

@@ -8,7 +8,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900">Payment Management</h1>
-            <p class="mt-1 text-gray-600">Monitor and manage all escrow payments</p>
+            <p class="mt-1 text-gray-600">Monitor and manage all escrow payments - 4-stage workflow</p>
         </div>
         <div class="flex items-center space-x-3">
             <a href="{% url 'payments:admin_payment_dashboard' %}" 
@@ -24,7 +24,7 @@
         </div>
     </div>
     
-    <!-- Filter Tabs - Updated for 5-Stage Workflow -->
+    <!-- Filter Tabs - Updated for 4-Stage Workflow -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="border-b border-gray-200">
             <nav class="-mb-px flex" aria-label="Tabs">
@@ -49,33 +49,11 @@
                 
                 <a href="?tab=invoice_sent" 
                    class="{% if request.GET.tab == 'invoice_sent' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
-                    <i class="fas fa-paper-plane mr-2 text-yellow-500"></i>
-                    Invoice Sent
+                    <i class="fas fa-clock mr-2 text-yellow-500"></i>
+                    Awaiting Payment
                     {% if invoice_sent_count > 0 %}
                     <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                         {{ invoice_sent_count }}
-                    </span>
-                    {% endif %}
-                </a>
-                
-                <a href="?tab=verification" 
-                   class="{% if request.GET.tab == 'verification' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
-                    <i class="fas fa-search-dollar mr-2 text-orange-500"></i>
-                    Need Verification
-                    {% if verification_count > 0 %}
-                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        {{ verification_count }}
-                    </span>
-                    {% endif %}
-                </a>
-                
-                <a href="?tab=activation" 
-                   class="{% if request.GET.tab == 'activation' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
-                    <i class="fas fa-play-circle mr-2 text-green-500"></i>
-                    Ready to Activate
-                    {% if activation_count > 0 %}
-                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        {{ activation_count }}
                     </span>
                     {% endif %}
                 </a>
@@ -153,7 +131,6 @@
                             <span class="ml-3 px-2 py-1 text-xs font-semibold rounded-full 
                                 {% if payment.status == 'pending' %}bg-blue-100 text-blue-800
                                 {% elif payment.status == 'instructions_sent' %}bg-yellow-100 text-yellow-800
-                                {% elif payment.status == 'payment_initiated' %}bg-orange-100 text-orange-800
                                 {% elif payment.status == 'received' %}bg-green-100 text-green-800
                                 {% elif payment.status == 'released' %}bg-purple-100 text-purple-800
                                 {% else %}bg-red-100 text-red-800{% endif %}">
@@ -190,7 +167,7 @@
                             Details
                         </a>
                         
-                        <!-- Status-specific quick actions matching 5-stage workflow -->
+                        <!-- Status-specific quick actions for 4-stage workflow -->
                         {% if payment.status == 'pending' %}
                         <form method="post" action="{% url 'payments:admin_mark_invoice_sent' payment.pilot_bid.id %}" class="inline">
                             {% csrf_token %}
@@ -202,25 +179,14 @@
                             </button>
                         </form>
                         
-                        {% elif payment.status == 'payment_initiated' %}
-                        <form method="post" action="{% url 'payments:admin_mark_payment_received' payment.id %}" class="inline">
+                        {% elif payment.status == 'instructions_sent' %}
+                        <form method="post" action="{% url 'payments:admin_confirm_payment_and_activate' payment.id %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" 
-                                    data-confirm="Confirm that you have received this payment?"
-                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700">
-                                <i class="fas fa-check mr-1"></i>
-                                Verify Receipt
-                            </button>
-                        </form>
-                        
-                        {% elif payment.status == 'received' and payment.pilot_bid.status == 'approved' %}
-                        <form method="post" action="{% url 'payments:admin_activate_pilot_work' payment.id %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    data-confirm="Activate this pilot? Both parties will be notified that work can begin."
+                                    data-confirm="Confirm payment received and activate work?"
                                     class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                                <i class="fas fa-play mr-1"></i>
-                                Activate Work
+                                <i class="fas fa-check-double mr-1"></i>
+                                Confirm & Activate
                             </button>
                         </form>
                         
@@ -235,8 +201,14 @@
                             </button>
                         </form>
                         
-                        {% elif payment.status == 'released' %}
+                        {% elif payment.status == 'received' and payment.pilot_bid.status == 'live' %}
                         <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700">
+                            <i class="fas fa-play-circle mr-1"></i>
+                            Work Active
+                        </span>
+                        
+                        {% elif payment.status == 'released' %}
+                        <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700">
                             <i class="fas fa-check-circle mr-1"></i>
                             Complete
                         </span>
@@ -244,25 +216,23 @@
                     </div>
                 </div>
                 
-                <!-- Progress Bar -->
+                <!-- Progress Bar - Updated for 4-stage workflow -->
                 <div class="mt-4">
                     <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
                         <span>Progress</span>
                         <span>
-                            {% if payment.status == 'pending' %}20%
-                            {% elif payment.status == 'instructions_sent' %}40%
-                            {% elif payment.status == 'payment_initiated' %}60%
-                            {% elif payment.status == 'received' %}80%
+                            {% if payment.status == 'pending' %}25%
+                            {% elif payment.status == 'instructions_sent' %}50%
+                            {% elif payment.status == 'received' %}75%
                             {% elif payment.status == 'released' %}100%
                             {% else %}0%{% endif %}
                         </span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
                         <div class="h-2 rounded-full
-                            {% if payment.status == 'pending' %}bg-blue-400 w-1/5
-                            {% elif payment.status == 'instructions_sent' %}bg-yellow-400 w-2/5
-                            {% elif payment.status == 'payment_initiated' %}bg-orange-400 w-3/5
-                            {% elif payment.status == 'received' %}bg-green-400 w-4/5
+                            {% if payment.status == 'pending' %}bg-blue-400 w-1/4
+                            {% elif payment.status == 'instructions_sent' %}bg-yellow-400 w-1/2
+                            {% elif payment.status == 'received' %}bg-green-400 w-3/4
                             {% elif payment.status == 'released' %}bg-purple-400 w-full
                             {% else %}bg-gray-400 w-0{% endif %}">
                         </div>
@@ -272,7 +242,7 @@
             {% endfor %}
         </div>
         
-        <!-- Pagination (same as before) -->
+        <!-- Pagination -->
         {% if payments.has_other_pages %}
         <div class="bg-white px-6 py-3 border-t border-gray-200 flex items-center justify-between">
             <div class="flex-1 flex justify-between sm:hidden">

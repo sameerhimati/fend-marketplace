@@ -23,16 +23,21 @@ class CustomAdminMixin:
         extra_context = extra_context or {}
         extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
         
-        # Add payment stats for EscrowPayment model
+        # Add payment stats for EscrowPayment model - Updated for 4-stage workflow
         if self.model._meta.model_name == 'escrowpayment':
             queryset = self.get_queryset(request)
-            extra_context['payment_initiated_count'] = queryset.filter(status='payment_initiated').count()
+            
+            # 4-Stage Workflow Stats
+            extra_context['invoice_pending_count'] = queryset.filter(status='pending').count()
+            extra_context['invoice_sent_count'] = queryset.filter(status='instructions_sent').count()
             extra_context['payment_received_count'] = queryset.filter(
                 status='received', pilot_bid__status='completed'
             ).count()
             extra_context['payment_released_count'] = queryset.filter(status='released').count()
+            
+            # Total escrow amount (payments in progress)
             extra_context['total_escrow_amount'] = queryset.filter(
-                status__in=['received', 'payment_initiated']
+                status__in=['received', 'instructions_sent']
             ).aggregate(total=Sum('total_amount'))['total'] or 0
         
         return super().changelist_view(request, extra_context=extra_context)
@@ -52,13 +57,13 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
     pilot_bid_link.short_description = 'Pilot Bid'
     
     def status_badge(self, obj):
+        # Updated colors for 4-stage workflow
         colors = {
-            'pending': '#EAB308',
-            'instructions_sent': '#3B82F6',
-            'payment_initiated': '#6366F1',
-            'received': '#10B981',
-            'released': '#8B5CF6',
-            'cancelled': '#EF4444'
+            'pending': '#3B82F6',           # Blue - Stage 1: Invoice Pending
+            'instructions_sent': '#EAB308', # Yellow - Stage 2: Invoice Sent  
+            'received': '#10B981',          # Green - Stage 3: Payment Received & Work Active
+            'released': '#8B5CF6',          # Purple - Stage 4: Released to Startup
+            'cancelled': '#EF4444'          # Red - Cancelled
         }
         color = colors.get(obj.status, '#6B7280')
         return format_html(
@@ -79,34 +84,71 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
     actions_column.short_description = 'Actions'
     
     def status_timeline(self, obj):
+        """Updated timeline for 4-stage workflow"""
         timeline_html = '<div style="margin: 10px 0;">'
-        timeline_html += '<h3>Status Timeline</h3>'
+        timeline_html += '<h3>4-Stage Workflow Timeline</h3>'
         
-        # Add timeline entries
+        # Stage 1: Created (Invoice Pending)
         if obj.created_at:
-            timeline_html += self._timeline_entry('Created', obj.created_at, '#10B981')
+            timeline_html += self._timeline_entry(
+                'Stage 1: Invoice Created', 
+                obj.created_at, 
+                '#3B82F6'
+            )
+        
+        # Stage 2: Instructions Sent (Invoice Sent)
         if obj.instructions_sent_at:
-            timeline_html += self._timeline_entry('Instructions Sent', obj.instructions_sent_at, '#3B82F6')
-        if obj.payment_initiated_at:
-            timeline_html += self._timeline_entry('Payment Initiated', obj.payment_initiated_at, '#6366F1')
+            timeline_html += self._timeline_entry(
+                'Stage 2: Invoice Sent to Enterprise', 
+                obj.instructions_sent_at, 
+                '#EAB308'
+            )
+        
+        # Stage 3: Payment Received & Work Activated
         if obj.received_at:
-            timeline_html += self._timeline_entry('Payment Received', obj.received_at, '#10B981')
+            timeline_html += self._timeline_entry(
+                'Stage 3: Payment Confirmed & Work Activated', 
+                obj.received_at, 
+                '#10B981'
+            )
+        
+        # Stage 4: Payment Released
         if obj.released_at:
-            timeline_html += self._timeline_entry('Payment Released', obj.released_at, '#8B5CF6')
+            timeline_html += self._timeline_entry(
+                'Stage 4: Payment Released to Startup', 
+                obj.released_at, 
+                '#8B5CF6'
+            )
+        
+        # Show current stage
+        stage_info = self._get_current_stage_info(obj)
+        timeline_html += f'<div style="margin-top: 15px; padding: 8px; background-color: #F3F4F6; border-radius: 5px;"><strong>Current Stage:</strong> {stage_info}</div>'
             
         timeline_html += '</div>'
         return mark_safe(timeline_html)
-    status_timeline.short_description = 'Status Timeline'
+    status_timeline.short_description = '4-Stage Workflow Timeline'
     
     def _timeline_entry(self, label, timestamp, color):
         return f'''
-        <div style="margin: 5px 0; padding: 5px; border-left: 3px solid {color};">
-            <strong>{label}:</strong> {timestamp.strftime("%B %d, %Y at %I:%M %p")}
+        <div style="margin: 5px 0; padding: 8px; border-left: 4px solid {color}; background-color: #F9FAFB;">
+            <strong style="color: {color};">{label}:</strong><br>
+            <span style="color: #6B7280; font-size: 13px;">{timestamp.strftime("%B %d, %Y at %I:%M %p")}</span>
         </div>
         '''
     
+    def _get_current_stage_info(self, obj):
+        """Get current stage information for display"""
+        stage_map = {
+            'pending': 'Stage 1 of 4 - Invoice Pending',
+            'instructions_sent': 'Stage 2 of 4 - Invoice Sent, Awaiting Payment',
+            'received': 'Stage 3 of 4 - Payment Confirmed & Work Active',
+            'released': 'Stage 4 of 4 - Payment Released (Complete)',
+            'cancelled': 'Cancelled'
+        }
+        return stage_map.get(obj.status, 'Unknown Stage')
+    
     def get_urls(self):
-        """Add custom admin URLs for the enhanced workflow"""
+        """Add custom admin URLs for the 4-stage workflow"""
         urls = super().get_urls()
         custom_urls = [
             # Main payment dashboard
@@ -124,18 +166,21 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
                  self.admin_site.admin_view(payment_views.admin_escrow_payment_detail), 
                  name='escrow_payment_detail'),
             
-            # Payment workflow actions
-            path('escrow-payment/<int:payment_id>/received/', 
-                 self.admin_site.admin_view(payment_views.admin_mark_payment_received), 
-                 name='mark_payment_received'),
+            # 4-Stage Workflow Actions
+            # Stage 1→2: Mark invoice as sent
+            path('bid/<int:bid_id>/mark-invoice-sent/', 
+                 self.admin_site.admin_view(payment_views.admin_mark_invoice_sent), 
+                 name='mark_invoice_sent'),
             
-            path('escrow-payment/<int:payment_id>/release/', 
-                 self.admin_site.admin_view(payment_views.admin_release_payment), 
-                 name='release_payment'),
+            # Stage 2→3: Confirm payment and activate work (combined)
+            path('payment/<int:payment_id>/confirm-and-activate/', 
+                 self.admin_site.admin_view(payment_views.admin_confirm_payment_and_activate), 
+                 name='confirm_and_activate'),
             
-            path('escrow-payment/<int:payment_id>/kickoff/', 
-                 self.admin_site.admin_view(payment_views.admin_kickoff_pilot), 
-                 name='kickoff_pilot'),
+            # Stage 3→4: Release payment to startup
+            path('payment/<int:payment_id>/release-startup-payment/', 
+                 self.admin_site.admin_view(payment_views.admin_release_startup_payment), 
+                 name='release_startup_payment'),
             
             # Utilities
             path('export-csv/', 
