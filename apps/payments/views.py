@@ -697,6 +697,8 @@ def admin_payment_dashboard(request):
     # 1. Approved bids needing invoice generation (New Stage 1)
     approved_bids_needing_invoice = PilotBid.objects.filter(
         status='approved'
+    ).exclude(
+        escrow_payment__status='instructions_sent'  # Exclude bids with invoices already sent
     ).select_related(
         'pilot__organization',
         'startup'
@@ -779,7 +781,7 @@ def admin_mark_invoice_sent(request, bid_id):
     bid = get_object_or_404(PilotBid, id=bid_id)
     
     # Validate bid status
-    if bid.status != 'approval_pending':
+    if bid.status != 'approved':
         messages.error(request, f"Bid must be in 'approval_pending' status. Current status: {bid.get_status_display()}")
         return redirect('payments:admin_payment_dashboard')
     
@@ -838,8 +840,8 @@ def admin_activate_pilot_work(request, payment_id):
         messages.error(request, f"Payment must be in 'received' status. Current status: {payment.get_status_display()}")
         return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
     
-    # Verify that bid is in approval_pending status
-    if payment.pilot_bid.status != 'approval_pending':
+    # Verify that bid is in approved status
+    if payment.pilot_bid.status != 'approved':
         if payment.pilot_bid.status == 'live':
             messages.warning(request, "This pilot has already been activated")
         else:
@@ -1184,8 +1186,8 @@ def admin_kickoff_pilot(request, payment_id):
         messages.error(request, f"Payment must be in 'received' status to kick off the pilot. Current status: {payment.get_status_display()}")
         return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
     
-    # Verify that bid is in approval_pending status
-    if payment.pilot_bid.status != 'approval_pending':
+    # Verify that bid is in approved status
+    if payment.pilot_bid.status != 'approved':
         if payment.pilot_bid.status == 'live':
             messages.warning(request, "This pilot has already been kicked off")
         else:
