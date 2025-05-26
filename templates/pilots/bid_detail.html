@@ -12,7 +12,9 @@
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">Bid Details</h1>
                     <p class="mt-1 text-sm text-gray-500">
-                        {% if is_enterprise %}
+                        {% if is_admin %}
+                            Admin View - {{ bid.startup.name }} → {{ bid.pilot.organization.name }}
+                        {% elif is_enterprise %}
                             From {{ bid.startup.name }}
                         {% else %}
                             For {{ bid.pilot.title }}
@@ -90,6 +92,27 @@
                     </div>
                     {% endif %}
 
+                    <!-- Admin Financial Overview -->
+                    {% if is_admin %}
+                    <div class="sm:col-span-2 bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">Admin Financial Overview</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Enterprise Pays:</span>
+                                <span class="font-semibold text-gray-900">${{ bid.calculate_total_amount_for_enterprise|format_currency }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Startup Receives:</span>
+                                <span class="font-semibold text-gray-900">${{ bid.calculate_startup_net_amount|format_currency }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Platform Fee:</span>
+                                <span class="font-semibold text-gray-900">${{ bid.calculate_platform_fee|format_currency }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="sm:col-span-2">
                         <dt class="text-sm font-medium text-gray-500">Proposal</dt>
                         <dd class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ bid.proposal }}</dd>
@@ -116,6 +139,17 @@
                         <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ escrow_payment.total_amount|format_currency }}</dd>
                     </div>
                 </dl>
+
+                <!-- Admin Payment Link -->
+                {% if is_admin %}
+                <div class="mt-4">
+                    <a href="{% url 'payments:admin_escrow_payment_detail' escrow_payment.id %}" 
+                       class="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                        <i class="fas fa-credit-card mr-2"></i>
+                        Manage Payment
+                    </a>
+                </div>
+                {% endif %}
 
                 <!-- Payment Status Information -->
                 {% if escrow_payment.status == 'instructions_sent' and is_enterprise %}
@@ -156,6 +190,35 @@
 
             <!-- Action Buttons -->
             <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between items-center">
+                <!-- Admin Navigation -->
+                {% if is_admin %}
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payments:admin_payment_dashboard' %}" 
+                       class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                        ← Back to Payment Dashboard
+                    </a>
+                    <a href="{% url 'payments:admin_escrow_payments' %}" 
+                       class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                        All Payments
+                    </a>
+                </div>
+                
+                <!-- Admin Actions -->
+                <div class="flex space-x-3">
+                    {% if escrow_payment %}
+                    <a href="{% url 'payments:admin_escrow_payment_detail' escrow_payment.id %}" 
+                       class="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
+                        Manage Payment
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'admin:pilots_pilotbid_change' bid.id %}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Edit in Django Admin
+                    </a>
+                </div>
+                
+                {% else %}
+                <!-- Regular User Navigation -->
                 <a href="{% url 'pilots:bid_list' %}" 
                    class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                     ← Back to Bids
@@ -238,6 +301,7 @@
                         </div>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>

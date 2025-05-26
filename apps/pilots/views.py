@@ -372,6 +372,12 @@ class BidDetailView(LoginRequiredMixin, DetailView):
     template_name = 'pilots/bid_detail.html'
     context_object_name = 'bid'
     
+    def dispatch(self, request, *args, **kwargs):
+        # Set UI state for admin users
+        if request.user.is_staff or request.user.is_superuser:
+            request.ui_state = 'admin'
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_object(self, queryset=None):
         bid = super().get_object(queryset)
         
