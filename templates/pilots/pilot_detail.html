@@ -21,6 +21,8 @@
                     {% else %}bg-red-100 text-red-800{% endif %}">
                     {% if pilot.status == 'pending_approval' %}
                         Pending Approval
+                    {% elif pilot.status == 'in_progress' %}
+                        In Progress
                     {% else %}
                         {{ pilot.status|title }}
                     {% endif %}

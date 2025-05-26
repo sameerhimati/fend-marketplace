@@ -5,73 +5,54 @@
 
 {% block content %}
 <div class="py-6">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <!-- Header -->
+            <!-- Header with Status -->
             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">Bid Details</h1>
                     <p class="mt-1 text-sm text-gray-500">
                         {% if is_enterprise %}
-                        From {{ bid.startup.name }}
+                            From {{ bid.startup.name }}
                         {% else %}
-                        For {{ bid.pilot.title }}
+                            For {{ bid.pilot.title }}
                         {% endif %}
                     </p>
                 </div>
                 <div class="text-right">
-                    <!-- Standardized Status Badge -->
+                    {% with status_context=bid.get_status_context %}
                     <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full
-                        {% if bid.status == 'pending' or bid.status == 'approval_pending' or bid.status == 'completion_pending' %}
+                        {% if status_context.color == 'yellow' %}
                             bg-yellow-100 text-yellow-800 border border-yellow-200
-                        {% elif bid.status == 'under_review' %}
+                        {% elif status_context.color == 'blue' %}
                             bg-blue-100 text-blue-800 border border-blue-200
-                        {% elif bid.status == 'approved' or bid.status == 'live' %}
+                        {% elif status_context.color == 'orange' %}
+                            bg-orange-100 text-orange-800 border border-orange-200
+                        {% elif status_context.color == 'green' %}
                             bg-green-100 text-green-800 border border-green-200
-                        {% elif bid.status == 'completed' or bid.status == 'paid' %}
+                        {% elif status_context.color == 'purple' %}
                             bg-purple-100 text-purple-800 border border-purple-200
-                        {% elif bid.status == 'declined' %}
+                        {% elif status_context.color == 'emerald' %}
+                            bg-emerald-100 text-emerald-800 border border-emerald-200
+                        {% elif status_context.color == 'red' %}
                             bg-red-100 text-red-800 border border-red-200
                         {% else %}
                             bg-gray-100 text-gray-800 border border-gray-200
                         {% endif %}">
-                        {% if bid.status == 'completion_pending' %}
-                            Awaiting Verification
-                        {% else %}
-                            {{ bid.get_status_display }}
-                        {% endif %}
+                        {{ bid.get_status_display }}
                     </span>
                     
-                    <!-- Status Context Messages -->
-                    {% if bid.status == 'approval_pending' %}
-                        <p class="mt-2 text-sm text-gray-600">
-                            {% if is_enterprise %}
-                                Waiting for Fend to verify payment before the pilot can begin.
-                            {% else %}
-                                Your bid has been approved. Fend is verifying payment before the pilot can begin.
-                            {% endif %}
-                        </p>
-                    {% elif bid.status == 'live' %}
-                        <p class="mt-2 text-sm text-gray-600">
-                            {% if is_enterprise %}
-                                Payment verified and pilot is active. Work can begin.
-                            {% else %}
-                                Payment verified and pilot is active. You can begin work.
-                            {% endif %}
-                        </p>
-                    {% elif bid.status == 'completion_pending' %}
-                        <p class="mt-2 text-sm text-gray-600">
-                            {% if is_enterprise %}
-                                The startup has marked this pilot as complete. Please review and verify completion.
-                            {% else %}
-                                You've marked this pilot as complete. Waiting for enterprise verification.
-                            {% endif %}
-                        </p>
+                    {% if status_context %}
+                    <div class="mt-2 text-sm text-gray-600 max-w-xs">
+                        <p class="font-medium">{{ status_context.message }}</p>
+                        <p class="text-gray-500">{{ status_context.next_action }}</p>
+                    </div>
                     {% endif %}
+                    {% endwith %}
                 </div>
             </div>
             
-            <!-- Content -->
+            <!-- Bid Information -->
             <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
                 <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                     <div class="sm:col-span-2">
@@ -85,13 +66,29 @@
 
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Bid Amount</dt>
-                        <dd class="mt-1 text-sm text-gray-900">${{ bid.amount|format_currency }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ bid.amount|format_currency }}</dd>
                     </div>
 
                     <div>
-                        <dt class="text-sm font-medium text-gray-500">Submitted On</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"F j, Y" }}</dd>
+                        <dt class="text-sm font-medium text-gray-500">Submitted</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"M j, Y g:i A" }}</dd>
                     </div>
+
+                    {% if bid.is_active and is_enterprise %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Total Payment Required</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ bid.calculate_total_amount_for_enterprise|format_currency }}</dd>
+                        <dd class="text-xs text-gray-500">Includes {{ bid.enterprise_fee_percentage }}% platform fee</dd>
+                    </div>
+                    {% endif %}
+
+                    {% if bid.is_active and is_startup %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Your Net Amount</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ bid.calculate_startup_net_amount|format_currency }}</dd>
+                        <dd class="text-xs text-gray-500">After {{ bid.startup_fee_percentage }}% platform fee</dd>
+                    </div>
+                    {% endif %}
 
                     <div class="sm:col-span-2">
                         <dt class="text-sm font-medium text-gray-500">Proposal</dt>
@@ -100,144 +97,145 @@
                 </dl>
             </div>
 
-            <!-- Payment Status Information -->
-            {% if bid.status == 'approval_pending' %}
-                <!-- Show payment verification pending message only for approval_pending status -->
-                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-yellow-800">Payment Verification Pending</h3>
-                                <p class="text-sm text-yellow-700 mt-1">
-                                    Fend will generate an invoice. Once payment is verified, the pilot will begin.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% elif bid.status == 'live' %}
-                <!-- Show payment verified message for live status -->
-                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-green-800">Payment Verified</h3>
-                                <p class="text-sm text-green-700 mt-1">
-                                    {% if is_enterprise %}
-                                        Payment has been verified by Fend. You can now begin working with the startup on this pilot.
-                                    {% else %}
-                                        Payment has been verified by Fend. You can now begin work on this pilot.
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
-            <!-- Completion Actions -->
-            {% if bid.status == 'live' %}
+            <!-- Payment Information Section -->
+            {% if escrow_payment %}
             <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                {% if not is_enterprise %}
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 class="text-sm font-medium text-green-800 mb-2">Ready to Complete?</h3>
-                    <p class="text-sm text-green-700 mb-3">Once you've finished the pilot work, request completion verification from the enterprise.</p>
-                    <form method="post" action="{% url 'pilots:request_completion' bid.pk %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            Request Completion Verification
-                        </button>
-                    </form>
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Payment Tracking</h3>
+                
+                <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Reference Code</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded">{{ escrow_payment.reference_code }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Payment Status</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ escrow_payment.get_status_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Total Amount</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ escrow_payment.total_amount|format_currency }}</dd>
+                    </div>
+                </dl>
+
+                <!-- Payment Status Information -->
+                {% if escrow_payment.status == 'instructions_sent' and is_enterprise %}
+                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-800 mb-3">Payment Required</h4>
+                    <div class="text-sm">
+                        <div><span class="font-medium">Reference Code:</span> {{ escrow_payment.reference_code }}</div>
+                        <div><span class="font-medium">Amount Due:</span> ${{ escrow_payment.total_amount|format_currency }}</div>
+                        <div class="mt-2 p-2 bg-blue-100 rounded">
+                            <span class="font-medium">Note:</span> You will receive an invoice from Fend with payment instructions.
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Payment Timeline -->
+                {% if escrow_payment.status != 'pending' %}
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Payment Timeline</h4>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        {% if escrow_payment.instructions_sent_at %}
+                        <div>✓ Invoice generated: {{ escrow_payment.instructions_sent_at|date:"M j, Y g:i A" }}</div>
+                        {% endif %}
+                        {% if escrow_payment.payment_initiated_at %}
+                        <div>✓ Payment initiated: {{ escrow_payment.payment_initiated_at|date:"M j, Y g:i A" }}</div>
+                        {% endif %}
+                        {% if escrow_payment.received_at %}
+                        <div>✓ Payment received: {{ escrow_payment.received_at|date:"M j, Y g:i A" }}</div>
+                        {% endif %}
+                        {% if escrow_payment.released_at %}
+                        <div>✓ Payment released: {{ escrow_payment.released_at|date:"M j, Y g:i A" }}</div>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
             {% endif %}
 
-            {% if bid.status == 'completion_pending' and is_enterprise %}
-            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 class="text-sm font-medium text-yellow-800 mb-2">Completion Verification Required</h3>
-                    <p class="text-sm text-yellow-700 mb-3">The startup has marked this pilot as complete. Please review their work and verify completion.</p>
-                    <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                            Verify Completion
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Actions -->
+            <!-- Action Buttons -->
             <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between items-center">
                 <a href="{% url 'pilots:bid_list' %}" 
-                class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                     ← Back to Bids
                 </a>
                 
-                <div class="flex space-x-2">
-                    {% if is_enterprise %}
-                        {% if bid.status == 'pending' or bid.status == 'under_review' %}
-                            <!-- Enterprise bid management actions -->
-                            <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="under_review">
-                                <button type="submit" 
-                                        class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    Mark Under Review
-                                </button>
-                            </form>
-                    
-                            <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="approved">
-                                <button type="submit" 
-                                        class="inline-flex items-center px-3 py-2 border border-green-300 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                    Approve Bid
-                                </button>
-                            </form>
-                    
-                            <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="declined">
-                                <button type="submit" 
-                                        class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    Decline Bid
-                                </button>
-                            </form>
-                        {% elif bid.status == 'approval_pending' %}
-                            <div class="text-sm text-gray-700 bg-yellow-50 border border-yellow-200 rounded-md px-4 py-2">
-                                <p><span class="font-medium">Next:</span> Fend team will verify payment and notify when pilot can begin.</p>
-                            </div>
-                        {% elif bid.status == 'live' %}
-                            <div class="text-sm text-gray-700 bg-green-50 border border-green-200 rounded-md px-4 py-2">
-                                <p><span class="font-medium">Pilot Active:</span> Payment verified. Work can begin.</p>
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <!-- Startup actions -->
-                        {% if can_delete_bid %}
-                        <form method="post" action="{% url 'pilots:delete_bid' bid.pk %}" class="inline"
-                            onsubmit="return confirm('Are you sure you want to withdraw this bid? This action cannot be undone.');">
+                <div class="flex space-x-3">
+                    {% if can_approve %}
+                        <!-- Enterprise Review Actions -->
+                        {% if bid.status == 'pending' %}
+                        <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
                             {% csrf_token %}
+                            <input type="hidden" name="action" value="review">
                             <button type="submit" 
-                                    class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                Withdraw Bid
+                                    class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                Mark Under Review
                             </button>
                         </form>
                         {% endif %}
+                        
+                        <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="decline">
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                    onclick="return confirm('Are you sure you want to decline this bid?');">
+                                Decline Bid
+                            </button>
+                        </form>
+                        
+                        <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                    onclick="return confirm('Approve this bid for ${{ bid.calculate_total_amount_for_enterprise|format_currency }}? This will trigger invoice generation.');">
+                                Approve Bid
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if can_withdraw %}
+                        <!-- Startup Withdrawal -->
+                        <form method="post" action="{% url 'pilots:delete_bid' bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                    onclick="return confirm('Are you sure you want to withdraw this bid?');">
+                                Withdraw Bid
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if can_request_completion %}
+                        <!-- Startup Completion Request -->
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600 mb-2">Finished the work?</p>
+                            <form method="post" action="{% url 'pilots:request_completion' bid.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                        onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                                    Request Completion Verification
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    {% if can_verify_completion %}
+                        <!-- Enterprise Completion Verification -->
+                        <div class="text-right">
+                            <p class="text-sm text-gray-600 mb-2">Review completed work</p>
+                            <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                                        onclick="return confirm('Verify that the work is completed satisfactorily? This will trigger payment release.');">
+                                    Verify Completion
+                                </button>
+                            </form>
+                        </div>
                     {% endif %}
                 </div>
             </div>

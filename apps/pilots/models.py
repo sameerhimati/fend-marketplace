@@ -204,175 +204,288 @@ class Pilot(models.Model):
                 })
         return formatted
     
-
 class PilotBid(models.Model):
-    # Adjust fee_percentage field and add new fields for split fees
-    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Total transaction fee percentage")
-    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Startup's portion of transaction fee")
-    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00, help_text="Enterprise's portion of transaction fee")
-
+    # Simplified but complete status choices
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('pending', 'Pending Review'),
         ('under_review', 'Under Review'),
-        ('approval_pending', 'Approval Pending'),
-        ('approved', 'Approved'),
-        ('live', 'Live'),
-        ('declined', 'Declined'),
-        ('completion_pending', 'Completion Pending'),
+        ('approved', 'Approved - Payment Pending'),
+        ('live', 'Live - Work in Progress'),
+        ('completion_pending', 'Completion Pending Review'),
         ('completed', 'Completed'),
-        ('paid', 'Paid')
+        ('declined', 'Declined'),
     ]
 
+    # Core relationships and bid details
     pilot = models.ForeignKey(Pilot, on_delete=models.CASCADE, related_name='bids')
     startup = models.ForeignKey('organizations.Organization', on_delete=models.CASCADE, related_name='submitted_bids')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     proposal = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Fee structure - CRITICAL for financial calculations
+    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)
+    startup_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
+    enterprise_fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
+    
+    # Audit timestamps - ESSENTIAL for compliance
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
     
-    # For stripe integration
+    # Stripe integration
     stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True)
     
     class Meta:
         unique_together = ['pilot', 'startup']
     
-    def mark_as_approved(self):
-        """Mark bid as approval_pending and notify admin"""
-        if self.status != 'pending' and self.status != 'under_review':
+    def approve_bid(self):
+        """Enterprise approves bid - handles complete approval workflow"""
+        if self.status not in ['pending', 'under_review']:
             return False
         
-        # Update bid status to approval_pending
-        self.status = 'approval_pending'
-        self.save()
+        # Decline competing bids
+        self._decline_competing_bids()
         
-        # Handle other pending bids - decline them
-        other_pending_bids = PilotBid.objects.filter(
-            pilot=self.pilot,
-            status__in=['pending', 'under_review']
-        ).exclude(id=self.id)
+        # Update bid status
+        old_status = self.status
+        self.status = 'approved'
+        self.save(update_fields=['status', 'updated_at'])
         
-        if other_pending_bids.exists():
-            from apps.notifications.services import create_bid_notification
-            for bid in other_pending_bids:
-                bid.status = 'declined'
-                bid.save()
-                
-                # Create notification
-                create_bid_notification(
-                    bid=bid,
-                    notification_type='bid_updated',
-                    title=f"Bid Declined: {bid.pilot.title}",
-                    message=f"Another bid has been accepted for '{bid.pilot.title}', so your bid has been declined."
-                )
-
-        # Create notification for both parties
-        from apps.notifications.services import create_bid_notification
-        create_bid_notification(
-            bid=self,
-            notification_type='bid_updated',
-            title=f"Bid Approved: {self.pilot.title}",
-            message=f"The bid for '{self.pilot.title}' has been approved and is pending payment verification. The Fend team will send an invoice shortly."
-        )
+        # Update pilot status
+        self.pilot.status = 'in_progress'
+        self.pilot.save(update_fields=['status'])
         
-        # Create notification for admin
-        from apps.notifications.services import create_notification
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+        # Create escrow payment
+        self._create_escrow_payment()
         
-        # Notify admins about the approved bid
-        admins = User.objects.filter(is_staff=True)
-        for admin in admins:
-            create_notification(
-                recipient=admin,
-                notification_type='bid_approved',
-                title=f"New Bid Approved: {self.pilot.title}",
-                message=f"A bid for '{self.pilot.title}' has been approved by {self.pilot.organization.name}. Amount: ${self.amount}. Please generate an invoice.",
-                related_pilot=self.pilot,
-                related_bid=self
-            )
+        # Send notifications
+        self._notify_bid_approved()
         
         return True
     
-
-    def mark_as_live(self):
-        """Mark bid as live after payment verification and admin kickoff"""
-        if self.status != 'approval_pending':
+    def mark_live(self):
+        """Admin marks bid as live after payment verification"""
+        if self.status != 'approved':
             return False
         
         self.status = 'live'
-        self.save()
+        self.save(update_fields=['status', 'updated_at'])
         
-        # Update pilot status to in_progress
-        pilot = self.pilot
-        pilot.status = 'in_progress'
-        pilot.save(update_fields=['status'])
-        
-        # Create notification for both parties
-        from apps.notifications.services import create_bid_notification
-        create_bid_notification(
-            bid=self,
-            notification_type='bid_live',
-            title=f"Pilot is now Live: {self.pilot.title}",
-            message=f"Your pilot '{self.pilot.title}' has been verified and is now live. You may begin work now."
-        )
-        
+        self._notify_work_can_begin()
         return True
     
-    def mark_completion_requested(self):
-        """Startup marks work as complete, awaiting enterprise verification"""
+    def request_completion(self):
+        """Startup requests completion verification"""
         if self.status != 'live':
             return False
         
         self.status = 'completion_pending'
-        self.save()
+        self.save(update_fields=['status', 'updated_at'])
         
-        # Create notifications for enterprise
-        from apps.notifications.services import create_bid_notification
-        create_bid_notification(
-            bid=self,
-            notification_type='completion_requested',
-            title=f"Completion Requested: {self.pilot.title}",
-            message=f"The startup has marked the pilot '{self.pilot.title}' as completed. Please review and verify completion."
-        )
+        self._notify_completion_requested()
         return True
-
+    
     def verify_completion(self):
-        """Enterprise verifies the work is completed satisfactorily"""
+        """Enterprise verifies work completion"""
         if self.status != 'completion_pending':
             return False
         
         self.status = 'completed'
         self.completed_at = timezone.now()
-        self.save()
+        self.save(update_fields=['status', 'updated_at', 'completed_at'])
         
-        # Also update pilot status
-        pilot = self.pilot
-        pilot.status = 'completed'
-        pilot.save(update_fields=['status'])
+        # Update pilot status
+        self.pilot.status = 'completed'
+        self.pilot.save(update_fields=['status'])
         
-        # Notify admin for payment release
-        from apps.notifications.services import create_notification
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        admins = User.objects.filter(is_staff=True)
-        for admin in admins:
-            create_notification(
-                recipient=admin,
-                notification_type='pilot_completed',
-                title=f"Pilot Verified Complete: {self.pilot.title}",
-                message=f"The pilot '{self.pilot.title}' has been verified as completed by the enterprise. The payment is ready to be released.",
-                related_pilot=self.pilot,
-                related_bid=self
-            )
+        self._notify_completion_verified()
+        return True
+    
+    def decline_bid(self, declined_by_enterprise=True):
+        """Decline the bid with proper notification"""
+        if self.status not in ['pending', 'under_review']:
+            return False
+        
+        self.status = 'declined'
+        self.save(update_fields=['status', 'updated_at'])
+        
+        self._notify_bid_declined(declined_by_enterprise)
+        return True
+    
+    # Financial calculations - CRITICAL for payment processing
+    def calculate_total_amount_for_enterprise(self):
+        """Calculate total amount enterprise needs to pay (includes enterprise fee)"""
+        enterprise_fee = (self.amount * self.enterprise_fee_percentage) / 100
+        return self.amount + enterprise_fee
+    
+    def calculate_startup_net_amount(self):
+        """Calculate net amount startup receives (after startup fee)"""
+        startup_fee = (self.amount * self.startup_fee_percentage) / 100
+        return self.amount - startup_fee
+    
+    def calculate_platform_fee(self):
+        """Calculate total platform fee"""
+        return (self.amount * (self.startup_fee_percentage + self.enterprise_fee_percentage)) / 100
+    
+    # Status checks for workflow control
+    def can_be_approved(self):
+        return self.status in ['pending', 'under_review']
+    
+    def can_be_declined(self):
+        return self.status in ['pending', 'under_review']
+    
+    def can_request_completion(self):
+        return self.status == 'live'
+    
+    def can_verify_completion(self):
+        return self.status == 'completion_pending'
+    
+    def is_active(self):
+        """Check if bid is in an active workflow state"""
+        return self.status in ['approved', 'live', 'completion_pending', 'completed']
+    
+    # Private helper methods
+    def _decline_competing_bids(self):
+        """Auto-decline other pending bids when this one is approved"""
+        competing_bids = PilotBid.objects.filter(
+            pilot=self.pilot,
+            status__in=['pending', 'under_review']
+        ).exclude(id=self.id)
+        
+        for bid in competing_bids:
+            bid.decline_bid(declined_by_enterprise=False)
+    
+    def _create_escrow_payment(self):
+        """Create escrow payment record with calculated amounts"""
+        from apps.payments.models import EscrowPayment
+        
+        total_amount = self.calculate_total_amount_for_enterprise()
+        startup_amount = self.amount  # Full bid amount before fees
+        platform_fee = self.calculate_platform_fee()
+        
+        EscrowPayment.objects.create(
+            pilot_bid=self,
+            total_amount=total_amount,
+            startup_amount=startup_amount,
+            platform_fee=platform_fee,
+            enterprise_fee_percentage=self.enterprise_fee_percentage,
+            startup_fee_percentage=self.startup_fee_percentage,
+            status='pending'
+        )
+    
+    # Notification methods - ESSENTIAL for transparency
+    def _notify_bid_approved(self):
+        from apps.notifications.services import create_bid_notification, create_admin_notification
         
         # Notify both parties
+        create_bid_notification(
+            bid=self,
+            notification_type='bid_approved',
+            title=f"Bid Approved: {self.pilot.title}",
+            message=f"The bid for '${self.amount}' on pilot '{self.pilot.title}' has been approved. Fend will send payment instructions shortly."
+        )
+        
+        # Notify admin to generate invoice
+        create_admin_notification(
+            title=f"Generate Invoice: {self.pilot.title}",
+            message=f"Approved bid for '${self.amount}' on pilot '{self.pilot.title}'. Enterprise: {self.pilot.organization.name}. Total payment required: ${self.calculate_total_amount_for_enterprise()}",
+            related_pilot=self.pilot,
+            related_bid=self
+        )
+    
+    def _notify_work_can_begin(self):
         from apps.notifications.services import create_bid_notification
         create_bid_notification(
             bid=self,
-            notification_type='pilot_completed',
-            title=f"Pilot Completion Verified: {self.pilot.title}",
-            message=f"The pilot '{self.pilot.title}' has been verified as completed by the enterprise. The payment will be released soon."
+            notification_type='work_can_begin',
+            title=f"Work Can Begin: {self.pilot.title}",
+            message=f"Payment has been verified for pilot '{self.pilot.title}'. Work can now begin."
+        )
+    
+    def _notify_completion_requested(self):
+        from apps.notifications.services import create_pilot_notification
+        create_pilot_notification(
+            pilot=self.pilot,
+            notification_type='completion_requested',
+            title=f"Completion Review Requested: {self.pilot.title}",
+            message=f"The startup has completed work on pilot '{self.pilot.title}' and requests verification of completion."
+        )
+    
+    def _notify_completion_verified(self):
+        from apps.notifications.services import create_admin_notification, create_bid_notification
+        
+        # Notify admin to release payment
+        create_admin_notification(
+            title=f"Release Payment: {self.pilot.title}",
+            message=f"Work completed and verified for pilot '{self.pilot.title}'. Ready to release ${self.calculate_startup_net_amount()} to {self.startup.name}.",
+            related_pilot=self.pilot,
+            related_bid=self
         )
         
-        return True
+        # Notify both parties
+        create_bid_notification(
+            bid=self,
+            notification_type='work_completed',
+            title=f"Work Completed: {self.pilot.title}",
+            message=f"Work for pilot '{self.pilot.title}' has been completed and verified. Payment will be released soon."
+        )
+    
+    def _notify_bid_declined(self, declined_by_enterprise):
+        from apps.notifications.services import create_bid_notification
+        
+        if declined_by_enterprise:
+            message = f"Your bid of ${self.amount} for pilot '{self.pilot.title}' has been declined by the enterprise."
+        else:
+            message = f"Your bid of ${self.amount} for pilot '{self.pilot.title}' was automatically declined because another bid was accepted."
+        
+        create_bid_notification(
+            bid=self,
+            notification_type='bid_declined',
+            title=f"Bid Declined: {self.pilot.title}",
+            message=message
+        )
+    
+    def get_status_context(self):
+        """Get user-friendly status information for templates"""
+        status_context = {
+            'pending': {
+                'message': 'Waiting for enterprise review',
+                'next_action': 'Enterprise will review your proposal',
+                'color': 'yellow'
+            },
+            'under_review': {
+                'message': 'Under review by enterprise',
+                'next_action': 'Enterprise is evaluating your proposal',
+                'color': 'blue'
+            },
+            'approved': {
+                'message': 'Bid approved - payment verification pending',
+                'next_action': 'Fend is processing payment before work can begin',
+                'color': 'orange'
+            },
+            'live': {
+                'message': 'Payment verified - work in progress',
+                'next_action': 'Complete the work and request verification',
+                'color': 'green'
+            },
+            'completion_pending': {
+                'message': 'Completion verification pending',
+                'next_action': 'Enterprise is reviewing your completed work',
+                'color': 'purple'
+            },
+            'completed': {
+                'message': 'Work completed and verified',
+                'next_action': 'Payment will be released soon',
+                'color': 'emerald'
+            },
+            'declined': {
+                'message': 'Bid was declined',
+                'next_action': 'You may submit a new bid if permitted',
+                'color': 'red'
+            }
+        }
+        return status_context.get(self.status, {})
+    
+    def __str__(self):
+        return f"Bid by {self.startup.name} for {self.pilot.title} - ${self.amount}"
