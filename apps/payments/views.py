@@ -14,6 +14,7 @@ import csv
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 
 from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog
+from apps.pilots.models import PilotBid
 from apps.organizations.models import Organization
 
 import stripe
@@ -693,7 +694,25 @@ def escrow_payment_confirmation(request, payment_id):
 def admin_payment_dashboard(request):
     """Enhanced admin dashboard with comprehensive workflow management"""
     
-    # 1. Payments needing verification (initiated but not received)
+    # 1. Approved bids needing invoice generation (New Stage 1)
+    approved_bids_needing_invoice = PilotBid.objects.filter(
+        status='approved'
+    ).select_related(
+        'pilot__organization',
+        'startup'
+    ).prefetch_related(
+        'escrow_payment'
+    ).order_by('-updated_at')
+    
+    # 2. Invoices sent, awaiting payment initiation (New Stage 2)
+    invoices_sent_awaiting_payment = EscrowPayment.objects.filter(
+        status='instructions_sent'
+    ).select_related(
+        'pilot_bid__pilot__organization',
+        'pilot_bid__startup'
+    ).order_by('-instructions_sent_at')
+    
+    # 3. Payments initiated by enterprise, needing verification (Stage 3)
     needs_verification = EscrowPayment.objects.filter(
         status='payment_initiated'
     ).select_related(
@@ -701,8 +720,17 @@ def admin_payment_dashboard(request):
         'pilot_bid__startup'
     ).order_by('-payment_initiated_at')
     
-    # 2. Payments ready for release (received and pilot completed)
-    ready_for_release = EscrowPayment.objects.filter(
+    # 4. Payments received, ready to activate pilot work (Stage 4)
+    payment_received_ready_to_activate = EscrowPayment.objects.filter(
+        status='received', 
+        pilot_bid__status='approved'
+    ).select_related(
+        'pilot_bid__pilot__organization',
+        'pilot_bid__startup'
+    ).order_by('-received_at')
+    
+    # 5. Work completed, ready for payment release (Stage 5)
+    completed_ready_for_release = EscrowPayment.objects.filter(
         status='received', 
         pilot_bid__status='completed'
     ).select_related(
@@ -710,44 +738,222 @@ def admin_payment_dashboard(request):
         'pilot_bid__startup'
     ).order_by('-received_at')
     
-    # 3. Payments received but pilot not yet kicked off
-    payment_received_pilots = EscrowPayment.objects.filter(
-        status='received', 
-        pilot_bid__status='approval_pending'
-    ).select_related(
-        'pilot_bid__pilot__organization',
-        'pilot_bid__startup'
-    ).order_by('-received_at')
-    
-    # 4. Recent activity logs
+    # 6. Recent activity logs
     recent_logs = EscrowPaymentLog.objects.select_related(
         'escrow_payment__pilot_bid__pilot',
         'changed_by'
     ).order_by('-created_at')[:10]
     
-    # Calculate additional stats for the dashboard
+    # Calculate stats for the dashboard
     total_escrow_amount = EscrowPayment.objects.filter(
-        status__in=['received', 'payment_initiated']
+        status__in=['received', 'payment_initiated', 'instructions_sent']
     ).aggregate(total=Sum('total_amount'))['total'] or 0
     
     context = {
-        'needs_verification': needs_verification[:5],  # Limit to 5 for dashboard
-        'ready_for_release': ready_for_release[:5],
-        'payment_received_pilots': payment_received_pilots[:5],
+        # New workflow stages
+        'approved_bids_needing_invoice': approved_bids_needing_invoice[:5],
+        'invoices_sent_awaiting_payment': invoices_sent_awaiting_payment[:5],
+        'needs_verification': needs_verification[:5],
+        'payment_received_ready_to_activate': payment_received_ready_to_activate[:5],
+        'completed_ready_for_release': completed_ready_for_release[:5],
         'recent_logs': recent_logs,
         'total_escrow_amount': total_escrow_amount,
+        
         # Dashboard stats
+        'invoice_generation_count': approved_bids_needing_invoice.count(),
+        'invoiced_awaiting_payment_count': invoices_sent_awaiting_payment.count(),
         'verification_count': needs_verification.count(),
-        'release_count': ready_for_release.count(),
-        'activation_count': payment_received_pilots.count(),
+        'activation_count': payment_received_ready_to_activate.count(),
+        'release_count': completed_ready_for_release.count(),
     }
     
     return render(request, 'admin/payments/admin_payment_dashboard.html', context)
 
 @login_required
 @staff_member_required
+def admin_mark_invoice_sent(request, bid_id):
+    """Admin marks invoice as sent for an approved bid"""
+    if request.method != 'POST':
+        return redirect('payments:admin_payment_dashboard')
+    
+    bid = get_object_or_404(PilotBid, id=bid_id)
+    
+    # Validate bid status
+    if bid.status != 'approval_pending':
+        messages.error(request, f"Bid must be in 'approval_pending' status. Current status: {bid.get_status_display()}")
+        return redirect('payments:admin_payment_dashboard')
+    
+    # Get or create escrow payment
+    try:
+        escrow_payment = bid.escrow_payment
+        if escrow_payment.status != 'pending':
+            messages.error(request, f"Payment must be in 'pending' status. Current status: {escrow_payment.get_status_display()}")
+            return redirect('payments:admin_payment_dashboard')
+    except EscrowPayment.DoesNotExist:
+        messages.error(request, "No escrow payment found for this bid")
+        return redirect('payments:admin_payment_dashboard')
+    
+    # Get admin notes
+    notes = request.POST.get('notes', '')
+    
+    # Create log entry
+    EscrowPaymentLog.objects.create(
+        escrow_payment=escrow_payment,
+        previous_status=escrow_payment.status,
+        new_status='instructions_sent',
+        changed_by=request.user,
+        notes=f"Invoice sent to enterprise. {notes}".strip()
+    )
+    
+    # Mark invoice as sent
+    escrow_payment.status = 'instructions_sent'
+    escrow_payment.instructions_sent_at = timezone.now()
+    escrow_payment.save()
+    
+    # Create notifications for enterprise
+    for user in bid.pilot.organization.users.all():
+        create_notification(
+            recipient=user,
+            notification_type='payment_invoice_sent',
+            title=f"Invoice Ready: {bid.pilot.title}",
+            message=f"Your invoice for '{bid.pilot.title}' is ready. Please review payment instructions and initiate wire transfer.",
+            related_pilot=bid.pilot,
+            related_bid=bid
+        )
+    
+    messages.success(request, f"Invoice marked as sent for bid on '{bid.pilot.title}'")
+    return redirect('payments:admin_payment_dashboard')
+
+@login_required
+@staff_member_required
+def admin_activate_pilot_work(request, payment_id):
+    """Admin activates pilot work after payment verification"""
+    if request.method != 'POST':
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Verify that payment is in 'received' status
+    if payment.status != 'received':
+        messages.error(request, f"Payment must be in 'received' status. Current status: {payment.get_status_display()}")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Verify that bid is in approval_pending status
+    if payment.pilot_bid.status != 'approval_pending':
+        if payment.pilot_bid.status == 'live':
+            messages.warning(request, "This pilot has already been activated")
+        else:
+            messages.error(request, f"Pilot bid is in '{payment.pilot_bid.get_status_display()}' status and cannot be activated")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Mark the bid as live
+    try:
+        success = payment.pilot_bid.mark_as_live()
+        
+        if success:
+            # Create log entry
+            EscrowPaymentLog.objects.create(
+                escrow_payment=payment,
+                previous_status=payment.status,
+                new_status=payment.status,  # Status doesn't change for payment
+                changed_by=request.user,
+                notes="Pilot work activated by admin - bid marked as live"
+            )
+            
+            # Create notifications for both parties
+            # Notify enterprise
+            for user in payment.pilot_bid.pilot.organization.users.all():
+                create_notification(
+                    recipient=user,
+                    notification_type='pilot_activated',
+                    title=f"Work Started: {payment.pilot_bid.pilot.title}",
+                    message=f"Payment verified! Work on '{payment.pilot_bid.pilot.title}' has been activated. {payment.pilot_bid.startup.name} can now begin work.",
+                    related_pilot=payment.pilot_bid.pilot,
+                    related_bid=payment.pilot_bid
+                )
+            
+            # Notify startup
+            for user in payment.pilot_bid.startup.users.all():
+                create_notification(
+                    recipient=user,
+                    notification_type='pilot_activated',
+                    title=f"Work Activated: {payment.pilot_bid.pilot.title}",
+                    message=f"Great news! Payment has been verified and your pilot '{payment.pilot_bid.pilot.title}' is now live. You can begin work immediately.",
+                    related_pilot=payment.pilot_bid.pilot,
+                    related_bid=payment.pilot_bid
+                )
+            
+            messages.success(request, f"Pilot work activated for '{payment.pilot_bid.pilot.title}'")
+        else:
+            messages.error(request, "Error activating pilot work: status transition failed")
+    except Exception as e:
+        messages.error(request, f"Error activating pilot work: {str(e)}")
+    
+    return redirect('payments:admin_payment_dashboard')
+
+@login_required
+@staff_member_required
+def admin_release_startup_payment(request, payment_id):
+    """Admin releases payment to startup after work completion"""
+    if request.method != 'POST':
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    
+    # Enhanced validation
+    if payment.status != 'received':
+        messages.error(request, f"Payment must be in 'received' status. Current status: {payment.get_status_display()}")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    if payment.pilot_bid.status != 'completed':
+        messages.error(request, "The pilot must be marked as completed by the enterprise before releasing payment")
+        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+    
+    # Get admin notes
+    notes = request.POST.get('notes', '')
+    
+    # Create log entry
+    EscrowPaymentLog.objects.create(
+        escrow_payment=payment,
+        previous_status=payment.status,
+        new_status='released',
+        changed_by=request.user,
+        notes=f"Payment released to startup. {notes}".strip()
+    )
+    
+    # Mark payment as released
+    payment.mark_as_released()
+    
+    # Create comprehensive notifications
+    # Notify startup about payment release
+    for user in payment.pilot_bid.startup.users.all():
+        create_notification(
+            recipient=user,
+            notification_type='payment_released',
+            title=f"Payment Released: {payment.pilot_bid.pilot.title}",
+            message=f"Congratulations! Payment of ${payment.startup_amount} for '{payment.pilot_bid.pilot.title}' has been released to your account.",
+            related_pilot=payment.pilot_bid.pilot,
+            related_bid=payment.pilot_bid
+        )
+    
+    # Notify enterprise about completion
+    for user in payment.pilot_bid.pilot.organization.users.all():
+        create_notification(
+            recipient=user,
+            notification_type='pilot_payment_completed',
+            title=f"Pilot Completed: {payment.pilot_bid.pilot.title}",
+            message=f"Payment for '{payment.pilot_bid.pilot.title}' has been successfully released to {payment.pilot_bid.startup.name}. Your pilot is now complete!",
+            related_pilot=payment.pilot_bid.pilot,
+            related_bid=payment.pilot_bid
+        )
+    
+    messages.success(request, f"Payment of ${payment.startup_amount} released to {payment.pilot_bid.startup.name}")
+    return redirect('payments:admin_payment_dashboard')
+
+@login_required
+@staff_member_required
 def admin_escrow_payments(request):
-    """Enhanced admin view for all escrow payments with filtering"""
+    """Enhanced admin view for all escrow payments with 5-stage workflow filtering"""
     tab = request.GET.get('tab', 'all')
     search = request.GET.get('search', '')
     amount_filter = request.GET.get('amount_filter', '')
@@ -760,17 +966,20 @@ def admin_escrow_payments(request):
         'pilot_bid__pilot'
     )
     
-    # Apply tab filters
-    if tab == 'initiated':
+    # Apply tab filters based on new 5-stage workflow
+    if tab == 'invoice_pending':
+        payments = payments.filter(status='pending')
+    elif tab == 'invoice_sent':
+        payments = payments.filter(status='instructions_sent')
+    elif tab == 'verification':
         payments = payments.filter(status='payment_initiated')
-    elif tab == 'ready':
+    elif tab == 'ready_for_release':
         payments = payments.filter(status='received', pilot_bid__status='completed')
     elif tab == 'completed':
         payments = payments.filter(status='released')
-    elif tab == 'verification':
-        payments = payments.filter(status='payment_initiated')
     elif tab == 'activation':
-        payments = payments.filter(status='received', pilot_bid__status='approval_pending')
+        payments = payments.filter(status='received', pilot_bid__status='approved')
+    # 'all' tab shows everything (no additional filter)
     
     # Apply search filter
     if search:
@@ -797,22 +1006,28 @@ def admin_escrow_payments(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Get counts for tabs
-    initiated_count = EscrowPayment.objects.filter(status='payment_initiated').count()
-    ready_count = EscrowPayment.objects.filter(status='received', pilot_bid__status='completed').count()
-    released_count = EscrowPayment.objects.filter(status='released').count()
-    activation_count = EscrowPayment.objects.filter(status='received', pilot_bid__status='approval_pending').count()
+    # Get counts for tabs (matching 5-stage workflow)
+    invoice_pending_count = EscrowPayment.objects.filter(status='pending').count()
+    invoice_sent_count = EscrowPayment.objects.filter(status='instructions_sent').count()
+    verification_count = EscrowPayment.objects.filter(status='payment_initiated').count()
+    activation_count = EscrowPayment.objects.filter(status='received', pilot_bid__status='approved').count()
+    ready_for_release_count = EscrowPayment.objects.filter(status='received', pilot_bid__status='completed').count()
+    completed_count = EscrowPayment.objects.filter(status='released').count()
+    all_count = EscrowPayment.objects.count()
     
     context = {
         'payments': page_obj,
         'tab': tab,
         'search': search,
         'amount_filter': amount_filter,
-        'initiated_count': initiated_count,
-        'ready_count': ready_count,
-        'released_count': released_count,
+        # Updated tab counts for 5-stage workflow
+        'invoice_pending_count': invoice_pending_count,
+        'invoice_sent_count': invoice_sent_count,
+        'verification_count': verification_count,
         'activation_count': activation_count,
-        'all_count': EscrowPayment.objects.count(),
+        'ready_for_release_count': ready_for_release_count,
+        'completed_count': completed_count,
+        'all_count': all_count,
     }
     
     return render(request, 'admin/payments/admin_escrow_payments.html', context)

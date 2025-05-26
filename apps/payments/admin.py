@@ -1,8 +1,8 @@
 from django.contrib import admin
-from django.urls import reverse
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Sum, Count
 from django.shortcuts import redirect
 from .models import (
     PricingPlan, 
@@ -12,15 +12,18 @@ from .models import (
     EscrowPaymentLog
 )
 
+# Import the new admin views
+from . import views as payment_views
+
 class CustomAdminMixin:
-    """Mixin to add custom admin dashboard link"""
+    """Mixin to add custom admin dashboard link and context"""
     change_list_template = 'admin/payments/change_list.html'
     
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
         
-        # Add stats for EscrowPayment
+        # Add payment stats for EscrowPayment model
         if self.model._meta.model_name == 'escrowpayment':
             queryset = self.get_queryset(request)
             extra_context['payment_initiated_count'] = queryset.filter(status='payment_initiated').count()
@@ -28,6 +31,9 @@ class CustomAdminMixin:
                 status='received', pilot_bid__status='completed'
             ).count()
             extra_context['payment_released_count'] = queryset.filter(status='released').count()
+            extra_context['total_escrow_amount'] = queryset.filter(
+                status__in=['received', 'payment_initiated']
+            ).aggregate(total=Sum('total_amount'))['total'] or 0
         
         return super().changelist_view(request, extra_context=extra_context)
 
@@ -47,19 +53,19 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
     
     def status_badge(self, obj):
         colors = {
-            'pending': 'yellow',
-            'instructions_sent': 'blue',
-            'payment_initiated': 'indigo',
-            'received': 'green',
-            'released': 'purple',
-            'cancelled': 'red'
+            'pending': '#EAB308',
+            'instructions_sent': '#3B82F6',
+            'payment_initiated': '#6366F1',
+            'received': '#10B981',
+            'released': '#8B5CF6',
+            'cancelled': '#EF4444'
         }
-        color = colors.get(obj.status, 'gray')
+        color = colors.get(obj.status, '#6B7280')
         return format_html(
             '<span style="display: inline-block; padding: 3px 10px; '
             'background-color: {}; color: white; border-radius: 15px; '
             'font-size: 11px; font-weight: bold;">{}</span>',
-            f'#{color}' if color != 'yellow' else '#EAB308',
+            color,
             obj.get_status_display()
         )
     status_badge.short_description = 'Status'
@@ -78,15 +84,15 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
         
         # Add timeline entries
         if obj.created_at:
-            timeline_html += self._timeline_entry('Created', obj.created_at, 'green')
+            timeline_html += self._timeline_entry('Created', obj.created_at, '#10B981')
         if obj.instructions_sent_at:
-            timeline_html += self._timeline_entry('Instructions Sent', obj.instructions_sent_at, 'blue')
+            timeline_html += self._timeline_entry('Instructions Sent', obj.instructions_sent_at, '#3B82F6')
         if obj.payment_initiated_at:
-            timeline_html += self._timeline_entry('Payment Initiated', obj.payment_initiated_at, 'indigo')
+            timeline_html += self._timeline_entry('Payment Initiated', obj.payment_initiated_at, '#6366F1')
         if obj.received_at:
-            timeline_html += self._timeline_entry('Payment Received', obj.received_at, 'green')
+            timeline_html += self._timeline_entry('Payment Received', obj.received_at, '#10B981')
         if obj.released_at:
-            timeline_html += self._timeline_entry('Payment Released', obj.released_at, 'purple')
+            timeline_html += self._timeline_entry('Payment Released', obj.released_at, '#8B5CF6')
             
         timeline_html += '</div>'
         return mark_safe(timeline_html)
@@ -100,16 +106,43 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
         '''
     
     def get_urls(self):
+        """Add custom admin URLs for the enhanced workflow"""
         urls = super().get_urls()
-        from django.urls import path
         custom_urls = [
-            path('dashboard/', self.admin_site.admin_view(self.dashboard_view), 
-                 name='payments_escrowpayment_dashboard'),
+            # Main payment dashboard
+            path('dashboard/', 
+                 self.admin_site.admin_view(payment_views.admin_payment_dashboard), 
+                 name='payment_dashboard'),
+            
+            # Payment list and management
+            path('escrow-payments/', 
+                 self.admin_site.admin_view(payment_views.admin_escrow_payments), 
+                 name='escrow_payments'),
+            
+            # Individual payment management
+            path('escrow-payment/<int:payment_id>/', 
+                 self.admin_site.admin_view(payment_views.admin_escrow_payment_detail), 
+                 name='escrow_payment_detail'),
+            
+            # Payment workflow actions
+            path('escrow-payment/<int:payment_id>/received/', 
+                 self.admin_site.admin_view(payment_views.admin_mark_payment_received), 
+                 name='mark_payment_received'),
+            
+            path('escrow-payment/<int:payment_id>/release/', 
+                 self.admin_site.admin_view(payment_views.admin_release_payment), 
+                 name='release_payment'),
+            
+            path('escrow-payment/<int:payment_id>/kickoff/', 
+                 self.admin_site.admin_view(payment_views.admin_kickoff_pilot), 
+                 name='kickoff_pilot'),
+            
+            # Utilities
+            path('export-csv/', 
+                 self.admin_site.admin_view(payment_views.admin_export_payments_csv), 
+                 name='export_payments_csv'),
         ]
         return custom_urls + urls
-    
-    def dashboard_view(self, request):
-        return redirect('payments:admin_payment_dashboard')
 
 @admin.register(EscrowPaymentLog)
 class EscrowPaymentLogAdmin(admin.ModelAdmin):
@@ -125,20 +158,34 @@ class EscrowPaymentLogAdmin(admin.ModelAdmin):
         return f"Created as {obj.new_status}"
     status_change.short_description = 'Status Change'
 
-# Update other model admins with the mixin
 @admin.register(PricingPlan)
 class PricingPlanAdmin(CustomAdminMixin, admin.ModelAdmin):
     list_display = ('name', 'plan_type', 'price', 'billing_frequency', 'pilot_limit', 'is_active')
     list_filter = ('plan_type', 'billing_frequency', 'is_active')
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
+        return super().changelist_view(request, extra_context=extra_context)
 
 @admin.register(Subscription)
 class SubscriptionAdmin(CustomAdminMixin, admin.ModelAdmin):
     list_display = ('organization', 'plan', 'status', 'current_period_end')
     list_filter = ('status', 'plan')
     raw_id_fields = ('organization',)
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
+        return super().changelist_view(request, extra_context=extra_context)
 
 @admin.register(Payment)
 class PaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
     list_display = ('organization', 'payment_type', 'amount', 'status', 'created_at')
     list_filter = ('payment_type', 'status', 'created_at')
     raw_id_fields = ('organization', 'subscription')
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
+        return super().changelist_view(request, extra_context=extra_context)

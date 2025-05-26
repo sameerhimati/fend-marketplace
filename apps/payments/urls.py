@@ -61,6 +61,19 @@ urlpatterns = [
          views.admin_kickoff_pilot, 
          name='admin_kickoff_pilot'),
     
+    # NEW: Enhanced Workflow Actions
+    path('admin/bid/<int:bid_id>/mark-invoice-sent/', 
+         views.admin_mark_invoice_sent, 
+         name='admin_mark_invoice_sent'),
+    
+    path('admin/payment/<int:payment_id>/activate-work/', 
+         views.admin_activate_pilot_work, 
+         name='admin_activate_pilot_work'),
+    
+    path('admin/payment/<int:payment_id>/release-startup-payment/', 
+         views.admin_release_startup_payment, 
+         name='admin_release_startup_payment'),
+    
     # Admin Utilities
     path('admin/escrow-payments/export-csv/', 
          views.admin_export_payments_csv, 

@@ -1,31 +1,15 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django import forms
-from .models import Pilot, PilotBid
-from django.urls import path
-from django.template.response import TemplateResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils import timezone
-from django.contrib.admin import AdminSite
 from django.http import HttpResponseRedirect
-from django.urls import reverse
-from .models import Pilot, PilotBid
-from apps.notifications.services import create_pilot_notification, create_notification
 from django.contrib import messages
+from .models import Pilot, PilotBid
 
-class CustomAdminSite(AdminSite):
-    """Custom admin site that adds pilot verification counts to the index context"""
-    
-    def index(self, request, extra_context=None):
-        """Add pilot count to the admin index"""
-        if extra_context is None:
-            extra_context = {}
-            
-        # Add pilot count
-        pilot_count_pending = Pilot.objects.filter(status='pending_approval', verified=False).count()
-        extra_context['pilot_count_pending'] = pilot_count_pending
-        
-        return super().index(request, extra_context)
+# Import the new admin views
+from . import views as pilot_views
 
 class PilotAdminForm(forms.ModelForm):
     # Convert JSON field to more user-friendly format
@@ -79,7 +63,9 @@ class PilotAdmin(admin.ModelAdmin):
             'fields': ('title', 'organization', 'pilot_definition', 'status', 'price')
         }),
         ('Details', {
-            'fields': ('description', 'technical_specs_doc', 'technical_specs_text', 'performance_metrics', 'performance_metrics_doc', 'compliance_requirements', 'compliance_requirements_doc')
+            'fields': ('description', 'technical_specs_doc', 'technical_specs_text', 
+                      'performance_metrics', 'performance_metrics_doc', 
+                      'compliance_requirements', 'compliance_requirements_doc')
         }),
         ('Requirements', {
             'fields': ('requirements_type', 'requirements_text', 'requirements_file'),
@@ -131,97 +117,51 @@ class PilotAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
     def get_urls(self):
+        """Add custom admin URLs for the enhanced workflow"""
         urls = super().get_urls()
         custom_urls = [
-            path('verify/', self.admin_site.admin_view(self.verify_pilots_view), name='admin_verify_pilots'),
-            path('verify/<int:pk>/', self.admin_site.admin_view(self.verify_pilot_detail_view), name='admin_verify_pilot_detail'),
-            path('verify/<int:pk>/approve/', self.admin_site.admin_view(self.approve_pilot_view), name='admin_approve_pilot'),
-            path('verify/<int:pk>/reject/', self.admin_site.admin_view(self.reject_pilot_view), name='admin_reject_pilot'),
+            # Main verification dashboard
+            path('verify/', 
+                 self.admin_site.admin_view(pilot_views.admin_verify_pilots), 
+                 name='verify_pilots'),
+            
+            # Individual pilot verification
+            path('verify/<int:pk>/', 
+                 self.admin_site.admin_view(pilot_views.admin_verify_pilot_detail), 
+                 name='verify_pilot_detail'),
+            
+            # Pilot approval actions
+            path('verify/<int:pk>/approve/', 
+                 self.admin_site.admin_view(pilot_views.admin_approve_pilot), 
+                 name='approve_pilot'),
+            
+            path('verify/<int:pk>/reject/', 
+                 self.admin_site.admin_view(pilot_views.admin_reject_pilot), 
+                 name='reject_pilot'),
         ]
         return custom_urls + urls
+
+    def changelist_view(self, request, extra_context=None):
+        """Add pilot verification stats to the changelist view"""
+        extra_context = extra_context or {}
         
-    def verify_pilots_view(self, request):
-        """Admin view for pilot verification dashboard"""
-        pending_pilots = Pilot.objects.filter(status='pending_approval', verified=False)
-        
-        # Get stats for the dashboard
-        verified_today = Pilot.objects.filter(
+        # Add pilot verification stats
+        extra_context['pilot_count_pending'] = Pilot.objects.filter(
+            status='pending_approval', verified=False
+        ).count()
+        extra_context['verified_today'] = Pilot.objects.filter(
             verified=True, 
             admin_verified_at__date=timezone.now().date()
         ).count()
+        extra_context['total_verified'] = Pilot.objects.filter(verified=True).count()
+        extra_context['active_pilots_count'] = Pilot.objects.filter(
+            status__in=['published', 'in_progress']
+        ).count()
+        extra_context['published_pilots_count'] = Pilot.objects.filter(
+            status='published'
+        ).count()
         
-        total_verified = Pilot.objects.filter(verified=True).count()
-        
-        context = {
-            **self.admin_site.each_context(request),
-            'title': 'Pilot Verification',
-            'pending_pilots': pending_pilots,
-            'verified_today': verified_today,
-            'total_verified': total_verified,
-            'opts': self.model._meta,
-        }
-        return TemplateResponse(request, 'admin/pilots/pilot/verify.html', context)
-        
-    def verify_pilot_detail_view(self, request, pk):
-        """Admin view for pilot verification detail"""
-        pilot = get_object_or_404(Pilot, pk=pk)
-        
-        context = {
-            **self.admin_site.each_context(request),
-            'title': f'Verify Pilot: {pilot.title}',
-            'pilot': pilot,
-            'opts': self.model._meta,
-        }
-        return TemplateResponse(request, 'admin/pilots/pilot/verify_detail.html', context)
-    
-    def approve_pilot_view(self, request, pk):
-        """Admin view to approve a pilot"""
-        if request.method != 'POST':
-            return HttpResponseRedirect(reverse('admin:admin_verify_pilot_detail', args=[pk]))
-            
-        pilot = get_object_or_404(Pilot, pk=pk)
-        
-        # Update pilot status
-        pilot.status = 'published'
-        pilot.verified = True
-        pilot.admin_verified_at = timezone.now()
-        pilot.admin_verified_by = request.user
-        pilot.published_at = timezone.now()
-        pilot.save()
-        
-        # Create notification for enterprise
-        create_pilot_notification(
-            pilot=pilot,
-            notification_type='pilot_approved',
-            title=f"Pilot approved: {pilot.title}",
-            message=f"Your pilot '{pilot.title}' has been approved and is now visible to startups."
-        )
-        
-        self.message_user(request, f"Pilot '{pilot.title}' has been approved and published.")
-        return HttpResponseRedirect(reverse('admin:admin_verify_pilots'))
-    
-    def reject_pilot_view(self, request, pk):
-        """Admin view to reject a pilot"""
-        if request.method != 'POST':
-            return HttpResponseRedirect(reverse('admin:admin_verify_pilot_detail', args=[pk]))
-            
-        pilot = get_object_or_404(Pilot, pk=pk)
-        feedback = request.POST.get('feedback', 'No specific feedback provided')
-        
-        # Update pilot status back to draft
-        pilot.status = 'draft'
-        pilot.save()
-        
-        # Create notification for enterprise with feedback
-        create_pilot_notification(
-            pilot=pilot,
-            notification_type='pilot_rejected',
-            title=f"Pilot needs revision: {pilot.title}",
-            message=f"Your pilot '{pilot.title}' needs revision before it can be published. Admin feedback: {feedback}"
-        )
-        
-        self.message_user(request, f"Pilot '{pilot.title}' has been rejected and sent back to draft status.")
-        return HttpResponseRedirect(reverse('admin:admin_verify_pilots'))
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 @admin.register(PilotBid)
@@ -258,19 +198,10 @@ class PilotBidAdmin(admin.ModelAdmin):
             
         count = 0
         for bid in approval_pending:
-            bid.status = 'live'
-            bid.save()
-            
-            # Create notification
-            from apps.notifications.services import create_bid_notification
-            create_bid_notification(
-                bid=bid,
-                notification_type='bid_live',
-                title=f"Pilot is now Live: {bid.pilot.title}",
-                message=f"Your pilot '{bid.pilot.title}' payment has been verified and is now live. You may begin work now."
-            )
-            count += 1
-            
+            success = bid.mark_as_live()
+            if success:
+                count += 1
+                
         self.message_user(request, f"{count} bid(s) marked as live successfully")
     
     mark_as_live.short_description = "Mark selected bids as live"
@@ -301,35 +232,59 @@ class PilotBidAdmin(admin.ModelAdmin):
         return super().has_change_permission(request, obj)
     
     def change_view(self, request, object_id, form_url='', extra_context=None):
-        """Add a custom button to mark bid as live from the change page"""
+        """Add custom context for bid admin actions"""
         extra_context = extra_context or {}
         bid = self.get_object(request, object_id)
         
-        if bid and bid.status == 'approval_pending':
-            extra_context['show_mark_as_live_button'] = True
+        if bid:
+            # Add context for showing admin actions
+            extra_context['show_bid_info'] = True
+            extra_context['show_admin_actions'] = request.user.is_staff
+            
+            # Show mark as live button if appropriate
+            extra_context['show_mark_as_live_button'] = (
+                bid.status == 'approval_pending' and request.user.is_staff
+            )
         
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
     
     def response_change(self, request, obj):
-        """Add custom button action to mark bid as live"""
+        """Handle custom admin actions"""
         if "_mark_as_live" in request.POST:
-            if obj.status == 'approval_pending':
-                obj.status = 'live'
-                obj.save()
-                
-                # Create notification
-                from apps.notifications.services import create_bid_notification
-                create_bid_notification(
-                    bid=obj,
-                    notification_type='bid_live',
-                    title=f"Pilot is now Live: {obj.pilot.title}",
-                    message=f"Your pilot '{obj.pilot.title}' payment has been verified and is now live. You may begin work now."
-                )
-                
+            success = obj.mark_as_live()
+            if success:
                 self.message_user(request, f"Bid for '{obj.pilot.title}' has been marked as live successfully")
             else:
-                self.message_user(request, f"Bid cannot be marked as live (current status: {obj.get_status_display()})", level=messages.ERROR)
+                self.message_user(
+                    request, 
+                    f"Bid cannot be marked as live (current status: {obj.get_status_display()})", 
+                    level=messages.ERROR
+                )
+            return HttpResponseRedirect(".")
             
+        # Handle force status change (emergency override)
+        if "_force_status" in request.POST:
+            force_status = request.POST.get('force_status')
+            if force_status and force_status in dict(obj.STATUS_CHOICES):
+                old_status = obj.status
+                obj.status = force_status
+                obj.save(update_fields=['status', 'updated_at'])
+                
+                self.message_user(
+                    request, 
+                    f"Status forcefully changed from '{old_status}' to '{force_status}'"
+                )
             return HttpResponseRedirect(".")
             
         return super().response_change(request, obj)
+
+    def get_urls(self):
+        """Add custom admin URLs for bid management"""
+        urls = super().get_urls()
+        custom_urls = [
+            # Bid admin actions
+            path('<int:pk>/mark-as-live/', 
+                 self.admin_site.admin_view(pilot_views.admin_mark_bid_as_live), 
+                 name='mark_bid_as_live'),
+        ]
+        return custom_urls + urls

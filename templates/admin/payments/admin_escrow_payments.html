@@ -24,43 +24,79 @@
         </div>
     </div>
     
-    <!-- Filter Tabs -->
+    <!-- Filter Tabs - Updated for 5-Stage Workflow -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="border-b border-gray-200">
             <nav class="-mb-px flex" aria-label="Tabs">
-                <a href="?status=all" 
-                   class="{% if not request.GET.status or request.GET.status == 'all' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                <a href="?tab=all" 
+                   class="{% if not request.GET.tab or request.GET.tab == 'all' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
                     All Payments
-                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium {% if not request.GET.status or request.GET.status == 'all' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-900{% endif %}">
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium {% if not request.GET.tab or request.GET.tab == 'all' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-900{% endif %}">
                         {{ all_count|default:0 }}
                     </span>
                 </a>
-                <a href="?status=payment_initiated" 
-                   class="{% if request.GET.status == 'payment_initiated' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
-                    <i class="fas fa-exclamation-triangle mr-2 text-yellow-500"></i>
+                
+                <a href="?tab=invoice_pending" 
+                   class="{% if request.GET.tab == 'invoice_pending' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-file-invoice mr-2 text-blue-500"></i>
+                    Invoice Pending
+                    {% if invoice_pending_count > 0 %}
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {{ invoice_pending_count }}
+                    </span>
+                    {% endif %}
+                </a>
+                
+                <a href="?tab=invoice_sent" 
+                   class="{% if request.GET.tab == 'invoice_sent' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-paper-plane mr-2 text-yellow-500"></i>
+                    Invoice Sent
+                    {% if invoice_sent_count > 0 %}
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        {{ invoice_sent_count }}
+                    </span>
+                    {% endif %}
+                </a>
+                
+                <a href="?tab=verification" 
+                   class="{% if request.GET.tab == 'verification' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-search-dollar mr-2 text-orange-500"></i>
                     Need Verification
-                    {% if initiated_count > 0 %}
+                    {% if verification_count > 0 %}
                     <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        {{ initiated_count }}
+                        {{ verification_count }}
                     </span>
                     {% endif %}
                 </a>
-                <a href="?status=received" 
-                   class="{% if request.GET.status == 'received' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
-                    <i class="fas fa-play-circle mr-2 text-blue-500"></i>
-                    Ready for Release
-                    {% if ready_count > 0 %}
+                
+                <a href="?tab=activation" 
+                   class="{% if request.GET.tab == 'activation' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-play-circle mr-2 text-green-500"></i>
+                    Ready to Activate
+                    {% if activation_count > 0 %}
                     <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        {{ ready_count }}
+                        {{ activation_count }}
                     </span>
                     {% endif %}
                 </a>
-                <a href="?status=released" 
-                   class="{% if request.GET.status == 'released' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
-                    <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                
+                <a href="?tab=ready_for_release" 
+                   class="{% if request.GET.tab == 'ready_for_release' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-hand-holding-usd mr-2 text-purple-500"></i>
+                    Ready for Release
+                    {% if ready_for_release_count > 0 %}
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {{ ready_for_release_count }}
+                    </span>
+                    {% endif %}
+                </a>
+                
+                <a href="?tab=completed" 
+                   class="{% if request.GET.tab == 'completed' %}border-indigo-500 text-indigo-600 bg-indigo-50{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm flex items-center">
+                    <i class="fas fa-check-circle mr-2 text-emerald-500"></i>
                     Completed
-                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium {% if request.GET.status == 'released' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-900{% endif %}">
-                        {{ released_count|default:0 }}
+                    <span class="ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium {% if request.GET.tab == 'completed' %}bg-indigo-100 text-indigo-600{% else %}bg-gray-100 text-gray-900{% endif %}">
+                        {{ completed_count|default:0 }}
                     </span>
                 </a>
             </nav>
@@ -69,7 +105,7 @@
         <!-- Search and Filters -->
         <div class="p-6 bg-gray-50 border-b border-gray-200">
             <form method="get" class="flex flex-col sm:flex-row gap-4">
-                <input type="hidden" name="status" value="{{ request.GET.status }}">
+                <input type="hidden" name="tab" value="{{ request.GET.tab }}">
                 
                 <!-- Search Input -->
                 <div class="flex-1">
@@ -115,8 +151,8 @@
                         <div class="flex items-center">
                             <h3 class="text-lg font-medium text-gray-900">{{ payment.reference_code }}</h3>
                             <span class="ml-3 px-2 py-1 text-xs font-semibold rounded-full 
-                                {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                {% elif payment.status == 'instructions_sent' %}bg-blue-100 text-blue-800
+                                {% if payment.status == 'pending' %}bg-blue-100 text-blue-800
+                                {% elif payment.status == 'instructions_sent' %}bg-yellow-100 text-yellow-800
                                 {% elif payment.status == 'payment_initiated' %}bg-orange-100 text-orange-800
                                 {% elif payment.status == 'received' %}bg-green-100 text-green-800
                                 {% elif payment.status == 'released' %}bg-purple-100 text-purple-800
@@ -154,31 +190,42 @@
                             Details
                         </a>
                         
-                        <!-- Status-specific quick actions -->
-                        {% if payment.status == 'payment_initiated' %}
+                        <!-- Status-specific quick actions matching 5-stage workflow -->
+                        {% if payment.status == 'pending' %}
+                        <form method="post" action="{% url 'payments:admin_mark_invoice_sent' payment.pilot_bid.id %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    data-confirm="Mark invoice as sent for this payment?"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                <i class="fas fa-paper-plane mr-1"></i>
+                                Send Invoice
+                            </button>
+                        </form>
+                        
+                        {% elif payment.status == 'payment_initiated' %}
                         <form method="post" action="{% url 'payments:admin_mark_payment_received' payment.id %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" 
                                     data-confirm="Confirm that you have received this payment?"
-                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700">
                                 <i class="fas fa-check mr-1"></i>
                                 Verify Receipt
                             </button>
                         </form>
                         
-                        {% elif payment.status == 'received' and payment.pilot_bid.status == 'approval_pending' %}
-                        <form method="post" action="{% url 'payments:admin_kickoff_pilot' payment.id %}" class="inline">
+                        {% elif payment.status == 'received' and payment.pilot_bid.status == 'approved' %}
+                        <form method="post" action="{% url 'payments:admin_activate_pilot_work' payment.id %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" 
                                     data-confirm="Activate this pilot? Both parties will be notified that work can begin."
-                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                                 <i class="fas fa-play mr-1"></i>
                                 Activate Work
                             </button>
                         </form>
                         
                         {% elif payment.status == 'received' and payment.pilot_bid.status == 'completed' %}
-                        <form method="post" action="{% url 'payments:admin_release_payment' payment.id %}" class="inline">
+                        <form method="post" action="{% url 'payments:admin_release_startup_payment' payment.id %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" 
                                     data-confirm="Release ${{ payment.startup_amount }} to {{ payment.pilot_bid.startup.name }}?"
@@ -202,20 +249,20 @@
                     <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
                         <span>Progress</span>
                         <span>
-                            {% if payment.status == 'pending' %}0%
-                            {% elif payment.status == 'instructions_sent' %}20%
-                            {% elif payment.status == 'payment_initiated' %}40%
-                            {% elif payment.status == 'received' %}60%
+                            {% if payment.status == 'pending' %}20%
+                            {% elif payment.status == 'instructions_sent' %}40%
+                            {% elif payment.status == 'payment_initiated' %}60%
+                            {% elif payment.status == 'received' %}80%
                             {% elif payment.status == 'released' %}100%
                             {% else %}0%{% endif %}
                         </span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
                         <div class="h-2 rounded-full
-                            {% if payment.status == 'pending' %}bg-yellow-400 w-0
-                            {% elif payment.status == 'instructions_sent' %}bg-blue-400 w-1/5
-                            {% elif payment.status == 'payment_initiated' %}bg-orange-400 w-2/5
-                            {% elif payment.status == 'received' %}bg-green-400 w-3/5
+                            {% if payment.status == 'pending' %}bg-blue-400 w-1/5
+                            {% elif payment.status == 'instructions_sent' %}bg-yellow-400 w-2/5
+                            {% elif payment.status == 'payment_initiated' %}bg-orange-400 w-3/5
+                            {% elif payment.status == 'received' %}bg-green-400 w-4/5
                             {% elif payment.status == 'released' %}bg-purple-400 w-full
                             {% else %}bg-gray-400 w-0{% endif %}">
                         </div>
@@ -225,18 +272,18 @@
             {% endfor %}
         </div>
         
-        <!-- Pagination -->
+        <!-- Pagination (same as before) -->
         {% if payments.has_other_pages %}
         <div class="bg-white px-6 py-3 border-t border-gray-200 flex items-center justify-between">
             <div class="flex-1 flex justify-between sm:hidden">
                 {% if payments.has_previous %}
-                    <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.previous_page_number }}" 
+                    <a href="?{% if request.GET.tab %}tab={{ request.GET.tab }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.previous_page_number }}" 
                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Previous
                     </a>
                 {% endif %}
                 {% if payments.has_next %}
-                    <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.next_page_number }}" 
+                    <a href="?{% if request.GET.tab %}tab={{ request.GET.tab }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.next_page_number }}" 
                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Next
                     </a>
@@ -257,7 +304,7 @@
                 <div>
                     <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         {% if payments.has_previous %}
-                            <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.previous_page_number }}" 
+                            <a href="?{% if request.GET.tab %}tab={{ request.GET.tab }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.previous_page_number }}" 
                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
@@ -269,7 +316,7 @@
                                     {{ page_num }}
                                 </span>
                             {% elif page_num %}
-                                <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_num }}" 
+                                <a href="?{% if request.GET.tab %}tab={{ request.GET.tab }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ page_num }}" 
                                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                     {{ page_num }}
                                 </a>
@@ -277,7 +324,7 @@
                         {% endfor %}
                         
                         {% if payments.has_next %}
-                            <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.next_page_number }}" 
+                            <a href="?{% if request.GET.tab %}tab={{ request.GET.tab }}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}page={{ payments.next_page_number }}" 
                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
@@ -296,13 +343,13 @@
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
             <p class="text-gray-600 mb-6">
-                {% if request.GET.search or request.GET.status %}
+                {% if request.GET.search or request.GET.tab %}
                     Try adjusting your search or filter criteria.
                 {% else %}
                     No escrow payments have been created yet.
                 {% endif %}
             </p>
-            {% if request.GET.search or request.GET.status %}
+            {% if request.GET.search or request.GET.tab %}
             <a href="{% url 'payments:admin_escrow_payments' %}" 
                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                 Clear Filters
