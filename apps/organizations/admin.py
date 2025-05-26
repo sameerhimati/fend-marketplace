@@ -1,25 +1,14 @@
 from django.contrib import admin
 from django import forms
-from .models import Organization, PilotDefinition
-from django.utils import timezone
+from django.urls import path, reverse
 from django.utils.html import format_html
-from django.shortcuts import render
-from django.urls import path
+from django.utils import timezone
 from django.contrib.admin.sites import AdminSite
+from django.shortcuts import redirect
+from .models import Organization, PilotDefinition
 
-original_index = admin.site.index
-def custom_index(request, extra_context=None):
-    extra_context = extra_context or {}
-    
-    # Add pending approvals count
-    from apps.organizations.models import Organization
-    extra_context['pending_approvals_count'] = Organization.objects.filter(
-        approval_status='pending'
-    ).count()
-    
-    return original_index(request, extra_context)
-
-admin.site.index = custom_index
+# Import the new admin views
+from . import views as org_views
 
 class PilotDefinitionInline(admin.StackedInline):
     model = PilotDefinition
@@ -28,8 +17,8 @@ class PilotDefinitionInline(admin.StackedInline):
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'type', 'approval_status', 'business_type', 'primary_contact_name', 'onboarding_completed')
-    list_filter = ('type', 'approval_status', 'business_type', 'onboarding_completed')
+    list_display = ('name', 'type', 'approval_status', 'business_type', 'primary_contact_name', 'onboarding_completed', 'payment_status')
+    list_filter = ('type', 'approval_status', 'business_type', 'onboarding_completed', 'has_payment_method')
     search_fields = ('name', 'primary_contact_name', 'users__email')
     actions = ['approve_organizations', 'reject_organizations']
 
@@ -80,8 +69,7 @@ class OrganizationAdmin(admin.ModelAdmin):
         return super().get_queryset(request).prefetch_related('users')
 
     def approve_organizations(self, request, queryset):
-        """Action to approve the selected organizations"""
-        from django.utils import timezone
+        """Bulk action to approve selected organizations"""
         from apps.notifications.services import create_notification
         
         for org in queryset:
@@ -99,61 +87,60 @@ class OrganizationAdmin(admin.ModelAdmin):
                 )
         
         self.message_user(request, f'{queryset.count()} organizations were approved.')
+    approve_organizations.short_description = "Approve selected organizations"
     
     def reject_organizations(self, request, queryset):
-        """Action to reject the selected organizations"""
-        count = queryset.update(
-            approval_status='rejected'
-        )
+        """Bulk action to reject selected organizations"""
+        count = queryset.update(approval_status='rejected')
         self.message_user(request, f'{count} organizations were rejected.')
     reject_organizations.short_description = "Reject selected organizations"
 
     def get_urls(self):
+        """Add custom admin URLs for the enhanced workflow"""
         urls = super().get_urls()
         custom_urls = [
-            path('pending-approvals/', self.admin_site.admin_view(self.pending_approvals_view), name='pending_approvals'),
+            # Main approval dashboard
+            path('pending-approvals/', 
+                 self.admin_site.admin_view(org_views.admin_pending_approvals), 
+                 name='pending_approvals'),
+            
+            # Individual organization review
+            path('organization/<int:org_id>/', 
+                 self.admin_site.admin_view(org_views.admin_organization_detail), 
+                 name='organization_detail'),
+            
+            # Organization approval actions
+            path('organization/<int:org_id>/approve/', 
+                 self.admin_site.admin_view(org_views.admin_approve_organization), 
+                 name='approve_organization'),
+            
+            path('organization/<int:org_id>/reject/', 
+                 self.admin_site.admin_view(org_views.admin_reject_organization), 
+                 name='reject_organization'),
         ]
         return custom_urls + urls
 
-    def pending_approvals_view(self, request):
-        """Custom admin view to manage pending approvals"""
-        # Get all organizations with pending approval status
-        pending_orgs = Organization.objects.filter(approval_status='pending')
+    def changelist_view(self, request, extra_context=None):
+        """Add statistics to the changelist view"""
+        extra_context = extra_context or {}
         
-        # If approving or rejecting organizations
-        if request.method == 'POST':
-            action = request.POST.get('action')
-            org_ids = request.POST.getlist('org_ids')
-            
-            # Handle single organization approval/rejection
-            single_org_id = request.POST.get('single_org_id')
-            if single_org_id and action:
-                org_ids = [single_org_id]
-            
-            if org_ids and action:
-                orgs = Organization.objects.filter(id__in=org_ids)
-                
-                if action == 'approve':
-                    self.approve_organizations(request, orgs)
-                elif action == 'reject':
-                    self.reject_organizations(request, orgs)
-            
-            # Refresh the queryset after actions
-            pending_orgs = Organization.objects.filter(approval_status='pending')
+        # Add pending approvals count for the admin dashboard
+        extra_context['pending_approvals_count'] = Organization.objects.filter(
+            approval_status='pending'
+        ).count()
         
-        context = {
-            'title': 'Pending Organization Approvals',
-            'pending_orgs': pending_orgs,
-            'opts': self.model._meta,
-            **self.admin_site.each_context(request),
-        }
-        return render(request, 'admin/organizations/pending_approvals.html', context)
+        # Add other useful stats
+        extra_context['total_organizations'] = Organization.objects.count()
+        extra_context['enterprise_count'] = Organization.objects.filter(type='enterprise').count()
+        extra_context['startup_count'] = Organization.objects.filter(type='startup').count()
+        
+        return super().changelist_view(request, extra_context=extra_context)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         
-        # Add a description field to the PilotDefinition
-        if 'pilot_definition-0-performance_metrics' in form.base_fields:
+        # Add custom help text or validation if needed
+        if 'pilot_definition-0-description' in form.base_fields:
             form.base_fields['pilot_definition-0-description'] = forms.CharField(
                 widget=forms.Textarea,
                 required=False,

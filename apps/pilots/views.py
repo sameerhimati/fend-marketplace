@@ -374,7 +374,17 @@ class BidDetailView(LoginRequiredMixin, DetailView):
     
     def get_object(self, queryset=None):
         bid = super().get_object(queryset)
-        user_org = self.request.user.organization
+        
+        # Allow admin/staff users to view any bid
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return bid
+        
+        # For regular users, check organization permissions
+        user_org = getattr(self.request.user, 'organization', None)
+        
+        if not user_org:
+            messages.error(self.request, "You need to be part of an organization to view bids")
+            raise PermissionDenied("Access denied")
         
         # Permission check - only relevant parties can view
         if user_org not in [bid.startup, bid.pilot.organization]:
@@ -385,12 +395,19 @@ class BidDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_org = self.request.user.organization
         bid = self.object
         
-        # User role context
-        context['is_enterprise'] = user_org == bid.pilot.organization
-        context['is_startup'] = user_org == bid.startup
+        # For admin users, show admin context
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            context['is_admin'] = True
+            context['is_enterprise'] = False
+            context['is_startup'] = False
+        else:
+            # For regular users, determine their role
+            user_org = self.request.user.organization
+            context['is_admin'] = False
+            context['is_enterprise'] = user_org == bid.pilot.organization
+            context['is_startup'] = user_org == bid.startup
         
         # Enhanced action permissions based on current status and user role
         context['can_approve'] = (

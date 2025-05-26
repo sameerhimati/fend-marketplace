@@ -158,3 +158,16 @@ ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@thefend.com')
 # For development, use console backend if no SendGrid key
 if not EMAIL_HOST_PASSWORD and DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+def ready():
+    """Initialize admin customization after Django is fully loaded."""
+    try:
+        from fend.admin_customization import initialize_admin_customization
+        initialize_admin_customization()
+    except ImportError:
+        pass
+
+import django
+from django.conf import settings
+if settings.configured:
+    ready()
