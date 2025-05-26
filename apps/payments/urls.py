@@ -30,7 +30,7 @@ urlpatterns = [
          name='escrow_payment_confirmation'),
     
     # =============================================================================
-    # ADMIN URLS - Payment Management Workflow
+    # ADMIN URLS - 4-Stage Payment Management Workflow
     # =============================================================================
     
     # Main Admin Dashboard
@@ -48,28 +48,21 @@ urlpatterns = [
          views.admin_escrow_payment_detail, 
          name='admin_escrow_payment_detail'),
     
-    # Payment Workflow Actions
-    path('admin/escrow-payment/<int:payment_id>/received/', 
-         views.admin_mark_payment_received, 
-         name='admin_mark_payment_received'),
+    # =============================================================================
+    # 4-STAGE WORKFLOW ACTIONS
+    # =============================================================================
     
-    path('admin/escrow-payment/<int:payment_id>/release/', 
-         views.admin_release_payment, 
-         name='admin_release_payment'),
-    
-    path('admin/escrow-payment/<int:payment_id>/kickoff/', 
-         views.admin_kickoff_pilot, 
-         name='admin_kickoff_pilot'),
-    
-    # NEW: Enhanced Workflow Actions
+    # Stage 1 → Stage 2: Generate and send invoice
     path('admin/bid/<int:bid_id>/mark-invoice-sent/', 
          views.admin_mark_invoice_sent, 
          name='admin_mark_invoice_sent'),
     
-    path('admin/payment/<int:payment_id>/activate-work/', 
-         views.admin_activate_pilot_work, 
-         name='admin_activate_pilot_work'),
+    # Stage 2 → Stage 3: Confirm payment received AND activate work (combined step)
+    path('admin/payment/<int:payment_id>/confirm-and-activate/', 
+         views.admin_confirm_payment_and_activate, 
+         name='admin_confirm_payment_and_activate'),
     
+    # Stage 3 → Stage 4: Release payment to startup after work completion
     path('admin/payment/<int:payment_id>/release-startup-payment/', 
          views.admin_release_startup_payment, 
          name='admin_release_startup_payment'),
@@ -78,4 +71,26 @@ urlpatterns = [
     path('admin/escrow-payments/export-csv/', 
          views.admin_export_payments_csv, 
          name='admin_export_payments_csv'),
+
+    # =============================================================================
+    # REMOVED URLS (5-Stage Workflow - No longer needed)
+    # =============================================================================
+    # 
+    # These URLs were part of the old 5-stage workflow and are no longer needed:
+    #
+    # path('admin/escrow-payment/<int:payment_id>/received/', 
+    #      views.admin_mark_payment_received, 
+    #      name='admin_mark_payment_received'),
+    #
+    # path('admin/escrow-payment/<int:payment_id>/release/', 
+    #      views.admin_release_payment, 
+    #      name='admin_release_payment'),
+    #
+    # path('admin/payment/<int:payment_id>/activate-work/', 
+    #      views.admin_activate_pilot_work, 
+    #      name='admin_activate_pilot_work'),
+    #
+    # path('admin/escrow-payment/<int:payment_id>/kickoff/', 
+    #      views.admin_kickoff_pilot, 
+    #      name='admin_kickoff_pilot'),
 ]

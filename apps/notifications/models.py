@@ -16,7 +16,7 @@ class Notification(models.Model):
     ]
 
     recipient = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='notifications')
-    type = models.CharField(max_length=25, choices=TYPES)
+    type = models.CharField(max_length=50, choices=TYPES)
     title = models.CharField(max_length=255)
     message = models.TextField()
     read = models.BooleanField(default=False)

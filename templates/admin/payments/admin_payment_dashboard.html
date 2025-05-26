@@ -7,10 +7,10 @@
     <!-- Header with Quick Stats -->
     <div>
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Payment Management Dashboard</h1>
-        <p class="text-gray-600">Complete workflow from bid approval to payment release</p>
+        <p class="text-gray-600">Streamlined 4-stage workflow from bid approval to payment release</p>
         
         <!-- Enhanced Quick Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center">
                     <div class="p-3 rounded-lg bg-blue-100">
@@ -37,24 +37,12 @@
             
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center">
-                    <div class="p-3 rounded-lg bg-orange-100">
-                        <i class="fas fa-search-dollar text-orange-600 text-xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Need Verification</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ verification_count }}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center">
                     <div class="p-3 rounded-lg bg-green-100">
                         <i class="fas fa-play-circle text-green-600 text-xl"></i>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Ready to Activate</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ activation_count }}</p>
+                        <p class="text-sm font-medium text-gray-600">Confirm & Activate</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ confirm_and_activate_count }}</p>
                     </div>
                 </div>
             </div>
@@ -74,7 +62,7 @@
         
         <!-- Workflow Progress Indicator -->
         <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Workflow Stages</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">4-Stage Payment Workflow</h3>
             <div class="flex items-center justify-between">
                 <div class="flex items-center">
                     <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
@@ -95,25 +83,16 @@
                 <div class="flex-1 h-1 bg-gray-200 mx-4"></div>
                 
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
+                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
                     <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Verify Payment</p>
-                        <p class="text-xs text-gray-500">{{ verification_count }} pending</p>
+                        <p class="text-sm font-medium text-gray-900">Confirm & Activate</p>
+                        <p class="text-xs text-gray-500">{{ confirm_and_activate_count }} ready</p>
                     </div>
                 </div>
                 <div class="flex-1 h-1 bg-gray-200 mx-4"></div>
                 
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">4</div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Activate Work</p>
-                        <p class="text-xs text-gray-500">{{ activation_count }} ready</p>
-                    </div>
-                </div>
-                <div class="flex-1 h-1 bg-gray-200 mx-4"></div>
-                
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">5</div>
+                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">4</div>
                     <div class="ml-3">
                         <p class="text-sm font-medium text-gray-900">Release Payment</p>
                         <p class="text-xs text-gray-500">{{ release_count }} ready</p>
@@ -126,7 +105,7 @@
     <!-- Enhanced Workflow Sections -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        <!-- 1. STAGE 1: Approved Bids Needing Invoice Generation -->
+        <!-- STAGE 1: Approved Bids Needing Invoice Generation -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
                 <div class="flex items-center justify-between">
@@ -188,7 +167,7 @@
             </div>
         </div>
 
-        <!-- 2. STAGE 2: Invoices Sent, Awaiting Payment -->
+        <!-- STAGE 2: Invoices Sent, Awaiting Payment -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-yellow-50 to-amber-50 px-6 py-4 border-b border-yellow-100">
                 <div class="flex items-center justify-between">
@@ -245,29 +224,29 @@
             </div>
         </div>
 
-        <!-- 3. STAGE 3: Payment Initiated, Needs Verification -->
+        <!-- STAGE 3: Confirm Payment & Activate Work -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-orange-100">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-search-dollar text-orange-500 mr-3"></i>
-                        Stage 3: Verify Payments
+                        <i class="fas fa-play-circle text-green-500 mr-3"></i>
+                        Stage 3: Confirm & Activate
                     </h2>
-                    <span class="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ needs_verification|length }} pending
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {{ ready_to_confirm_and_activate|length }} ready
                     </span>
                 </div>
-                <p class="text-sm text-gray-600 mt-1">Enterprises have initiated payments - confirm receipt</p>
+                <p class="text-sm text-gray-600 mt-1">Confirm payment received and activate pilot work</p>
             </div>
             
             <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {% for payment in needs_verification %}
+                {% for payment in ready_to_confirm_and_activate %}
                 <div class="p-6 hover:bg-gray-50 transition-colors">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
                             <div class="flex items-center">
                                 <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     ${{ payment.total_amount }}
                                 </span>
                             </div>
@@ -276,8 +255,8 @@
                                 {{ payment.pilot_bid.pilot.organization.name }} → {{ payment.pilot_bid.startup.name }}
                             </p>
                             <p class="text-xs text-gray-500">
-                                <i class="fas fa-credit-card mr-1"></i>
-                                Payment initiated {{ payment.payment_initiated_at|timesince }} ago
+                                <i class="fas fa-paper-plane mr-1"></i>
+                                Invoice sent {{ payment.instructions_sent_at|timesince }} ago
                             </p>
                         </div>
                         <div class="flex flex-col space-y-2 ml-4">
@@ -286,75 +265,13 @@
                                 <i class="fas fa-eye mr-1"></i>
                                 Review
                             </a>
-                            <form method="post" action="{% url 'payments:admin_mark_payment_received' payment.id %}" class="inline">
+                            <form method="post" action="{% url 'payments:admin_confirm_payment_and_activate' payment.id %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" 
-                                        data-confirm="Confirm that you have received this payment?"
-                                        class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700">
-                                    <i class="fas fa-check mr-1"></i>
-                                    Confirm Receipt
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-check-circle text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No payments awaiting verification</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- 4. STAGE 4: Payment Verified, Ready to Activate Work -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-play-circle text-green-500 mr-3"></i>
-                        Stage 4: Activate Work
-                    </h2>
-                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ payment_received_ready_to_activate|length }} ready
-                    </span>
-                </div>
-                <p class="text-sm text-gray-600 mt-1">Payments verified - activate pilot work</p>
-            </div>
-            
-            <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {% for payment in payment_received_ready_to_activate %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    Verified
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:50 }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                {{ payment.pilot_bid.pilot.organization.name }} → {{ payment.pilot_bid.startup.name }}
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                <i class="fas fa-check-circle mr-1"></i>
-                                Payment verified {{ payment.received_at|timesince }} ago
-                            </p>
-                        </div>
-                        <div class="flex flex-col space-y-2 ml-4">
-                            <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <i class="fas fa-eye mr-1"></i>
-                                Review
-                            </a>
-                            <form method="post" action="{% url 'payments:admin_activate_pilot_work' payment.id %}" class="inline">
-                                {% csrf_token %}
-                                <button type="submit" 
-                                        data-confirm="Activate work for this pilot? Both parties will be notified."
+                                        data-confirm="Confirm payment received and activate work for this pilot?"
                                         class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                                    <i class="fas fa-rocket mr-1"></i>
-                                    Activate Work
+                                    <i class="fas fa-check-double mr-1"></i>
+                                    Confirm & Activate
                                 </button>
                             </form>
                         </div>
@@ -363,19 +280,19 @@
                 {% empty %}
                 <div class="p-8 text-center text-gray-500">
                     <i class="fas fa-play-circle text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No pilots ready for activation</p>
+                    <p class="text-sm">No payments ready to confirm and activate</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- 5. STAGE 5: Work Completed, Ready for Payment Release -->
+        <!-- STAGE 4: Work Completed, Ready for Payment Release -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-hand-holding-usd text-purple-500 mr-3"></i>
-                        Stage 5: Release Payments
+                        Stage 4: Release Payments
                     </h2>
                     <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                         {{ completed_ready_for_release|length }} completed
@@ -437,7 +354,7 @@
         </div>
 
         <!-- Recent Activity Log -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden lg:col-span-2">
             <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-100">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -461,13 +378,9 @@
                                 <div class="p-2 bg-blue-100 rounded-full">
                                     <i class="fas fa-paper-plane text-blue-600 text-sm"></i>
                                 </div>
-                            {% elif log.new_status == 'payment_initiated' %}
-                                <div class="p-2 bg-yellow-100 rounded-full">
-                                    <i class="fas fa-credit-card text-yellow-600 text-sm"></i>
-                                </div>
                             {% elif log.new_status == 'received' %}
                                 <div class="p-2 bg-green-100 rounded-full">
-                                    <i class="fas fa-check text-green-600 text-sm"></i>
+                                    <i class="fas fa-check-double text-green-600 text-sm"></i>
                                 </div>
                             {% elif log.new_status == 'released' %}
                                 <div class="p-2 bg-purple-100 rounded-full">
