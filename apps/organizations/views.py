@@ -1,21 +1,25 @@
 from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView
 from django.shortcuts import redirect, get_object_or_404, render
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.admin.views.decorators import staff_member_required
 from django.urls import reverse, reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, get_user_model
 from django.db import transaction
+from django.http import JsonResponse, HttpResponseForbidden
+from django.utils import timezone
+from django.core.paginator import Paginator
+from django.db.models import Q
 from .models import Organization, PilotDefinition
 from .forms import OrganizationBasicForm, PilotDefinitionForm, OrganizationProfileForm
 from django.views.generic import TemplateView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.pilots.models import Pilot, PilotBid
-from django.utils import timezone
 from apps.users.models import User
 from django.urls import reverse
 from django.views import View
-from django.contrib.auth.decorators import user_passes_test
+from apps.notifications.services import create_notification
 
 class OrganizationRegistrationView(CreateView):
     model = Organization
@@ -320,3 +324,136 @@ class StartupDirectoryView(LoginRequiredMixin, ListView):
         ).exclude(
             id=self.request.user.organization.id
         ).order_by('name')
+
+# =============================================================================
+# ADMIN VIEWS - Organization Approval Workflow
+# =============================================================================
+
+@login_required
+@staff_member_required
+def admin_pending_approvals(request):
+    """Admin view for organization approvals with bulk actions"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        org_ids = request.POST.getlist('org_ids')
+        
+        # Handle single organization approval/rejection
+        single_org_id = request.POST.get('single_org_id')
+        if single_org_id and action:
+            org_ids = [single_org_id]
+        
+        if org_ids and action:
+            organizations = Organization.objects.filter(id__in=org_ids)
+            
+            if action == 'approve':
+                count = 0
+                for org in organizations:
+                    org.approval_status = 'approved'
+                    org.approval_date = timezone.now()
+                    org.save()
+                    
+                    # Create notification for all organization users
+                    for user in org.users.all():
+                        create_notification(
+                            recipient=user,
+                            notification_type='account_approved',
+                            title="Account Approved!",
+                            message=f"Your {org.get_type_display()} account has been approved. You now have full access to Fend Marketplace."
+                        )
+                    count += 1
+                
+                messages.success(request, f'{count} organizations were approved successfully.')
+                
+            elif action == 'reject':
+                rejection_reason = request.POST.get('rejection_reason', '')
+                count = 0
+                for org in organizations:
+                    org.approval_status = 'rejected'
+                    org.save()
+                    
+                    # Create notification for all organization users
+                    for user in org.users.all():
+                        create_notification(
+                            recipient=user,
+                            notification_type='account_rejected',
+                            title="Account Requires Additional Information",
+                            message=f"Your {org.get_type_display()} account needs additional information before approval. Reason: {rejection_reason}"
+                        )
+                    count += 1
+                
+                messages.success(request, f'{count} organizations were rejected.')
+    
+    # Get all organizations with pending approval status
+    pending_orgs = Organization.objects.filter(
+        approval_status='pending'
+    ).select_related().order_by('-created_at')
+    
+    context = {
+        'title': 'Organization Approvals',
+        'pending_orgs': pending_orgs,
+    }
+    return render(request, 'admin/organizations/pending_approvals.html', context)
+
+@login_required
+@staff_member_required
+def admin_organization_detail(request, org_id):
+    """Admin view for individual organization review"""
+    organization = get_object_or_404(Organization, id=org_id)
+    
+    context = {
+        'title': f'Review {organization.name}',
+        'organization': organization,
+    }
+    return render(request, 'admin/organizations/approval_detail.html', context)
+
+@login_required
+@staff_member_required
+def admin_approve_organization(request, org_id):
+    """Admin action to approve a single organization"""
+    if request.method != 'POST':
+        return redirect('admin:organizations_organization_changelist')
+    
+    organization = get_object_or_404(Organization, id=org_id)
+    
+    # Approve the organization
+    organization.approval_status = 'approved'
+    organization.approval_date = timezone.now()
+    organization.save()
+    
+    # Create notification for all organization users
+    for user in organization.users.all():
+        create_notification(
+            recipient=user,
+            notification_type='account_approved',
+            title="Account Approved!",
+            message=f"Your {organization.get_type_display()} account has been approved. You now have full access to Fend Marketplace."
+        )
+    
+    messages.success(request, f"{organization.name} has been approved successfully.")
+    return redirect('admin:pending_approvals')
+
+@login_required
+@staff_member_required
+def admin_reject_organization(request, org_id):
+    """Admin action to reject a single organization"""
+    if request.method != 'POST':
+        return redirect('admin:organizations_organization_changelist')
+    
+    organization = get_object_or_404(Organization, id=org_id)
+    rejection_reason = request.POST.get('rejection_reason', '')
+    
+    # Reject the organization
+    organization.approval_status = 'rejected'
+    organization.save()
+    
+    # Create notification for all organization users
+    for user in organization.users.all():
+        create_notification(
+            recipient=user,
+            notification_type='account_rejected',
+            title="Account Requires Additional Information",
+            message=f"Your {organization.get_type_display()} account needs additional information before approval. Reason: {rejection_reason}"
+        )
+    
+    messages.success(request, f"{organization.name} has been rejected with feedback.")
+    return redirect('admin:pending_approvals')
