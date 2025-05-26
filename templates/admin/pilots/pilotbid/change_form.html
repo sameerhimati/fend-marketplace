@@ -1,14 +1,421 @@
 {% extends "admin/change_form.html" %}
 {% load i18n admin_urls static admin_modify %}
 
-{% block submit_buttons_bottom %}
-    {{ block.super }}
-    {% if show_mark_as_live_button %}
-    <div class="submit-row" style="margin-top: 10px;">
-        <input type="submit" value="Mark as Live" name="_mark_as_live" class="default" style="background-color: #10B981; border-color: #10B981;">
-        <p class="help" style="margin-top: 5px;">
-            This will mark the bid as live, indicating payment has been verified and work can begin.
-        </p>
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .admin-actions-section {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    .admin-actions-section h3 {
+        color: #495057;
+        margin-bottom: 15px;
+        font-size: 1.1em;
+        border-bottom: 2px solid #007cba;
+        padding-bottom: 8px;
+    }
+    
+    .action-button {
+        display: inline-block;
+        padding: 10px 20px;
+        margin: 5px 10px 5px 0;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .action-button.success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .action-button.success:hover {
+        background-color: #218838;
+        color: white;
+    }
+    
+    .action-button.warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .action-button.warning:hover {
+        background-color: #e0a800;
+        color: #212529;
+    }
+    
+    .action-button.danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .action-button.danger:hover {
+        background-color: #c82333;
+        color: white;
+    }
+    
+    .action-button.info {
+        background-color: #17a2b8;
+        color: white;
+    }
+    
+    .action-button.info:hover {
+        background-color: #138496;
+        color: white;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .status-pending { background-color: #fff3cd; color: #856404; }
+    .status-under-review { background-color: #d4edda; color: #155724; }
+    .status-approved { background-color: #cce5ff; color: #004085; }
+    .status-live { background-color: #d1ecf1; color: #0c5460; }
+    .status-completion-pending { background-color: #f8d7da; color: #721c24; }
+    .status-completed { background-color: #d4edda; color: #155724; }
+    .status-declined { background-color: #f8d7da; color: #721c24; }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .info-item {
+        background: white;
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .info-item h4 {
+        margin: 0 0 8px 0;
+        color: #6c757d;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    
+    .info-item p {
+        margin: 0;
+        font-size: 1.1em;
+        font-weight: 500;
+    }
+    
+    .workflow-timeline {
+        margin: 20px 0;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .timeline-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        border-radius: 6px;
+    }
+    
+    .timeline-step.active {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+    }
+    
+    .timeline-step.completed {
+        background-color: #e8f5e8;
+        border-left: 4px solid #4caf50;
+    }
+    
+    .timeline-step.pending {
+        background-color: #fff3e0;
+        border-left: 4px solid #ff9800;
+    }
+    
+    .timeline-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 14px;
+    }
+    
+    .help-text {
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 6px;
+        padding: 15px;
+        margin: 15px 0;
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    {% if show_bid_info %}
+    <!-- Bid Overview Section -->
+    <div class="admin-actions-section">
+        <h3>📊 Bid Overview</h3>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <h4>Current Status</h4>
+                <p>
+                    <span class="status-badge status-{{ original.status }}">
+                        {{ original.get_status_display }}
+                    </span>
+                </p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Bid Amount</h4>
+                <p>${{ original.amount }}</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Total Payment Required</h4>
+                <p>${{ original.calculate_total_amount_for_enterprise }}</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Startup Will Receive</h4>
+                <p>${{ original.calculate_startup_net_amount }}</p>
+            </div>
+        </div>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <h4>Pilot</h4>
+                <p>{{ original.pilot.title }}</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Enterprise</h4>
+                <p>{{ original.pilot.organization.name }}</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Startup</h4>
+                <p>{{ original.startup.name }}</p>
+            </div>
+            
+            <div class="info-item">
+                <h4>Submitted</h4>
+                <p>{{ original.created_at|date:"M d, Y g:i A" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Workflow Timeline -->
+    <div class="workflow-timeline">
+        <h3>🔄 Workflow Progress</h3>
+        
+        <div class="timeline-step">
+            <div class="timeline-icon">
+                {% if original.status != 'pending' %}✓{% elif original.status == 'pending' %}●{% else %}○{% endif %}
+            </div>
+            <div>
+                <strong>Bid Submitted</strong>
+                <br><small>Startup submits proposal and bid amount</small>
+            </div>
+        </div>
+        
+        <div class="timeline-step">
+            <div class="timeline-icon">
+                {% if original.status == 'approved' or original.status == 'live' or original.status == 'completion_pending' or original.status == 'completed' %}✓{% elif original.status == 'under_review' %}●{% else %}○{% endif %}
+            </div>
+            <div>
+                <strong>Under Review</strong>
+                <br><small>Enterprise evaluates the proposal</small>
+            </div>
+        </div>
+        
+        <div class="timeline-step">
+            <div class="timeline-icon">
+                {% if original.status == 'live' or original.status == 'completion_pending' or original.status == 'completed' %}✓{% elif original.status == 'approved' %}●{% else %}○{% endif %}
+            </div>
+            <div>
+                <strong>Approved - Payment Processing</strong>
+                <br><small>Enterprise approves bid, payment is being processed</small>
+            </div>
+        </div>
+        
+        <div class="timeline-step">
+            <div class="timeline-icon">
+                {% if original.status == 'completion_pending' or original.status == 'completed' %}✓{% elif original.status == 'live' %}●{% else %}○{% endif %}
+            </div>
+            <div>
+                <strong>Work in Progress</strong>
+                <br><small>Payment verified, startup is working on the pilot</small>
+            </div>
+        </div>
+        
+        <div class="timeline-step">
+            <div class="timeline-icon">
+                {% if original.status == 'completed' %}✓{% elif original.status == 'completion_pending' %}●{% else %}○{% endif %}
+            </div>
+            <div>
+                <strong>Completion Review</strong>
+                <br><small>Startup requests completion verification from enterprise</small>
+            </div>
+        </div>
+        
+        <div class="timeline-step">
+            <div class="timeline-icon">
+                {% if original.status == 'completed' %}✓{% else %}○{% endif %}
+            </div>
+            <div>
+                <strong>Completed</strong>
+                <br><small>Work verified as complete, payment released to startup</small>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+    
+    <!-- Admin Actions Section -->
+    {% if show_admin_actions %}
+    <div class="admin-actions-section">
+        <h3>🔧 Admin Actions</h3>
+        
+        {% if original.status == 'approved' %}
+        <div class="help-text">
+            <strong>Payment Processing Status:</strong> This bid has been approved by the enterprise. 
+            {% if original.escrow_payment %}
+                An escrow payment record exists ({{ original.escrow_payment.reference_code }}). 
+                Once payment is verified, you can mark this bid as "Live" to allow work to begin.
+            {% else %}
+                No escrow payment record found - this may need investigation.
+            {% endif %}
+        </div>
+        
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="admin_action" value="mark_live">
+            <button type="submit" name="_mark_as_live" value="1" 
+                    onclick="return confirm('Mark this bid as live? This will notify both parties that work can begin.')"
+                    class="action-button success">
+                🚀 Mark as Live (Start Work)
+            </button>
+        </form>
+        
+        {% elif original.status == 'live' %}
+        <div class="help-text">
+            <strong>Work in Progress:</strong> Payment has been verified and work is underway. 
+            The startup will request completion verification when ready.
+        </div>
+        
+        {% elif original.status == 'completion_pending' %}
+        <div class="help-text">
+            <strong>Awaiting Completion Verification:</strong> The startup has requested completion verification. 
+            The enterprise should review and confirm the work is complete.
+        </div>
+        
+        {% elif original.status == 'completed' %}
+        <div class="help-text">
+            <strong>Work Completed:</strong> The enterprise has verified completion. 
+            {% if original.escrow_payment and original.escrow_payment.status == 'received' %}
+                The escrow payment is ready to be released to the startup.
+            {% elif original.escrow_payment and original.escrow_payment.status == 'released' %}
+                Payment has been released to the startup.
+            {% endif %}
+        </div>
+        
+        {% elif original.status == 'pending' %}
+        <div class="help-text">
+            <strong>Awaiting Enterprise Review:</strong> This bid is waiting for the enterprise to review and approve or decline.
+        </div>
+        
+        {% elif original.status == 'declined' %}
+        <div class="help-text">
+            <strong>Bid Declined:</strong> This bid was declined by the enterprise or automatically declined when another bid was approved.
+        </div>
+        {% endif %}
+        
+        <!-- Payment Link -->
+        {% if original.escrow_payment %}
+        <a href="{% url 'payments:admin_escrow_payment_detail' original.escrow_payment.id %}" 
+           class="action-button info">
+            💳 View Payment Details ({{ original.escrow_payment.reference_code }})
+        </a>
+        {% endif %}
+        
+        <!-- Pilot Link -->
+        <a href="{% url 'admin:pilots_pilot_change' original.pilot.id %}" 
+           class="action-button info">
+            📋 View Pilot Details
+        </a>
+        
+        <!-- Status Override (Emergency Use) -->
+        <details style="margin-top: 15px;">
+            <summary style="cursor: pointer; color: #dc3545; font-weight: 500;">⚠️ Emergency Status Override</summary>
+            <div style="margin-top: 10px; padding: 15px; background: #fff3cd; border-radius: 6px;">
+                <p style="margin-bottom: 10px; font-size: 0.9em;">
+                    <strong>Warning:</strong> Only use these actions in emergency situations or when the normal workflow is broken.
+                </p>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <select name="force_status" style="margin-right: 10px; padding: 5px;">
+                        <option value="">Select Status...</option>
+                        <option value="pending">Pending</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="approved">Approved</option>
+                        <option value="live">Live</option>
+                        <option value="completion_pending">Completion Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="declined">Declined</option>
+                    </select>
+                    <button type="submit" name="_force_status" value="1" 
+                            onclick="return confirm('WARNING: Force status change? This bypasses normal workflow validation.')"
+                            class="action-button danger">
+                        🚨 Force Status Change
+                    </button>
+                </form>
+            </div>
+        </details>
     </div>
     {% endif %}
+    
+    <!-- Regular Django Admin Form -->
+    {{ block.super }}
+</div>
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+
+{% if show_mark_as_live_button and original.status == 'approved' %}
+<div class="submit-row" style="margin-top: 15px; padding: 15px; background: #e8f5e8; border-radius: 6px;">
+    <form method="post" style="display: inline;">
+        {% csrf_token %}
+        <input type="submit" value="🚀 Mark as Live" name="_mark_as_live" 
+               class="default" 
+               style="background-color: #28a745; border-color: #28a745; color: white; padding: 10px 20px; border-radius: 6px;"
+               onclick="return confirm('Mark this bid as live? This will notify both parties that payment has been verified and work can begin.')">
+    </form>
+    <p class="help" style="margin-top: 10px; font-size: 0.9em; color: #155724;">
+        <strong>Action Required:</strong> Payment has been verified. Mark this bid as live so both parties know work can begin.
+    </p>
+</div>
+{% endif %}
+
 {% endblock %}
