@@ -146,18 +146,18 @@ LOGGING = {
 }
 
 # Email configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'  # This must always be 'apikey' for SendGrid
-EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@thefend.com')
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@thefend.com')
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.sendgrid.net'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'apikey'  # This must always be 'apikey' for SendGrid
+# EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY', '')
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@thefend.com')
+# ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@thefend.com')
 
-# For development, use console backend if no SendGrid key
-if not EMAIL_HOST_PASSWORD and DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# # For development, use console backend if no SendGrid key
+# if not EMAIL_HOST_PASSWORD and DEBUG:
+#     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 def ready():
     """Initialize admin customization after Django is fully loaded."""
