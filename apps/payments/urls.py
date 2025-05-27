@@ -73,24 +73,26 @@ urlpatterns = [
          name='admin_export_payments_csv'),
 
     # =============================================================================
-    # REMOVED URLS (5-Stage Workflow - No longer needed)
+    # NEW: ACTIVE WORK MANAGEMENT
     # =============================================================================
-    # 
-    # These URLs were part of the old 5-stage workflow and are no longer needed:
-    #
-    # path('admin/escrow-payment/<int:payment_id>/received/', 
-    #      views.admin_mark_payment_received, 
-    #      name='admin_mark_payment_received'),
-    #
-    # path('admin/escrow-payment/<int:payment_id>/release/', 
-    #      views.admin_release_payment, 
-    #      name='admin_release_payment'),
-    #
-    # path('admin/payment/<int:payment_id>/activate-work/', 
-    #      views.admin_activate_pilot_work, 
-    #      name='admin_activate_pilot_work'),
-    #
-    # path('admin/escrow-payment/<int:payment_id>/kickoff/', 
-    #      views.admin_kickoff_pilot, 
-    #      name='admin_kickoff_pilot'),
+    
+    # Active pilots dashboard
+    path('admin/active-pilots/', 
+         views.admin_active_pilots_dashboard, 
+         name='admin_active_pilots_dashboard'),
+    
+    # Mark pilot work as started (approved → live)
+    path('admin/pilot/<int:bid_id>/start-work/', 
+         views.admin_start_pilot_work, 
+         name='admin_start_pilot_work'),
+    
+    # Quick completion actions
+    path('admin/pilot/<int:bid_id>/mark-completion-requested/', 
+         views.admin_mark_completion_requested, 
+         name='admin_mark_completion_requested'),
+    
+    # Contact management
+    path('admin/pilot/<int:bid_id>/contact-parties/', 
+         views.admin_contact_pilot_parties, 
+         name='admin_contact_pilot_parties'),
 ]
