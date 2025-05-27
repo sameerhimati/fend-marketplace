@@ -730,6 +730,26 @@ def admin_payment_dashboard(request):
         'pilot_bid__pilot__organization',
         'pilot_bid__startup'
     ).order_by('-received_at')
+
+    # Active work sections
+    active_pilots = PilotBid.objects.filter(
+        status='live'
+    ).select_related(
+        'pilot__organization',
+        'startup',
+        'escrow_payment'
+    ).prefetch_related(
+        'pilot'
+    ).order_by('-updated_at')
+    
+    # Payment confirmed but work not yet marked as live
+    payment_confirmed_ready_to_start = EscrowPayment.objects.filter(
+        status='received',
+        pilot_bid__status='approved'  # Payment confirmed but work not yet marked as live
+    ).select_related(
+        'pilot_bid__pilot__organization',
+        'pilot_bid__startup'
+    ).order_by('-received_at')
     
     # Recent activity logs
     recent_logs = EscrowPaymentLog.objects.select_related(
@@ -751,11 +771,19 @@ def admin_payment_dashboard(request):
         'recent_logs': recent_logs,
         'total_escrow_amount': total_escrow_amount,
         
+        # NEW: Active work sections
+        'active_pilots': active_pilots[:8],  # Show up to 8 active pilots
+        'payment_confirmed_ready_to_start': payment_confirmed_ready_to_start[:5],
+        
         # Dashboard stats
         'invoice_generation_count': approved_bids_needing_invoice.count(),
         'invoiced_awaiting_payment_count': invoices_sent_awaiting_payment.count(),
         'confirm_and_activate_count': ready_to_confirm_and_activate.count(),
         'release_count': completed_ready_for_release.count(),
+        
+        # NEW: Active work stats
+        'active_pilots_count': active_pilots.count(),
+        'payment_confirmed_count': payment_confirmed_ready_to_start.count(),
     }
     
     return render(request, 'admin/payments/admin_payment_dashboard.html', context)
@@ -1065,3 +1093,217 @@ def admin_export_payments_csv(request):
         ])
     
     return response
+
+@login_required
+@staff_member_required
+def admin_active_pilots_dashboard(request):
+    """Dedicated dashboard for managing active pilot work"""
+    
+    # Filter and search functionality
+    search_query = request.GET.get('search', '')
+    status_filter = request.GET.get('status', 'all')
+    
+    # Base querysets
+    base_query = PilotBid.objects.select_related(
+        'pilot__organization',
+        'startup',
+        'escrow_payment'
+    ).prefetch_related('pilot')
+    
+    # Active pilots (work in progress)
+    active_pilots = base_query.filter(status='live')
+    
+    # Payment confirmed, ready to start work
+    ready_to_start = base_query.filter(
+        status='approved',
+        escrow_payment__status='received'
+    )
+    
+    # Completion pending (work done, awaiting verification)
+    completion_pending = base_query.filter(status='completion_pending')
+    
+    # Apply search filter
+    if search_query:
+        search_filter = (
+            Q(pilot__title__icontains=search_query) |
+            Q(pilot__organization__name__icontains=search_query) |
+            Q(startup__name__icontains=search_query)
+        )
+        active_pilots = active_pilots.filter(search_filter)
+        ready_to_start = ready_to_start.filter(search_filter)
+        completion_pending = completion_pending.filter(search_filter)
+    
+    # Apply status filter
+    if status_filter == 'live':
+        ready_to_start = PilotBid.objects.none()
+        completion_pending = PilotBid.objects.none()
+    elif status_filter == 'ready':
+        active_pilots = PilotBid.objects.none()
+        completion_pending = PilotBid.objects.none()
+    elif status_filter == 'completion':
+        active_pilots = PilotBid.objects.none()
+        ready_to_start = PilotBid.objects.none()
+    
+    # Order by most recent activity
+    active_pilots = active_pilots.order_by('-updated_at')
+    ready_to_start = ready_to_start.order_by('-updated_at')
+    completion_pending = completion_pending.order_by('-updated_at')
+    
+    # Calculate summary stats
+    total_active = active_pilots.count()
+    total_ready = ready_to_start.count()
+    total_completion = completion_pending.count()
+    
+    # Calculate total value of active work
+    total_active_value = active_pilots.aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+    
+    # Average pilot duration (days since went live)
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    avg_duration = None
+    if active_pilots.exists():
+        durations = []
+        for pilot in active_pilots:
+            if pilot.updated_at:  # When it was marked as live
+                duration = (timezone.now() - pilot.updated_at).days
+                durations.append(duration)
+        if durations:
+            avg_duration = sum(durations) / len(durations)
+    
+    context = {
+        'active_pilots': active_pilots,
+        'ready_to_start': ready_to_start,
+        'completion_pending': completion_pending,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        
+        # Summary stats
+        'total_active': total_active,
+        'total_ready': total_ready,
+        'total_completion': total_completion,
+        'total_active_value': total_active_value,
+        'avg_duration': avg_duration,
+        
+        # Counts for badges
+        'all_count': total_active + total_ready + total_completion,
+        'live_count': total_active,
+        'ready_count': total_ready,
+        'completion_count': total_completion,
+    }
+    
+    return render(request, 'admin/payments/admin_active_pilots_dashboard.html', context)
+
+@login_required
+@staff_member_required
+def admin_start_pilot_work(request, bid_id):
+    """Mark a pilot as live (start work) after payment confirmation"""
+    if request.method != 'POST':
+        return redirect('payments:admin_active_pilots_dashboard')
+    
+    bid = get_object_or_404(PilotBid, id=bid_id)
+    
+    # Validate that we can start work
+    if bid.status != 'approved':
+        messages.error(request, f"Cannot start work. Bid status is '{bid.get_status_display()}', expected 'Approved'.")
+        return redirect('payments:admin_active_pilots_dashboard')
+    
+    # Check that payment is confirmed
+    if not hasattr(bid, 'escrow_payment') or bid.escrow_payment.status != 'received':
+        messages.error(request, "Cannot start work. Payment must be received and confirmed first.")
+        return redirect('payments:admin_active_pilots_dashboard')
+    
+    # Mark as live
+    success = bid.mark_live()
+    
+    if success:
+        messages.success(request, f"Work started for pilot '{bid.pilot.title}'. Both parties have been notified.")
+    else:
+        messages.error(request, "Failed to start work. Please check the bid status.")
+    
+    return redirect('payments:admin_active_pilots_dashboard')
+
+@login_required
+@staff_member_required
+def admin_mark_completion_requested(request, bid_id):
+    """Admin can mark that startup has requested completion verification"""
+    if request.method != 'POST':
+        return redirect('payments:admin_active_pilots_dashboard')
+    
+    bid = get_object_or_404(PilotBid, id=bid_id)
+    
+    if bid.status != 'live':
+        messages.error(request, f"Cannot request completion. Bid must be live. Current status: {bid.get_status_display()}")
+        return redirect('payments:admin_active_pilots_dashboard')
+    
+    success = bid.request_completion()
+    
+    if success:
+        messages.success(request, f"Completion verification requested for '{bid.pilot.title}'. Enterprise has been notified.")
+    else:
+        messages.error(request, "Failed to request completion verification.")
+    
+    return redirect('payments:admin_active_pilots_dashboard')
+
+@login_required
+@staff_member_required
+def admin_contact_pilot_parties(request, bid_id):
+    """Admin tool to contact both parties about a pilot"""
+    bid = get_object_or_404(PilotBid, id=bid_id)
+    
+    if request.method == 'POST':
+        message_type = request.POST.get('message_type')
+        custom_message = request.POST.get('custom_message')
+        
+        # Send notifications based on message type
+        if message_type == 'progress_check':
+            title = f"Progress Check: {bid.pilot.title}"
+            message = custom_message or f"Admin is checking on the progress of pilot '{bid.pilot.title}'. Please provide an update when convenient."
+            
+        elif message_type == 'issue_follow_up':
+            title = f"Follow-up Required: {bid.pilot.title}"
+            message = custom_message or f"Admin follow-up regarding pilot '{bid.pilot.title}'. Please respond at your earliest convenience."
+            
+        elif message_type == 'completion_reminder':
+            title = f"Completion Reminder: {bid.pilot.title}"
+            message = custom_message or f"Friendly reminder about pilot '{bid.pilot.title}'. Please mark as complete when work is finished."
+            
+        else:  # custom
+            title = f"Admin Message: {bid.pilot.title}"
+            message = custom_message or "Admin message regarding your pilot."
+        
+        # Send to both enterprise and startup
+        from apps.notifications.services import create_notification
+        
+        # Notify enterprise users
+        for user in bid.pilot.organization.users.all():
+            create_notification(
+                recipient=user,
+                notification_type='admin_contact',
+                title=title,
+                message=message,
+                related_pilot=bid.pilot,
+                related_bid=bid
+            )
+        
+        # Notify startup users
+        for user in bid.startup.users.all():
+            create_notification(
+                recipient=user,
+                notification_type='admin_contact',
+                title=title,
+                message=message,
+                related_pilot=bid.pilot,
+                related_bid=bid
+            )
+        
+        messages.success(request, f"Message sent to both {bid.pilot.organization.name} and {bid.startup.name}")
+        return redirect('payments:admin_active_pilots_dashboard')
+    
+    context = {
+        'bid': bid,
+    }
+    
+    return render(request, 'admin/payments/admin_contact_pilot_parties.html', context)

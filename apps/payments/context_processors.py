@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
 from apps.payments.models import EscrowPayment
+from apps.pilots.models import PilotBid
 
 def stripe_key(request):
     return {
@@ -33,6 +34,9 @@ def payment_stats(request):
             released_at__gte=start_of_month
         ).count()
         
+        # Add active pilots count for navigation
+        active_pilots_count = PilotBid.objects.filter(status='live').count()
+        
         return {
             'payment_stats': {
                 'pending_count': pending_count,
@@ -40,6 +44,7 @@ def payment_stats(request):
                 'total_escrow': f"{total_escrow:,.0f}",
                 'released_month': f"{released_month:,.0f}",
                 'released_count_month': released_count_month,
-            }
+            },
+            'active_pilots_count': active_pilots_count,
         }
     return {}

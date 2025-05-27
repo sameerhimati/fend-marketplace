@@ -286,13 +286,149 @@
             </div>
         </div>
 
-        <!-- STAGE 4: Work Completed, Ready for Payment Release -->
+        <!-- STAGE 4: Payment Confirmed - Ready to Start Work -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-cyan-50 to-blue-50 px-6 py-4 border-b border-cyan-100">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-rocket text-cyan-500 mr-3"></i>
+                        Stage 4: Ready to Start Work
+                    </h2>
+                    <span class="bg-cyan-100 text-cyan-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {{ payment_confirmed_ready_to_start|length }} ready
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Payment confirmed - activate pilot work</p>
+            </div>
+            
+            <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                {% for payment in payment_confirmed_ready_to_start %}
+                <div class="p-6 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                                    ${{ payment.total_amount }}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:50 }}</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                {{ payment.pilot_bid.startup.name }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Payment confirmed {{ payment.received_at|timesince }} ago
+                            </p>
+                        </div>
+                        <div class="flex flex-col space-y-2 ml-4">
+                            <a href="{% url 'pilots:bid_detail' payment.pilot_bid.pk %}" 
+                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <i class="fas fa-eye mr-1"></i>
+                                Review
+                            </a>
+                            <form method="post" action="{% url 'payments:admin_start_pilot_work' payment.pilot_bid.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" 
+                                        data-confirm="Start work for this pilot? Both parties will be notified that work can begin."
+                                        class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700">
+                                    <i class="fas fa-rocket mr-1"></i>
+                                    Start Work
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fas fa-rocket text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-sm">No pilots ready to start work</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>    
+        
+        <!-- Active Work Summary Section -->
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-play-circle text-emerald-500 mr-3"></i>
+                        Active Work Overview
+                    </h2>
+                    <a href="{% url 'payments:admin_active_pilots_dashboard' %}" 
+                       class="text-sm text-emerald-600 hover:text-emerald-900 font-medium">
+                        View All Active Work
+                    </a>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Here are all the pilots in progress</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Ready to Start -->
+                    <div class="text-center">
+                        <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                            <i class="fas fa-rocket text-blue-600 text-xl"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900">{{ payment_confirmed_count|default:0 }}</div>
+                        <div class="text-sm text-gray-600">Ready to Start</div>
+                        <div class="text-xs text-gray-500 mt-1">Payment confirmed</div>
+                    </div>
+                    
+                    <!-- Work in Progress -->
+                    <div class="text-center">
+                        <div class="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                            <i class="fas fa-cogs text-green-600 text-xl"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900">{{ active_pilots_count|default:0 }}</div>
+                        <div class="text-sm text-gray-600">Work in Progress</div>
+                        <div class="text-xs text-gray-500 mt-1">Live pilots</div>
+                    </div>
+                    
+                    <!-- Total Value -->
+                    <div class="text-center">
+                        <div class="bg-purple-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                            <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-900">${{ total_escrow_amount|floatformat:0 }}</div>
+                        <div class="text-sm text-gray-600">Total Active Value</div>
+                        <div class="text-xs text-gray-500 mt-1">In escrow</div>
+                    </div>
+                </div>
+            <!-- Quick Active Pilots Preview -->
+            {% if active_pilots %}
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="text-sm font-medium text-gray-900 mb-3">Recent Active Pilots</h3>
+                <div class="space-y-3">
+                    {% for bid in active_pilots|slice:":3" %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">{{ bid.pilot.title|truncatechars:40 }}</p>
+                            <p class="text-xs text-gray-500">
+                                {{ bid.startup.name }} • ${{ bid.amount }} • Started {{ bid.updated_at|timesince }} ago
+                            </p>
+                        </div>
+                        <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                           class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
+                            View
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+        <!-- STAGE 5: Work Completed, Ready for Payment Release -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-hand-holding-usd text-purple-500 mr-3"></i>
-                        Stage 4: Release Payments
+                        Stage 5: Release Payments
                     </h2>
                     <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                         {{ completed_ready_for_release|length }} completed
