@@ -16,61 +16,113 @@ from django.db.models import Q, Count, Prefetch
 from django.core.paginator import Paginator
 from apps.organizations.mixins import OrganizationRequiredMixin
 
-class PilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListView):
+class UnifiedPilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListView):
+    """
+    Unified pilot list that shows different content based on user's relationship to each pilot.
+    Replaces both PilotListView and BidListView.
+    """
     model = Pilot
-    template_name = 'pilots/pilot_list.html'
-    context_object_name = 'pilots'
+    template_name = 'pilots/unified_pilot_list.html'
+    context_object_name = 'pilot_data'
+    paginate_by = 20
 
     def get_queryset(self):
         if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
-            return Pilot.objects.none()  # Return empty queryset
+            return Pilot.objects.none()
             
         user_org = self.request.user.organization
-
-        if user_org.type == 'startup':
-            # Get all published, non-private pilots
-            pilots = Pilot.objects.filter(status='published', is_private=False)
-            
-            # Exclude pilots where this startup already has an approved, pending or under_review bid
-            active_bid_pilot_ids = PilotBid.objects.filter(
-                startup=user_org
-            ).exclude(
-                status='declined'
-            ).values_list('pilot_id', flat=True)
-            
-            # Exclude pilots that already have any approved bid
-            pilots_with_approved_bids = PilotBid.objects.filter(
-                status='approved'
-            ).values_list('pilot_id', flat=True)
-            
-            # Create a set of all pilots to exclude
-            excluded_pilots = set(active_bid_pilot_ids) | set(pilots_with_approved_bids)
-            
-            # Exclude those pilots
-            return pilots.exclude(id__in=excluded_pilots)
-            
-        elif user_org.type == 'enterprise':
+        
+        if user_org.type == 'enterprise':
             # Enterprises see all their pilots
-            return Pilot.objects.filter(organization=user_org)
-        return Pilot.objects.none()
-    
+            pilots = Pilot.objects.filter(
+                organization=user_org
+            ).prefetch_related(
+                'bids__startup',
+                'organization'
+            ).order_by('-created_at')
+            
+        elif user_org.type == 'startup':
+            # Startups see:
+            # 1. Available pilots they can bid on
+            # 2. Pilots they have bids on (any status)
+            
+            # Available pilots (published, not private, no approved bids, they haven't bid)
+            available_pilots = Pilot.objects.filter(
+                status='published',
+                is_private=False,
+                organization__approval_status='approved'
+            ).exclude(
+                # Exclude pilots with approved bids
+                bids__status__in=['approved', 'live', 'completion_pending', 'completed']
+            ).exclude(
+                # Exclude pilots they've already bid on
+                bids__startup=user_org
+            )
+            
+            # Pilots they have bids on
+            bid_pilot_ids = PilotBid.objects.filter(
+                startup=user_org
+            ).values_list('pilot_id', flat=True)
+            
+            bid_pilots = Pilot.objects.filter(
+                id__in=bid_pilot_ids
+            ).prefetch_related(
+                'bids__startup',
+                'organization'
+            )
+            
+            # Combine and order by relevance
+            pilots = available_pilots.union(bid_pilots).order_by('-created_at')
+            
+        else:
+            return Pilot.objects.none()
+            
+        return pilots
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user_org = self.request.user.organization
         
-        # Add enterprise partners for showcase when no pilots are available
-        if self.request.user.organization.type == 'startup' and not context['pilots']:
-            # Get a few featured enterprise partners (limit to 6 for display)
-            from apps.organizations.models import Organization
-            enterprises = Organization.objects.filter(
-                type='enterprise',
-                onboarding_completed=True
-            ).order_by('?')[:6]  # Random selection, limited to 6
-            
-            context['enterprises'] = enterprises
-            
+        # Enhance each pilot with relationship data
+        pilot_data = []
+        for pilot in context['object_list']:
+            relationship = pilot.get_user_relationship(self.request.user)
+            pilot_data.append({
+                'pilot': pilot,
+                'relationship': relationship,
+                'summary': pilot.get_display_summary(self.request.user),
+                'next_action': pilot.get_next_action(self.request.user),
+            })
+        
+        context['pilot_data'] = pilot_data
+        context['is_enterprise'] = user_org.type == 'enterprise'
+        context['is_startup'] = user_org.type == 'startup'
+        context['user_org'] = user_org
+        
+        # Add counts for enterprise dashboard
+        if user_org.type == 'enterprise':
+            context['pilot_counts'] = {
+                'total': len([p for p in pilot_data if p['relationship']['type'] == 'owner']),
+                'active_work': len([p for p in pilot_data if p['relationship'].get('has_approved_bid', False)]),
+                'pending_bids': len([p for p in pilot_data if p['relationship'].get('pending_bids_count', 0) > 0]),
+                'available': len([p for p in pilot_data if p['relationship'].get('bids_count', 0) == 0]),
+            }
+        
+        # Add counts for startup dashboard  
+        if user_org.type == 'startup':
+            context['pilot_counts'] = {
+                'available': len([p for p in pilot_data if p['relationship']['type'] == 'available']),
+                'your_bids': len([p for p in pilot_data if p['relationship']['type'] == 'bidder']),
+                'active_work': len([p for p in pilot_data if p['relationship'].get('bid_status') in ['approved', 'live', 'completion_pending', 'completed']]),
+            }
+        
         return context
 
-class PilotDetailView(LoginRequiredMixin, DetailView):
+class StatusAwarePilotDetailView(LoginRequiredMixin, DetailView):
+    """
+    Pilot detail view that adapts content based on pilot status and user relationship.
+    Shows different sections (pilot info, bids, working agreement) based on context.
+    """
     model = Pilot
     template_name = 'pilots/pilot_detail.html'
     context_object_name = 'pilot'
@@ -78,36 +130,156 @@ class PilotDetailView(LoginRequiredMixin, DetailView):
     def get_object(self, queryset=None):
         pilot = super().get_object(queryset)
         user_org = self.request.user.organization
-
-        # Check if user has permission to view this pilot
-        if user_org.type == 'startup' and (pilot.is_private or pilot.status != 'published'):
+        
+        # Basic permission check - allow if user has any valid relationship
+        relationship = pilot.get_user_relationship(self.request.user)
+        if relationship['type'] == 'none':
             raise PermissionDenied("You don't have permission to view this pilot")
-        elif user_org.type == 'enterprise' and pilot.organization != user_org:
-            raise PermissionDenied("You don't have permission to view this pilot")
+        
         return pilot
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user_org = self.request.user.organization
         pilot = self.object
         
-        # Check if this startup had a declined bid for this pilot
-        if user_org.type == 'startup':
-            declined_bid = PilotBid.objects.filter(
-                pilot=pilot,
-                startup=user_org,
-                status='declined'
-            ).first()
-            
-            if declined_bid:
-                context['previous_bid_declined'] = True
-                context['declined_bid'] = declined_bid
+        # Get user relationship data
+        relationship = pilot.get_user_relationship(self.request.user)
+        context['relationship'] = relationship
+        context['summary'] = pilot.get_display_summary(self.request.user)
+        context['next_action'] = pilot.get_next_action(self.request.user)
         
-        # Add pilot-specific context here
-        context['is_enterprise'] = user_org == pilot.organization
-        context['can_edit'] = pilot.can_be_edited_by(self.request.user) if hasattr(pilot, 'can_be_edited_by') else False
+        # Add role flags for template logic
+        context['is_owner'] = relationship['type'] == 'owner'
+        context['is_bidder'] = relationship['type'] == 'bidder'
+        context['can_bid'] = relationship.get('can_bid', False)
+        context['has_working_agreement'] = 'working_agreement' in relationship
+        
+        # Add specific action permissions
+        context['can_edit'] = relationship.get('can_edit', False)
+        context['can_delete'] = relationship.get('can_delete', False)
+        context['can_withdraw_bid'] = relationship.get('can_withdraw', False)
+        context['can_request_completion'] = relationship.get('can_request_completion', False)
+        
+        # For owners, add bid management context
+        if relationship['type'] == 'owner' and relationship.get('bids'):
+            context['pending_bids'] = relationship['bids'].filter(status__in=['pending', 'under_review'])
+            context['approved_bids'] = relationship['bids'].filter(status__in=['approved', 'live', 'completion_pending', 'completed'])
+            context['declined_bids'] = relationship['bids'].filter(status='declined')
+        
+        # For working agreements, add completion context
+        if context['has_working_agreement']:
+            working_agreement = relationship['working_agreement']
+            context['working_agreement'] = working_agreement
+            
+            # Add completion verification permission for enterprise
+            if (relationship['type'] == 'owner' and 
+                working_agreement['status'] == 'completion_pending'):
+                context['can_verify_completion'] = True
         
         return context
+
+# =============================================================================
+# LEGACY COMPATIBILITY VIEWS
+# =============================================================================
+
+# Keep old view names for URL compatibility
+PilotListView = UnifiedPilotListView
+PilotDetailView = StatusAwarePilotDetailView
+
+class BidListView(LoginRequiredMixin, ListView):
+    """Legacy view - redirects to unified pilots list"""
+    def get(self, request, *args, **kwargs):
+        messages.info(request, "Bid management has been integrated into the Pilots page.")
+        return redirect('pilots:list')
+
+class BidDetailView(LoginRequiredMixin, DetailView):
+    """
+    Enhanced bid detail that integrates better with unified experience.
+    Still needed for direct bid links but integrates better.
+    """
+    model = PilotBid
+    template_name = 'pilots/bid_detail.html'
+    context_object_name = 'bid'
+    
+    def get_object(self, queryset=None):
+        bid = super().get_object(queryset)
+        
+        # Allow admin/staff users to view any bid
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return bid
+        
+        # For regular users, check organization permissions
+        user_org = getattr(self.request.user, 'organization', None)
+        
+        if not user_org:
+            messages.error(self.request, "You need to be part of an organization to view bids")
+            raise PermissionDenied("Access denied")
+        
+        # Permission check - only relevant parties can view
+        if user_org not in [bid.startup, bid.pilot.organization]:
+            messages.error(self.request, "You don't have permission to view this bid")
+            raise PermissionDenied("Access denied")
+        
+        return bid
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        bid = self.object
+        pilot = bid.pilot
+        
+        # Add pilot relationship context
+        relationship = pilot.get_user_relationship(self.request.user)
+        context['pilot_relationship'] = relationship
+        context['pilot'] = pilot
+        
+        # Determine user role
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            context['is_admin'] = True
+            context['is_enterprise'] = False
+            context['is_startup'] = False
+        else:
+            user_org = self.request.user.organization
+            context['is_admin'] = False
+            context['is_enterprise'] = user_org == bid.pilot.organization
+            context['is_startup'] = user_org == bid.startup
+        
+        # Add action permissions
+        context['can_approve'] = (
+            context['is_enterprise'] and 
+            bid.can_be_approved()
+        )
+        context['can_withdraw'] = (
+            context['is_startup'] and 
+            bid.status == 'pending'
+        )
+        context['can_request_completion'] = (
+            context['is_startup'] and 
+            bid.can_request_completion()
+        )
+        context['can_verify_completion'] = (
+            context['is_enterprise'] and 
+            bid.can_verify_completion()
+        )
+        
+        # Payment information if escrow exists
+        if hasattr(bid, 'escrow_payment'):
+            context['escrow_payment'] = bid.escrow_payment
+        
+        # Calculate financial breakdown
+        context['financial_breakdown'] = {
+            'bid_amount': bid.amount,
+            'enterprise_fee': bid.amount * (bid.enterprise_fee_percentage / 100),
+            'total_enterprise_pays': bid.calculate_total_amount_for_enterprise(),
+            'startup_fee': bid.amount * (bid.startup_fee_percentage / 100),
+            'startup_receives': bid.calculate_startup_net_amount(),
+            'platform_total_fee': bid.amount * (bid.fee_percentage / 100)
+        }
+        
+        return context
+
+# =============================================================================
+# PILOT MANAGEMENT VIEWS (unchanged)
+# =============================================================================
 
 class PilotCreateView(LoginRequiredMixin, CreateView):
     model = Pilot
@@ -146,6 +318,222 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['is_edit'] = True  # Add this to indicate we're editing
         return context
+
+# =============================================================================
+# BID MANAGEMENT FUNCTIONS
+# =============================================================================
+
+@login_required
+def create_bid(request, pilot_id):
+    """Enhanced bid creation with better validation and notifications"""
+    pilot = get_object_or_404(Pilot, id=pilot_id, status='published', is_private=False)
+    user_org = request.user.organization
+    
+    # Only startups can create bids
+    if user_org.type != 'startup':
+        messages.error(request, "Only startups can submit bids")
+        return redirect('pilots:detail', pk=pilot_id)
+    
+    # Check if startup already has ANY bid for this pilot (including declined ones)
+    existing_bid = PilotBid.objects.filter(
+        pilot=pilot, 
+        startup=user_org
+    ).first()
+    
+    # If there's an existing declined bid, we'll update it instead of creating a new one
+    is_resubmission = existing_bid and existing_bid.status == 'declined'
+    
+    if existing_bid and not is_resubmission:
+        messages.info(request, "You already have an active bid for this pilot")
+        return redirect('pilots:bid_detail', pk=existing_bid.pk)
+    
+    if request.method == 'POST':
+        form = PilotBidForm(request.POST, instance=existing_bid if is_resubmission else None)
+        if form.is_valid():
+            bid_amount = form.cleaned_data['amount']
+            
+            # Enhanced validation
+            if bid_amount <= 0:
+                messages.error(request, "Bid amount must be greater than zero")
+                return render(request, 'pilots/bid_form.html', {
+                    'form': form,
+                    'pilot': pilot,
+                    'is_resubmission': is_resubmission
+                })
+            
+            bid = form.save(commit=False)
+            bid.pilot = pilot
+            bid.startup = user_org
+            bid.startup_fee_percentage = 5.00
+            bid.enterprise_fee_percentage = 5.00 
+            bid.fee_percentage = 10.00
+            
+            # If this is a resubmission, make sure we reset the status to pending
+            if is_resubmission:
+                bid.status = 'pending'
+                
+            bid.save()
+            
+            # Enhanced notification
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_submitted',
+                title=f"{'New' if not is_resubmission else 'Revised'} bid received: {pilot.title}",
+                message=f"{user_org.name} has submitted a {'new' if not is_resubmission else 'revised'} bid of ${bid.amount} for your pilot '{pilot.title}'. Amount includes platform fees."
+            )
+
+            messages.success(request, f"Your bid has been {'submitted' if not is_resubmission else 'resubmitted'} successfully")
+            return redirect('pilots:detail', pk=pilot.pk)
+    else:
+        # For GET requests, pre-populate with existing bid data if it's a resubmission
+        initial_data = {
+            'pilot': pilot,
+            'amount': existing_bid.amount if is_resubmission else pilot.price,
+            'proposal': existing_bid.proposal if is_resubmission else ''
+        }
+        form = PilotBidForm(initial=initial_data, instance=existing_bid if is_resubmission else None)
+    
+    return render(request, 'pilots/bid_form.html', {
+        'form': form,
+        'pilot': pilot,
+        'is_resubmission': is_resubmission
+    })
+
+@login_required
+def update_bid_status(request, pk):
+    """Enhanced bid status updates with comprehensive validation"""
+    if request.method != 'POST':
+        return redirect('pilots:detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    
+    # Check permissions - only enterprise can update bid status
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to update this bid")
+        return redirect('pilots:detail', pk=bid.pilot.pk)
+    
+    action = request.POST.get('action')
+    
+    if action == 'approve':
+        success = bid.approve_bid()
+        if success:
+            messages.success(request, f"Bid approved! An invoice will be sent and you'll be notified when payment is verified.")
+        else:
+            messages.error(request, "Unable to approve bid at this time.")
+    
+    elif action == 'decline':
+        success = bid.decline_bid(declined_by_enterprise=True)
+        if success:
+            messages.success(request, "Bid has been declined.")
+        else:
+            messages.error(request, "Unable to decline bid at this time.")
+    
+    elif action == 'review':
+        if bid.status == 'pending':
+            bid.status = 'under_review'
+            bid.save(update_fields=['status', 'updated_at'])
+            
+            # Create notification
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_under_review',
+                title=f"Bid under review: {bid.pilot.title}",
+                message=f"Your bid for '{bid.pilot.title}' is now under review by {bid.pilot.organization.name}."
+            )
+            
+            messages.success(request, "Bid marked as under review.")
+        else:
+            messages.error(request, "Bid is not in pending status.")
+    
+    else:
+        messages.error(request, "Invalid action.")
+    
+    return redirect('pilots:detail', pk=bid.pilot.pk)
+
+@login_required
+def request_completion(request, bid_id):
+    """Enhanced startup completion request"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check permissions - only startup can request completion
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to request completion")
+        return redirect('pilots:detail', pk=bid.pilot.pk)
+    
+    success = bid.request_completion()
+    
+    if success:
+        messages.success(request, "Completion verification requested. The enterprise will review your work.")
+    else:
+        messages.error(request, "Unable to request completion at this time.")
+    
+    return redirect('pilots:detail', pk=bid.pilot.pk)
+
+@login_required
+def verify_completion(request, bid_id):
+    """Enhanced enterprise completion verification"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=bid_id)
+    
+    bid = get_object_or_404(PilotBid, pk=bid_id)
+    user_org = request.user.organization
+    
+    # Check permissions - only enterprise can verify completion
+    if user_org != bid.pilot.organization:
+        messages.error(request, "You don't have permission to verify completion")
+        return redirect('pilots:detail', pk=bid.pilot.pk)
+    
+    success = bid.verify_completion()
+    
+    if success:
+        messages.success(request, "Work completion verified! Payment will be released to the startup by the Fend team.")
+    else:
+        messages.error(request, "Unable to verify completion at this time.")
+    
+    return redirect('pilots:detail', pk=bid.pilot.pk)
+
+@login_required
+def delete_bid(request, pk):
+    """Allow startup to withdraw their pending bid"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    pilot_pk = bid.pilot.pk
+    
+    # Check permissions - only startup can withdraw their own bid
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to withdraw this bid")
+        return redirect('pilots:detail', pk=pilot_pk)
+    
+    # Only allow withdrawal of pending bids
+    if bid.status != 'pending':
+        messages.error(request, "Only pending bids can be withdrawn")
+        return redirect('pilots:detail', pk=pilot_pk)
+    
+    # Create notification before deleting
+    create_pilot_notification(
+        pilot=bid.pilot,
+        notification_type='bid_withdrawn',
+        title=f"Bid Withdrawn: {bid.pilot.title}",
+        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
+    )
+    
+    # Delete the bid
+    bid.delete()
+    messages.success(request, "Your bid has been withdrawn successfully.")
+    
+    return redirect('pilots:detail', pk=pilot_pk)
+
+# =============================================================================
+# PILOT ACTION FUNCTIONS
+# =============================================================================
 
 @login_required
 def publish_pilot(request, pk):
@@ -238,349 +626,6 @@ def publish_pilot(request, pk):
     return redirect('pilots:detail', pk=pk)
 
 @login_required
-def create_bid(request, pilot_id):
-    """Enhanced bid creation with better validation and notifications"""
-    pilot = get_object_or_404(Pilot, id=pilot_id, status='published', is_private=False)
-    user_org = request.user.organization
-    
-    # Only startups can create bids
-    if user_org.type != 'startup':
-        messages.error(request, "Only startups can submit bids")
-        return redirect('pilots:detail', pk=pilot_id)
-    
-    # Check if startup already has ANY bid for this pilot (including declined ones)
-    existing_bid = PilotBid.objects.filter(
-        pilot=pilot, 
-        startup=user_org
-    ).first()
-    
-    # If there's an existing declined bid, we'll update it instead of creating a new one
-    is_resubmission = existing_bid and existing_bid.status == 'declined'
-    
-    if existing_bid and not is_resubmission:
-        messages.info(request, "You already have an active bid for this pilot")
-        return redirect('pilots:bid_detail', pk=existing_bid.pk)
-    
-    if request.method == 'POST':
-        form = PilotBidForm(request.POST, instance=existing_bid if is_resubmission else None)
-        if form.is_valid():
-            bid_amount = form.cleaned_data['amount']
-            
-            # Enhanced validation
-            if bid_amount <= 0:
-                messages.error(request, "Bid amount must be greater than zero")
-                return render(request, 'pilots/bid_form.html', {
-                    'form': form,
-                    'pilot': pilot,
-                    'is_resubmission': is_resubmission
-                })
-            
-            bid = form.save(commit=False)
-            bid.pilot = pilot
-            bid.startup = user_org
-            bid.startup_fee_percentage = 5.00
-            bid.enterprise_fee_percentage = 5.00 
-            bid.fee_percentage = 10.00
-            
-            # If this is a resubmission, make sure we reset the status to pending
-            if is_resubmission:
-                bid.status = 'pending'
-                
-            bid.save()
-            
-            # Enhanced notification
-            create_bid_notification(
-                bid=bid,
-                notification_type='bid_submitted',
-                title=f"{'New' if not is_resubmission else 'Revised'} bid received: {pilot.title}",
-                message=f"{user_org.name} has submitted a {'new' if not is_resubmission else 'revised'} bid of ${bid.amount} for your pilot '{pilot.title}'. Amount includes platform fees."
-            )
-
-            messages.success(request, f"Your bid has been {'submitted' if not is_resubmission else 'resubmitted'} successfully")
-            return redirect('pilots:bid_detail', pk=bid.pk)
-    else:
-        # For GET requests, pre-populate with existing bid data if it's a resubmission
-        initial_data = {
-            'pilot': pilot,
-            'amount': existing_bid.amount if is_resubmission else pilot.price,
-            'proposal': existing_bid.proposal if is_resubmission else ''
-        }
-        form = PilotBidForm(initial=initial_data, instance=existing_bid if is_resubmission else None)
-    
-    return render(request, 'pilots/bid_form.html', {
-        'form': form,
-        'pilot': pilot,
-        'is_resubmission': is_resubmission
-    })
-
-class BidListView(LoginRequiredMixin, ListView):
-    """Enhanced view for listing bids with better organization"""
-    model = PilotBid
-    template_name = 'pilots/bid_list.html'
-    context_object_name = 'bids'
-    
-    def get_queryset(self):
-        user_org = self.request.user.organization
-        if user_org.type == 'startup':
-            # Startups see their submitted bids
-            return PilotBid.objects.filter(startup=user_org).select_related(
-                'pilot__organization'
-            ).order_by('-created_at')
-        elif user_org.type == 'enterprise':
-            # Enterprises see bids received on their pilots
-            return PilotBid.objects.filter(pilot__organization=user_org).select_related(
-                'startup', 'pilot'
-            ).order_by('-created_at')
-        return PilotBid.objects.none()
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_org = self.request.user.organization
-        
-        if user_org.type == 'startup':
-            # Separate approved and other bids
-            all_bids = self.get_queryset()
-            context['approved_bids'] = all_bids.filter(status__in=['approved', 'live', 'completed'])
-            context['other_bids'] = all_bids.exclude(status__in=['approved', 'live', 'completed'])
-        else:
-            # For enterprises, group by pilot with counts
-            all_bids = self.get_queryset()
-            context['grouped_bids'] = {}
-            
-            for bid in all_bids:
-                if bid.pilot_id not in context['grouped_bids']:
-                    context['grouped_bids'][bid.pilot_id] = {
-                        'pilot': bid.pilot,
-                        'approved_bids': [],
-                        'other_bids': [],
-                        'total_bids': 0
-                    }
-                
-                context['grouped_bids'][bid.pilot_id]['total_bids'] += 1
-                
-                if bid.status in ['approved', 'live', 'completed']:
-                    context['grouped_bids'][bid.pilot_id]['approved_bids'].append(bid)
-                else:
-                    context['grouped_bids'][bid.pilot_id]['other_bids'].append(bid)
-        
-        context['is_enterprise'] = user_org.type == 'enterprise'
-        return context
-
-class BidDetailView(LoginRequiredMixin, DetailView):
-    """Enhanced bid detail view with comprehensive workflow context"""
-    model = PilotBid
-    template_name = 'pilots/bid_detail.html'
-    context_object_name = 'bid'
-    
-    def dispatch(self, request, *args, **kwargs):
-        # Set UI state for admin users
-        if request.user.is_staff or request.user.is_superuser:
-            request.ui_state = 'admin'
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_object(self, queryset=None):
-        bid = super().get_object(queryset)
-        
-        # Allow admin/staff users to view any bid
-        if self.request.user.is_staff or self.request.user.is_superuser:
-            return bid
-        
-        # For regular users, check organization permissions
-        user_org = getattr(self.request.user, 'organization', None)
-        
-        if not user_org:
-            messages.error(self.request, "You need to be part of an organization to view bids")
-            raise PermissionDenied("Access denied")
-        
-        # Permission check - only relevant parties can view
-        if user_org not in [bid.startup, bid.pilot.organization]:
-            messages.error(self.request, "You don't have permission to view this bid")
-            raise PermissionDenied("Access denied")
-        
-        return bid
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        bid = self.object
-        
-        # For admin users, show admin context
-        if self.request.user.is_staff or self.request.user.is_superuser:
-            context['is_admin'] = True
-            context['is_enterprise'] = False
-            context['is_startup'] = False
-        else:
-            # For regular users, determine their role
-            user_org = self.request.user.organization
-            context['is_admin'] = False
-            context['is_enterprise'] = user_org == bid.pilot.organization
-            context['is_startup'] = user_org == bid.startup
-        
-        # Enhanced action permissions based on current status and user role
-        context['can_approve'] = (
-            context['is_enterprise'] and 
-            bid.can_be_approved()
-        )
-        context['can_withdraw'] = (
-            context['is_startup'] and 
-            bid.status == 'pending'
-        )
-        context['can_request_completion'] = (
-            context['is_startup'] and 
-            bid.can_request_completion()
-        )
-        context['can_verify_completion'] = (
-            context['is_enterprise'] and 
-            bid.can_verify_completion()
-        )
-        
-        # Payment information if escrow exists
-        if hasattr(bid, 'escrow_payment'):
-            context['escrow_payment'] = bid.escrow_payment
-        
-        # Calculate financial breakdown
-        context['financial_breakdown'] = {
-            'bid_amount': bid.amount,
-            'enterprise_fee': bid.amount * (bid.enterprise_fee_percentage / 100),
-            'total_enterprise_pays': bid.calculate_total_amount_for_enterprise(),
-            'startup_fee': bid.amount * (bid.startup_fee_percentage / 100),
-            'startup_receives': bid.calculate_startup_net_amount(),
-            'platform_total_fee': bid.amount * (bid.fee_percentage / 100)
-        }
-        
-        return context
-
-@login_required
-def update_bid_status(request, pk):
-    """Enhanced bid status updates with comprehensive validation"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    user_org = request.user.organization
-    
-    # Check permissions - only enterprise can update bid status
-    if user_org != bid.pilot.organization:
-        messages.error(request, "You don't have permission to update this bid")
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    action = request.POST.get('action')
-    
-    if action == 'approve':
-        success = bid.approve_bid()
-        if success:
-            messages.success(request, f"Bid approved! An invoice will be sent and you'll be notified when payment is verified.")
-        else:
-            messages.error(request, "Unable to approve bid at this time.")
-    
-    elif action == 'decline':
-        success = bid.decline_bid(declined_by_enterprise=True)
-        if success:
-            messages.success(request, "Bid has been declined.")
-        else:
-            messages.error(request, "Unable to decline bid at this time.")
-    
-    elif action == 'review':
-        if bid.status == 'pending':
-            bid.status = 'under_review'
-            bid.save(update_fields=['status', 'updated_at'])
-            
-            # Create notification
-            create_bid_notification(
-                bid=bid,
-                notification_type='bid_under_review',
-                title=f"Bid under review: {bid.pilot.title}",
-                message=f"Your bid for '{bid.pilot.title}' is now under review by {bid.pilot.organization.name}."
-            )
-            
-            messages.success(request, "Bid marked as under review.")
-        else:
-            messages.error(request, "Bid is not in pending status.")
-    
-    else:
-        messages.error(request, "Invalid action.")
-    
-    return redirect('pilots:bid_detail', pk=pk)
-
-@login_required
-def request_completion(request, bid_id):
-    """Enhanced startup completion request"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check permissions - only startup can request completion
-    if user_org != bid.startup:
-        messages.error(request, "You don't have permission to request completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    success = bid.request_completion()
-    
-    if success:
-        messages.success(request, "Completion verification requested. The enterprise will review your work.")
-    else:
-        messages.error(request, "Unable to request completion at this time.")
-    
-    return redirect('pilots:bid_detail', pk=bid_id)
-
-@login_required
-def verify_completion(request, bid_id):
-    """Enhanced enterprise completion verification"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    bid = get_object_or_404(PilotBid, pk=bid_id)
-    user_org = request.user.organization
-    
-    # Check permissions - only enterprise can verify completion
-    if user_org != bid.pilot.organization:
-        messages.error(request, "You don't have permission to verify completion")
-        return redirect('pilots:bid_detail', pk=bid_id)
-    
-    success = bid.verify_completion()
-    
-    if success:
-        messages.success(request, "Work completion verified! Payment will be released to the startup by the Fend team.")
-    else:
-        messages.error(request, "Unable to verify completion at this time.")
-    
-    return redirect('pilots:bid_detail', pk=bid_id)
-
-@login_required
-def delete_bid(request, pk):
-    """Allow startup to withdraw their pending bid"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    user_org = request.user.organization
-    
-    # Check permissions - only startup can withdraw their own bid
-    if user_org != bid.startup:
-        messages.error(request, "You don't have permission to withdraw this bid")
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    # Only allow withdrawal of pending bids
-    if bid.status != 'pending':
-        messages.error(request, "Only pending bids can be withdrawn")
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    # Create notification before deleting
-    create_pilot_notification(
-        pilot=bid.pilot,
-        notification_type='bid_withdrawn',
-        title=f"Bid Withdrawn: {bid.pilot.title}",
-        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
-    )
-    
-    # Delete the bid
-    bid.delete()
-    messages.success(request, "Your bid has been withdrawn successfully.")
-    
-    return redirect('pilots:bid_list')
-
-@login_required
 def delete_pilot(request, pk):
     """Delete a pilot"""
     if request.method != 'POST':
@@ -608,7 +653,7 @@ def delete_pilot(request, pk):
     return redirect('pilots:list')
 
 # =============================================================================
-# ADMIN VIEWS - Pilot Approval Workflow
+# ADMIN VIEWS - Pilot Approval Workflow (unchanged from original)
 # =============================================================================
 
 @login_required

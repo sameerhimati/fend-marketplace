@@ -204,6 +204,157 @@ class Pilot(models.Model):
                 })
         return formatted
     
+    def get_user_relationship(self, user):
+        """
+        Determine the relationship between a user and this pilot.
+        Returns dict with relationship info and actions.
+        """
+        if not user.is_authenticated or not hasattr(user, 'organization'):
+            return {'type': 'none'}
+        
+        user_org = user.organization
+        
+        # Enterprise owns this pilot
+        if user_org == self.organization:
+            relationship = {
+                'type': 'owner',
+                'can_edit': self.status in ['draft', 'published'],
+                'can_delete': self.status == 'draft',
+            }
+            
+            # Check for bids on this pilot
+            bids = self.bids.all().order_by('-created_at')
+            if bids.exists():
+                pending_bids = bids.filter(status__in=['pending', 'under_review'])
+                approved_bids = bids.filter(status__in=['approved', 'live', 'completion_pending', 'completed'])
+                
+                relationship.update({
+                    'bids_count': bids.count(),
+                    'pending_bids_count': pending_bids.count(),
+                    'approved_bids_count': approved_bids.count(),
+                    'bids': bids,
+                    'has_approved_bid': approved_bids.exists(),
+                })
+                
+                if approved_bids.exists():
+                    active_bid = approved_bids.first()
+                    relationship.update({
+                        'active_bid': active_bid,
+                        'working_agreement': {
+                            'startup': active_bid.startup,
+                            'amount': active_bid.amount,
+                            'proposal': active_bid.proposal,
+                            'status': active_bid.status,
+                        }
+                    })
+            
+            return relationship
+        
+        # Startup viewing this pilot
+        elif user_org.type == 'startup':
+            # Check if they have a bid on this pilot
+            try:
+                user_bid = self.bids.get(startup=user_org)
+                relationship = {
+                    'type': 'bidder',
+                    'bid': user_bid,
+                    'bid_status': user_bid.status,
+                    'can_withdraw': user_bid.status == 'pending',
+                    'can_request_completion': user_bid.status == 'live',
+                }
+                
+                # If bid is approved/active, show working agreement
+                if user_bid.status in ['approved', 'live', 'completion_pending', 'completed']:
+                    relationship.update({
+                        'working_agreement': {
+                            'amount': user_bid.amount,
+                            'proposal': user_bid.proposal,
+                            'status': user_bid.status,
+                            'enterprise': self.organization,
+                        }
+                    })
+                
+                return relationship
+            except:
+                # No bid from this startup
+                # Check if pilot is available for bidding
+                if (self.status == 'published' and 
+                    not self.is_private and 
+                    not self.bids.filter(status__in=['approved', 'live', 'completion_pending', 'completed']).exists()):
+                    return {
+                        'type': 'available',
+                        'can_bid': True,
+                    }
+                else:
+                    return {
+                        'type': 'unavailable',
+                        'can_bid': False,
+                        'reason': 'Already has approved bid' if self.bids.filter(status__in=['approved', 'live', 'completion_pending', 'completed']).exists() else 'Not available'
+                    }
+        
+        return {'type': 'viewer'}
+
+    def get_display_summary(self, user):
+        """
+        Get a summary for list display based on user relationship
+        """
+        relationship = self.get_user_relationship(user)
+        
+        if relationship['type'] == 'owner':
+            if relationship.get('bids_count', 0) > 0:
+                if relationship.get('has_approved_bid'):
+                    active_bid = relationship['active_bid']
+                    return f"Active work with {active_bid.startup.name} - {active_bid.get_status_display()}"
+                else:
+                    return f"{relationship['pending_bids_count']} bid(s) pending review"
+            else:
+                return "Available for bids"
+        
+        elif relationship['type'] == 'bidder':
+            bid = relationship['bid']
+            if bid.status in ['approved', 'live', 'completion_pending', 'completed']:
+                return f"Your work - {bid.get_status_display()}"
+            else:
+                return f"Your bid - {bid.get_status_display()}"
+        
+        elif relationship['type'] == 'available':
+            return "Available to bid"
+        
+        elif relationship['type'] == 'unavailable':
+            return relationship.get('reason', 'Not available')
+        
+        return ""
+
+    def get_next_action(self, user):
+        """
+        Get the next action the user can take on this pilot
+        """
+        relationship = self.get_user_relationship(user)
+        
+        if relationship['type'] == 'owner':
+            if relationship.get('pending_bids_count', 0) > 0:
+                return "Review bids"
+            elif relationship.get('has_approved_bid'):
+                active_bid = relationship['active_bid']
+                if active_bid.status == 'completion_pending':
+                    return "Verify completion"
+                elif active_bid.status in ['approved', 'live']:
+                    return "Track progress"
+            return "Manage pilot"
+        
+        elif relationship['type'] == 'bidder':
+            bid = relationship['bid']
+            if bid.status == 'live':
+                return "Request completion"
+            elif bid.status in ['pending', 'under_review']:
+                return "Track bid status"
+            return "View details"
+        
+        elif relationship['type'] == 'available':
+            return "Submit bid"
+        
+        return "View details"
+    
 class PilotBid(models.Model):
     # Simplified but complete status choices
     STATUS_CHOICES = [

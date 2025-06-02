@@ -5,28 +5,32 @@ app_name = 'pilots'
 
 urlpatterns = [
     # =============================================================================
-    # USER PILOT URLS - Pilot & Bid Management
+    # UNIFIED PILOT URLS - Single entry point for all pilot-related activities
     # =============================================================================
     
-    # Pilot Management
-    path('', views.PilotListView.as_view(), name='list'),
+    # Main pilots page (replaces both pilot list and bid list)
+    path('', views.UnifiedPilotListView.as_view(), name='list'),
+    
+    # Pilot management
     path('create/', views.PilotCreateView.as_view(), name='create'),
-    path('<int:pk>/', views.PilotDetailView.as_view(), name='detail'),
+    path('<int:pk>/', views.StatusAwarePilotDetailView.as_view(), name='detail'),
     path('<int:pk>/edit/', views.PilotUpdateView.as_view(), name='edit'),
     path('<int:pk>/publish/', views.publish_pilot, name='publish'),
     path('pilots/<int:pk>/delete/', views.delete_pilot, name='delete'),
     
-    # Bid Management
+    # Bid management (integrated into pilot workflow)
     path('<int:pilot_id>/bid/', views.create_bid, name='create_bid'),
-    path('bids/', views.BidListView.as_view(), name='bid_list'),
-    path('bids/<int:pk>/', views.BidDetailView.as_view(), name='bid_detail'),
     path('bids/<int:pk>/update-status/', views.update_bid_status, name='update_bid_status'),
     path('bids/<int:pk>/delete/', views.delete_bid, name='delete_bid'),
     
-    # Bid Workflow Actions
+    # Bid workflow actions
     path('bids/<int:bid_id>/request-completion/', views.request_completion, name='request_completion'),
     path('bids/<int:bid_id>/verify-completion/', views.verify_completion, name='verify_completion'),
     
+    # Legacy bid routes (redirect to unified experience)
+    path('bids/', views.BidListView.as_view(), name='bid_list'),  
+    path('bids/<int:pk>/', views.BidDetailView.as_view(), name='bid_detail'), 
+
     # =============================================================================
     # ADMIN URLS - Pilot Verification Workflow
     # =============================================================================
