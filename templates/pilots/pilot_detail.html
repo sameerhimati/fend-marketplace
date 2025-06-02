@@ -250,7 +250,7 @@
                                     <input type="hidden" name="action" value="approve">
                                     <button type="submit" 
                                             class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                            onclick="return confirm('Approve this bid for ${{ bid.calculate_total_amount_for_enterprise|format_currency }}? This will trigger invoice generation.');">
+                                            onclick="return confirm('Approve this bid for ${{ bid.calculate_total_amount_for_enterprise|format_currency }}? (${{ bid.amount|format_currency }} + {{ bid.enterprise_fee_percentage}}%)     This will trigger invoice generation.');">
                                         Approve
                                     </button>
                                 </form>
