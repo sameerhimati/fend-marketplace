@@ -20,6 +20,7 @@ from apps.users.models import User
 from django.urls import reverse
 from django.views import View
 from apps.notifications.services import create_notification
+from django.db.models import Sum
 
 class OrganizationRegistrationView(CreateView):
     model = Organization
@@ -294,6 +295,19 @@ class OrganizationProfileView(LoginRequiredMixin, DetailView):
             }
             context['pilot_stats'] = pilot_stats
         
+        if organization.type == 'startup':
+            # Get all pilots this startup has bids on
+            from apps.pilots.models import PilotBid
+            pilot_stats = {
+                'total_pilots_completed': PilotBid.objects.filter(startup=organization, status__in=['completed']).count(),
+                'current_pilots': PilotBid.objects.filter(
+                    startup=organization,
+                    status__in=['pending', 'under_review', 'approved', 'live']
+                ).count(),
+                'total_money': PilotBid.objects.filter(startup=organization, status__in=['completed']).aggregate(Sum('amount'))['amount__sum']
+            }
+            context['pilot_stats'] = pilot_stats
+        
         return context
 
 class ProfileEditView(LoginRequiredMixin, UpdateView):
@@ -457,3 +471,74 @@ def admin_reject_organization(request, org_id):
     
     messages.success(request, f"{organization.name} has been rejected with feedback.")
     return redirect('admin:pending_approvals')
+
+class DirectoryView(LoginRequiredMixin, TemplateView):
+    """
+    Unified view that displays both enterprises and startups in a single interface
+    with filtering, search, and tabbed navigation.
+    """
+    template_name = 'organizations/directory.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            context['enterprises'] = Organization.objects.none()
+            context['startups'] = Organization.objects.none()
+            return context
+        
+        # Get search query and filters from request
+        search_query = self.request.GET.get('search', '').strip()
+        org_type_filter = self.request.GET.get('type', '')  # 'enterprise', 'startup', or empty for all
+        
+        # Base queryset - approved organizations except current user's
+        base_queryset = Organization.objects.filter(
+            approval_status='approved',
+            onboarding_completed=True
+        ).exclude(
+            id=self.request.user.organization.id
+        ).order_by('name')
+        
+        # Apply search if provided
+        if search_query:
+            base_queryset = base_queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(website__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        # Get enterprises and startups
+        if org_type_filter == 'enterprise':
+            enterprises = base_queryset.filter(type='enterprise')
+            startups = Organization.objects.none()
+        elif org_type_filter == 'startup':
+            enterprises = Organization.objects.none()
+            startups = base_queryset.filter(type='startup')
+        else:
+            # Show both types
+            enterprises = base_queryset.filter(type='enterprise')
+            startups = base_queryset.filter(type='startup')
+        
+        # Add pagination if needed
+        from django.core.paginator import Paginator
+        
+        # Paginate enterprises
+        enterprise_paginator = Paginator(enterprises, 12)  # 12 per page
+        enterprise_page = self.request.GET.get('enterprise_page', 1)
+        enterprises_paginated = enterprise_paginator.get_page(enterprise_page)
+        
+        # Paginate startups
+        startup_paginator = Paginator(startups, 12)  # 12 per page
+        startup_page = self.request.GET.get('startup_page', 1)
+        startups_paginated = startup_paginator.get_page(startup_page)
+        
+        context.update({
+            'enterprises': enterprises_paginated,
+            'startups': startups_paginated,
+            'search_query': search_query,
+            'org_type_filter': org_type_filter,
+            'total_enterprises': enterprises.count() if hasattr(enterprises, 'count') else 0,
+            'total_startups': startups.count() if hasattr(startups, 'count') else 0,
+        })
+        
+        return context

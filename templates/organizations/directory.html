@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+
+{% block title %}Organizations - Fend{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold text-gray-900">Organizations</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                Connect with enterprises and startups in the Fend marketplace
+            </p>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="bg-white shadow rounded-lg mb-6">
+            <div class="p-6">
+                <form method="GET" class="space-y-4 md:space-y-0 md:flex md:items-end md:space-x-4">
+                    <!-- Search Input -->
+                    <div class="flex-1">
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">
+                            Search Organizations
+                        </label>
+                        <input type="text" 
+                               name="search" 
+                               id="search"
+                               value="{{ search_query }}"
+                               placeholder="Search by name, website, or description..."
+                               class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    
+                    <!-- Type Filter -->
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700 mb-1">
+                            Organization Type
+                        </label>
+                        <select name="type" 
+                                id="type"
+                                class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">All Organizations</option>
+                            <option value="enterprise" {% if org_type_filter == 'enterprise' %}selected{% endif %}>
+                                Enterprises Only
+                            </option>
+                            <option value="startup" {% if org_type_filter == 'startup' %}selected{% endif %}>
+                                Startups Only
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Search Button -->
+                    <div>
+                        <button type="submit" 
+                                class="w-full md:w-auto bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            Search
+                        </button>
+                    </div>
+                    
+                    <!-- Clear Button -->
+                    {% if search_query or org_type_filter %}
+                    <div>
+                        <a href="{% url 'organizations:directory' %}" 
+                           class="w-full md:w-auto inline-block text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            Clear
+                        </a>
+                    </div>
+                    {% endif %}
+                </form>
+                
+                <!-- Results Summary -->
+                {% if search_query or org_type_filter %}
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <p class="text-sm text-gray-600">
+                        Found {{ total_enterprises }} enterprise{{ total_enterprises|pluralize }} 
+                        and {{ total_startups }} startup{{ total_startups|pluralize }}
+                        {% if search_query %}for "{{ search_query }}"{% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Organizations Display -->
+        <div class="space-y-8">
+            <!-- Enterprises Section -->
+            {% if org_type_filter != 'startup' %}
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900">
+                                Enterprise Partners
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ total_enterprises }}
+                                </span>
+                            </h2>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Companies seeking innovative solutions through pilot programs
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if enterprises %}
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for enterprise in enterprises %}
+                        <div class="border border-gray-200 rounded-lg hover:shadow-md transition-shadow duration-200">
+                            <a href="{% url 'organizations:profile' enterprise.id %}" class="block p-4">
+                                <div class="flex items-start space-x-3">
+                                    <!-- Logo/Avatar -->
+                                    <div class="flex-shrink-0">
+                                        {% if enterprise.logo %}
+                                            <img src="{{ enterprise.logo.url }}" 
+                                                 alt="{{ enterprise.name }} logo" 
+                                                 class="h-12 w-12 rounded-lg object-cover">
+                                        {% else %}
+                                            <div class="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                                                <span class="text-lg font-bold text-blue-600">
+                                                    {{ enterprise.name|slice:":1"|upper }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Organization Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-sm font-medium text-gray-900 truncate">
+                                            {{ enterprise.name }}
+                                        </h3>
+                                        <p class="text-sm text-blue-600 truncate">
+                                            Enterprise
+                                        </p>
+                                        {% if enterprise.website %}
+                                        <p class="text-xs text-gray-500 truncate mt-1">
+                                            {{ enterprise.website }}
+                                        </p>
+                                        {% endif %}
+                                        {% if enterprise.description %}
+                                        <p class="text-xs text-gray-600 mt-2 line-clamp-2">
+                                            {{ enterprise.description|truncatewords:15 }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Enterprise Pagination -->
+                    {% if enterprises.has_other_pages %}
+                    <div class="mt-6 flex justify-center">
+                        <nav class="flex items-center space-x-1">
+                            {% if enterprises.has_previous %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if org_type_filter %}type={{ org_type_filter }}&{% endif %}enterprise_page={{ enterprises.previous_page_number }}"
+                               class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                Previous
+                            </a>
+                            {% endif %}
+                            
+                            <span class="px-3 py-2 text-sm text-gray-700">
+                                Page {{ enterprises.number }} of {{ enterprises.paginator.num_pages }}
+                            </span>
+                            
+                            {% if enterprises.has_next %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if org_type_filter %}type={{ org_type_filter }}&{% endif %}enterprise_page={{ enterprises.next_page_number }}"
+                               class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                Next
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="p-6 text-center text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    <p class="mt-2">No enterprises found</p>
+                    {% if search_query %}
+                    <p class="text-sm">Try adjusting your search terms</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Startups Section -->
+            {% if org_type_filter != 'enterprise' %}
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900">
+                                Startup Partners
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    {{ total_startups }}
+                                </span>
+                            </h2>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Innovative companies offering cutting-edge solutions
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if startups %}
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for startup in startups %}
+                        <div class="border border-gray-200 rounded-lg hover:shadow-md transition-shadow duration-200">
+                            <a href="{% url 'organizations:profile' startup.id %}" class="block p-4">
+                                <div class="flex items-start space-x-3">
+                                    <!-- Logo/Avatar -->
+                                    <div class="flex-shrink-0">
+                                        {% if startup.logo %}
+                                            <img src="{{ startup.logo.url }}" 
+                                                 alt="{{ startup.name }} logo" 
+                                                 class="h-12 w-12 rounded-lg object-cover">
+                                        {% else %}
+                                            <div class="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
+                                                <span class="text-lg font-bold text-green-600">
+                                                    {{ startup.name|slice:":1"|upper }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Organization Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-sm font-medium text-gray-900 truncate">
+                                            {{ startup.name }}
+                                        </h3>
+                                        <p class="text-sm text-green-600 truncate">
+                                            Startup
+                                        </p>
+                                        {% if startup.website %}
+                                        <p class="text-xs text-gray-500 truncate mt-1">
+                                            {{ startup.website }}
+                                        </p>
+                                        {% endif %}
+                                        {% if startup.description %}
+                                        <p class="text-xs text-gray-600 mt-2 line-clamp-2">
+                                            {{ startup.description|truncatewords:15 }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Startup Pagination -->
+                    {% if startups.has_other_pages %}
+                    <div class="mt-6 flex justify-center">
+                        <nav class="flex items-center space-x-1">
+                            {% if startups.has_previous %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if org_type_filter %}type={{ org_type_filter }}&{% endif %}startup_page={{ startups.previous_page_number }}"
+                               class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                Previous
+                            </a>
+                            {% endif %}
+                            
+                            <span class="px-3 py-2 text-sm text-gray-700">
+                                Page {{ startups.number }} of {{ startups.paginator.num_pages }}
+                            </span>
+                            
+                            {% if startups.has_next %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if org_type_filter %}type={{ org_type_filter }}&{% endif %}startup_page={{ startups.next_page_number }}"
+                               class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                Next
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="p-6 text-center text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="mt-2">No startups found</p>
+                    {% if search_query %}
+                    <p class="text-sm">Try adjusting your search terms</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %}

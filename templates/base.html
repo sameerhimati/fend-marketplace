@@ -257,13 +257,9 @@
                             class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %}">
                                 Pilots
                             </a>
-                            <a href="{% url 'organizations:enterprise_directory' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'enterprise_directory' %}active{% endif %}">
-                                Enterprise Network
-                            </a>
-                            <a href="{% url 'organizations:startup_directory' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'startup_directory' %}active{% endif %}">
-                                Startup Network
+                            <a href="{% url 'organizations:directory' %}" 
+                            class="nav-link {% if request.resolver_match.url_name == 'directory' or request.resolver_match.url_name == 'enterprise_directory' or request.resolver_match.url_name == 'startup_directory' %}active{% endif %}">
+                                Organizations
                             </a>
                         </div>
                     </div>

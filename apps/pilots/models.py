@@ -4,6 +4,7 @@ from apps.organizations.models import Organization, PilotDefinition
 from django.core.exceptions import ValidationError
 from apps.payments.models import PilotTransaction
 from django.utils import timezone as timezone
+from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 import os
 import decimal
@@ -102,7 +103,8 @@ class Pilot(models.Model):
         decimal_places=2, 
         null=False,  # Make it required
         blank=False,
-        default=1000,  # Default to 0
+        default=5000.00,
+        validators=[MinValueValidator(1000.00, message="Pilot price must be at least $1,000")],
         help_text="Enter the fixed price for this pilot (in USD)"
     )
 

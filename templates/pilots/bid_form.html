@@ -43,11 +43,11 @@
                             <input type="number" 
                                    name="{{ form.amount.name }}" 
                                    id="{{ form.amount.id_for_label }}"
-                                   min="{{ pilot.price }}" 
+                                   min="1000" 
                                    value="{{ form.amount.value|default:pilot.price }}" 
-                                   step="1"
+                                   step="100"
                                    class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm"
-                                   placeholder="0"
+                                   placeholder="{{ pilot.price|default:1000 }}"
                                    required>
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">USD</span>

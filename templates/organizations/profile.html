@@ -87,6 +87,26 @@
                     </div>
                 </div>
             {% endif %}
+
+            {% if organization.type == 'startup' %}
+                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                    <h2 class="text-lg font-medium text-gray-900">Pilot Activity</h2>
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <dt class="text-sm font-medium text-gray-500">Number of Pilots Completed</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ pilot_stats.total_pilots_completed }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <dt class="text-sm font-medium text-gray-500">Current Pilots in Progress</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-gray-900">{{ pilot_stats.current_pilots }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <dt class="text-sm font-medium text-gray-500">Total Money Received</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-gray-900">${{ pilot_stats.total_money }}</dd>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -24,6 +24,11 @@ urlpatterns = [
     # Organization Directories & Profiles
     path('enterprises/', views.EnterpriseDirectoryView.as_view(), name='enterprise_directory'),
     path('startups/', views.StartupDirectoryView.as_view(), name='startup_directory'),
+    path('directory/', 
+         views.DirectoryView.as_view(), 
+         name='directory'),
+    
+    # Organization Profiles
     path('profile/<int:pk>/', views.OrganizationProfileView.as_view(), name='profile'),
     path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
     path('profile/remove-logo/', views.remove_logo, name='remove_logo'),
