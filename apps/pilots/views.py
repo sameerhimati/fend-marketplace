@@ -158,7 +158,26 @@ class StatusAwarePilotDetailView(LoginRequiredMixin, DetailView):
         context['can_edit'] = relationship.get('can_edit', False)
         context['can_delete'] = relationship.get('can_delete', False)
         context['can_withdraw_bid'] = relationship.get('can_withdraw', False)
-        context['can_request_completion'] = relationship.get('can_request_completion', False)
+        
+        # Set completion permissions based on the active bid
+        active_bid = None
+        if relationship.get('active_bid'):
+            active_bid = relationship['active_bid']
+        elif relationship.get('bid') and relationship['bid'].is_active():
+            active_bid = relationship['bid']
+        
+        if active_bid:
+            context['can_request_completion'] = (
+                relationship['type'] == 'bidder' and 
+                active_bid.can_request_completion()
+            )
+            context['can_verify_completion'] = (
+                relationship['type'] == 'owner' and 
+                active_bid.can_verify_completion()
+            )
+        else:
+            context['can_request_completion'] = False
+            context['can_verify_completion'] = False
         
         # For owners, add bid management context
         if relationship['type'] == 'owner' and relationship.get('bids'):
@@ -170,11 +189,6 @@ class StatusAwarePilotDetailView(LoginRequiredMixin, DetailView):
         if context['has_working_agreement']:
             working_agreement = relationship['working_agreement']
             context['working_agreement'] = working_agreement
-            
-            # Add completion verification permission for enterprise
-            if (relationship['type'] == 'owner' and 
-                working_agreement['status'] == 'completion_pending'):
-                context['can_verify_completion'] = True
         
         return context
 
