@@ -37,7 +37,12 @@ class PilotForm(forms.ModelForm):
             'technical_specs_text': forms.Textarea(attrs={'rows': 3}),
             'performance_metrics': forms.Textarea(attrs={'rows': 3}),
             'compliance_requirements': forms.Textarea(attrs={'rows': 3}),
-            'price': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'required': True}),
+            'price': forms.NumberInput(attrs={
+                'min': '1000',
+                'step': '100',
+                'placeholder': '5000',
+                'required': True,
+            })
         }
     
     def clean(self):
@@ -89,7 +94,9 @@ class PilotBidForm(forms.ModelForm):
             }),
             'amount': forms.NumberInput(attrs={
                 'class': 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md',
-                'placeholder': 'Enter bid amount in USD'
+                'placeholder': 'Enter bid amount in USD',
+                'min': '1000',
+                'step': '100',
             })
         }
     

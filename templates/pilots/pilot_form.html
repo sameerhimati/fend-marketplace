@@ -232,11 +232,11 @@
                             <input type="number" 
                                 name="{{ form.price.name }}" 
                                 id="{{ form.price.id_for_label }}"
-                                step="1"
-                                min="0"
+                                step="100"
+                                min="1000"
                                 value="{{ form.price.value|default:'0' }}"
                                 class="form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm"
-                                placeholder="1000"
+                                placeholder="5000"
                                 required>
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 sm:text-sm">USD</span>
