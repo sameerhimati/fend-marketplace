@@ -260,8 +260,11 @@ class Pilot(models.Model):
                     'bid': user_bid,
                     'bid_status': user_bid.status,
                     'can_withdraw': user_bid.status == 'pending',
-                    'can_request_completion': user_bid.status == 'live',
                 }
+                
+                # If bid is active, treat it as the active bid
+                if user_bid.is_active():
+                    relationship['active_bid'] = user_bid
                 
                 # If bid is approved/active, show working agreement
                 if user_bid.status in ['approved', 'live', 'completion_pending', 'completed']:

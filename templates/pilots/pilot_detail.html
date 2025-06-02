@@ -55,7 +55,108 @@
                 </div>
             </div>
             
-            <!-- WORKING AGREEMENT SECTION (Primary for active work) -->
+            
+            <!-- BID MANAGEMENT SECTION (For enterprises with pending bids) -->
+            {% if is_owner and relationship.bids_count > 0 %}
+            <div class="border-t-4 border-gray-300 bg-gray-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Bid Management</h3>
+                
+                <!-- Approved/Active Bids -->
+                {% if approved_bids %}
+                <div class="mb-6">
+                    <h4 class="text-md font-medium text-green-700 mb-3">Active Work</h4>
+                    {% for bid in approved_bids %}
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-3">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-lg font-semibold text-green-900">{{ bid.startup.name }}</p>
+                                <p class="text-sm text-green-700">Status: {{ bid.get_status_display }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-bold text-green-900">${{ bid.amount|format_currency }}</p>
+                                <p class="text-sm text-green-700">Total: ${{ bid.calculate_total_amount_for_enterprise|format_currency }}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Full Bid Details -->
+                        <div class="bg-white rounded-lg p-4 border border-green-200">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"M j, Y g:i A" }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Enterprise Pays</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_total_amount_for_enterprise|format_currency }}</dd>
+                                    <dd class="text-xs text-gray-500">Includes {{ bid.enterprise_fee_percentage }}% platform fee</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Startup Receives</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_startup_net_amount|format_currency }}</dd>
+                                    <dd class="text-xs text-gray-500">After {{ bid.startup_fee_percentage }}% platform fee</dd>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Proposal</dt>
+                                <dd class="text-sm text-gray-900 whitespace-pre-line bg-gray-50 p-3 rounded border">{{ bid.proposal }}</dd>
+                            </div>
+                            
+                            <!-- Payment Information if exists -->
+                            {% if bid.escrow_payment %}
+                            <div class="mt-4 pt-4 border-t border-green-200">
+                                <h5 class="text-sm font-medium text-green-800 mb-2">Payment Tracking</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <dt class="text-xs font-medium text-gray-500">Reference Code</dt>
+                                        <dd class="mt-1 text-sm text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">{{ bid.escrow_payment.reference_code }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs font-medium text-gray-500">Payment Status</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ bid.escrow_payment.get_status_display }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs font-medium text-gray-500">Total Amount</dt>
+                                        <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.escrow_payment.total_amount|format_currency }}</dd>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Action Buttons -->
+                            <div class="mt-4 flex justify-end space-x-2">
+                                {% if bid.can_request_completion %}
+                                <form method="post" action="{% url 'pilots:request_completion' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                            onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                                        Request Completion
+                                    </button>
+                                </form>
+                                {% elif bid.can_verify_completion %}
+                                <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                                            onclick="return confirm('Verify that the work is completed satisfactorily? This will trigger payment release.');">
+                                        Verify Completion
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
+                                    Full Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- WORKING AGREEMENT SECTION (Primary for active work) -->
             {% if has_working_agreement %}
             <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
                 <h3 class="text-lg font-medium text-blue-900 mb-4 flex items-center">
@@ -98,60 +199,8 @@
                     <dt class="text-sm font-medium text-blue-800">Agreed Scope</dt>
                     <dd class="mt-1 text-sm text-blue-900 whitespace-pre-line bg-white p-3 rounded border">{{ working_agreement.proposal }}</dd>
                 </div>
-                
-                <!-- Work Progress Actions -->
-                {% if can_request_completion %}
-                <div class="mt-4 flex justify-end">
-                    <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                onclick="return confirm('Mark your work as complete and request enterprise verification?');">
-                            Request Completion Verification
-                        </button>
-                    </form>
-                </div>
-                {% elif can_verify_completion %}
-                <div class="mt-4 flex justify-end">
-                    <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}"  class="inline">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                                onclick="return confirm('Verify that the work is completed satisfactorily? This will trigger payment release.');">
-                            Verify Completion
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
             </div>
             {% endif %}
-            
-            <!-- BID MANAGEMENT SECTION (For enterprises with pending bids) -->
-            {% if is_owner and relationship.bids_count > 0 %}
-            <div class="border-t-4 border-gray-300 bg-gray-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Bid Management</h3>
-                
-                <!-- Approved/Active Bids -->
-                {% if approved_bids %}
-                <div class="mb-6">
-                    <h4 class="text-md font-medium text-green-700 mb-3">Active Work</h4>
-                    {% for bid in approved_bids %}
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-medium text-green-900">{{ bid.startup.name }}</p>
-                                <p class="text-sm text-green-700">Amount: ${{ bid.amount|format_currency }}</p>
-                                <p class="text-sm text-green-700">Status: {{ bid.get_status_display }}</p>
-                            </div>
-                            <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
-                                View Details
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
                 
                 <!-- Pending Bids -->
                 {% if pending_bids %}
@@ -318,7 +367,7 @@
             
             <!-- BID SUBMISSION SECTION (For available opportunities) -->
             {% if can_bid %}
-            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 bg-blue-50">
+            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
                 <div class="text-center">
                     <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
                     <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
@@ -332,7 +381,7 @@
             
             <!-- LEGAL AGREEMENT SECTION (For draft pilots) -->
             {% if is_owner and pilot.status == 'draft' %}
-            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 bg-yellow-50">
+            <div class="border-t-4 border-yellow-500 bg-yellow-50 px-6 py-6 mx-4 mb-6 rounded-lg">
                 <h3 class="text-lg font-medium text-yellow-900 mb-4">Ready to Publish?</h3>
                 <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="space-y-4">
                     {% csrf_token %}
@@ -384,8 +433,8 @@
                     </form>
                     {% endif %}
 
-                    {% if can_withdraw_bid %}
-                    <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
+                    {% if can_withdraw_bid and relationship.active_bid %}
+                    <form method="post" action="{% url 'pilots:delete_bid' relationship.active_bid.pk %}" class="inline">
                         {% csrf_token %}
                         <button type="submit" 
                                 class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
