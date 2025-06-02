@@ -219,9 +219,9 @@
                 
                 {% else %}
                 <!-- Regular User Navigation -->
-                <a href="{% url 'pilots:bid_list' %}" 
+                <a href="{% url 'pilots:detail' pilot.pk %}"
                    class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
-                    ← Back to Bids
+                    ← Back to Pilot
                 </a>
                 
                 <div class="flex space-x-3">

@@ -252,20 +252,10 @@
                             class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                                 Dashboard
                             </a>
-                            {% if user.organization.type == 'enterprise' %}
-                            <a href="{% url 'pilots:list' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %}">
-                                My Pilots
-                            </a>
-                            {% else %}
+                            <!-- UNIFIED PILOTS TAB - NO MORE SEPARATE BIDS TAB -->
                             <a href="{% url 'pilots:list' %}" 
                             class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %}">
                                 Pilots
-                            </a>
-                            {% endif %}
-                            <a href="{% url 'pilots:bid_list' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'bid_list' %}active{% endif %}">
-                                {% if user.organization.type == 'enterprise' %}Received Bids{% else %}Your Bids{% endif %}
                             </a>
                             <a href="{% url 'organizations:enterprise_directory' %}" 
                             class="nav-link {% if request.resolver_match.url_name == 'enterprise_directory' %}active{% endif %}">

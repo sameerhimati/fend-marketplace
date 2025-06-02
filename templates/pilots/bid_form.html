@@ -10,7 +10,9 @@
                 <h1 class="text-2xl font-semibold text-gray-900 mb-2">Submit Bid</h1>
                 <h2 class="text-lg text-gray-700 mb-6">For: {{ pilot.title }}</h2>
                 
-                <form method="post" class="space-y-6">
+                <form method="post" enctype="multipart/form-data" class="space-y-6">
+                    <input type="hidden" name="proposal_type" id="proposal_type" value="text">
+                    
                     {% if is_resubmission %}
                     <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
                         <div class="flex">
@@ -60,43 +62,68 @@
                         {% endif %}
                     </div>
 
-                    <!-- Proposal -->
-                    <div>
-                        <label for="{{ form.proposal.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Your Proposal
+                    <!-- Proposal Section with Toggle -->
+                    <div class="form-section">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            Your Proposal <span class="text-red-500">*</span>
                         </label>
-                        <div class="mt-1">
+                        
+                        <div class="tab-toggle mb-4">
+                            <button type="button" id="proposal_text_btn" class="active">
+                                Enter Text
+                            </button>
+                            <button type="button" id="proposal_file_btn">
+                                Upload Document
+                            </button>
+                        </div>
+                        
+                        <!-- Text input option -->
+                        <div id="proposal_text">
                             <textarea name="{{ form.proposal.name }}" 
                                       id="{{ form.proposal.id_for_label }}"
                                       rows="6"
                                       class="form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm"
-                                      placeholder="Describe your approach, timeline, and why your startup is the best fit for this pilot..."
-                                      required></textarea>
+                                      placeholder="Describe your implementation approach, timeline, and why your startup is the best fit...">{{ form.proposal.value|default:'' }}</textarea>
                         </div>
+                        
+                        <!-- File upload option -->
+                        <div id="proposal_file" style="display:none;">
+                            {% if form.instance.proposal_doc %}
+                            <div class="current-file">
+                                <div class="flex items-center gap-2">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <a href="{{ form.instance.proposal_doc.url }}" target="_blank">{{ form.instance.proposal_doc.name|default:"Proposal Document" }}</a>
+                                </div>
+                                <button type="button" onclick="clearProposalFile()" class="text-red-600 hover:text-red-800 text-sm">
+                                    Remove
+                                </button>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="file-input-wrapper">
+                                <input type="file" 
+                                       name="proposal_doc" 
+                                       id="id_proposal_doc"
+                                       accept=".pdf,.doc,.docx,.txt">
+                                <div class="file-input-button">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span>Choose File or Drag & Drop</span>
+                                </div>
+                                <div id="proposal_file_selected" class="file-input-selected">No file selected</div>
+                            </div>
+                        </div>
+                        
                         {% if form.proposal.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.proposal.errors.0 }}</p>
                         {% endif %}
+                        {% if form.proposal_doc.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.proposal_doc.errors.0 }}</p>
+                        {% endif %}
                     </div>
-
-                    <!-- {% if user.organization.type == 'startup' %}
-                    <div class="fee-info-compact">
-                        <p>Platform fee charged on pilot completion</p>
-                        <div class="fee-split">
-                            <span>
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Your fee: 5%
-                            </span>
-                            <span>
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Enterprise fee: 5%
-                            </span>
-                        </div>
-                    </div>
-                    {% endif %} -->
 
                     <div class="flex justify-end space-x-4">
                         <a href="{% url 'pilots:detail' pilot.pk %}" 
@@ -113,7 +140,147 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Tab toggle styles */
+    .tab-toggle {
+        display: flex;
+        background-color: #f3f4f6;
+        border-radius: 0.5rem;
+        padding: 0.25rem;
+    }
+    
+    .tab-toggle button {
+        flex: 1;
+        padding: 0.5rem 1rem;
+        border: none;
+        background: transparent;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .tab-toggle button.active {
+        background-color: white;
+        color: #1f2937;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .tab-toggle button:hover:not(.active) {
+        color: #374151;
+    }
+    
+    /* File input styles */
+    .file-input-wrapper {
+        position: relative;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+    
+    .file-input-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1rem;
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        background-color: #f9fafb;
+        color: #6b7280;
+        transition: all 0.2s;
+    }
+    
+    .file-input-button:hover {
+        border-color: #9ca3af;
+        background-color: #f3f4f6;
+    }
+    
+    .file-input-selected {
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+    
+    .current-file {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background-color: #f0f9ff;
+        border: 1px solid #e0f2fe;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+</style>
+
 <script>
+    // Toggle functionality
+    function toggleProposalType(type) {
+        const textDiv = document.getElementById('proposal_text');
+        const fileDiv = document.getElementById('proposal_file');
+        const textBtn = document.getElementById('proposal_text_btn');
+        const fileBtn = document.getElementById('proposal_file_btn');
+        const typeInput = document.getElementById('proposal_type');
+        
+        if (type === 'text') {
+            textDiv.style.display = 'block';
+            fileDiv.style.display = 'none';
+            textBtn.classList.add('active');
+            fileBtn.classList.remove('active');
+        } else {
+            textDiv.style.display = 'none';
+            fileDiv.style.display = 'block';
+            textBtn.classList.remove('active');
+            fileBtn.classList.add('active');
+        }
+        
+        if (typeInput) {
+            typeInput.value = type;
+        }
+    }
+    
+    function updateFileName() {
+        const input = document.getElementById('id_proposal_doc');
+        const selectedDiv = document.getElementById('proposal_file_selected');
+        
+        if (input.files && input.files.length > 0) {
+            selectedDiv.textContent = input.files[0].name;
+            selectedDiv.style.color = '#059669';
+        } else {
+            selectedDiv.textContent = 'No file selected';
+            selectedDiv.style.color = '#6B7280';
+        }
+    }
+    
+    function clearProposalFile() {
+        const input = document.getElementById('id_proposal_doc');
+        const selectedDiv = document.getElementById('proposal_file_selected');
+        const currentFileDiv = document.querySelector('.current-file');
+        
+        if (input) {
+            input.value = '';
+        }
+        
+        if (selectedDiv) {
+            selectedDiv.textContent = 'No file selected';
+            selectedDiv.style.color = '#6B7280';
+        }
+        
+        if (currentFileDiv) {
+            currentFileDiv.style.display = 'none';
+        }
+    }
+    
     // Function to update the fee calculation in real-time
     function updateFeeCalculation(bidAmount) {
         const amount = parseFloat(bidAmount) || 0;
@@ -125,13 +292,39 @@
         document.getElementById('fee-amount').textContent = `$${fee.toLocaleString()}`;
     }
     
-    // Initialize with current value
+    // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
+        const textBtn = document.getElementById('proposal_text_btn');
+        const fileBtn = document.getElementById('proposal_file_btn');
+        const fileInput = document.getElementById('id_proposal_doc');
         const bidInput = document.getElementById('{{ form.amount.id_for_label }}');
-        bidInput.addEventListener('input', function() {
-            updateFeeCalculation(this.value);
-        });
-        updateFeeCalculation(bidInput.value);
+        
+        // Set up toggle buttons
+        if (textBtn && fileBtn) {
+            textBtn.onclick = function() { toggleProposalType('text'); };
+            fileBtn.onclick = function() { toggleProposalType('file'); };
+        }
+        
+        // Set up file input change handler
+        if (fileInput) {
+            fileInput.addEventListener('change', updateFileName);
+        }
+        
+        // Set up bid amount calculation
+        if (bidInput) {
+            bidInput.addEventListener('input', function() {
+                updateFeeCalculation(this.value);
+            });
+            updateFeeCalculation(bidInput.value);
+        }
+        
+        // Check if we have existing file data
+        const proposalDoc = document.querySelector('input[name="proposal_doc"]');
+        if (form.instance.proposal_doc) {
+            toggleProposalType('file');
+        } else {
+            toggleProposalType('text');
+        }
     });
 </script>
 {% endblock %}

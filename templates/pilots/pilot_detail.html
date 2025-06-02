@@ -1,167 +1,398 @@
 {% extends 'base.html' %}
+{% load pilot_tags %}
 
 {% block title %}{{ pilot.title }} - Fend{% endblock %}
 
 {% block content %}
 <div class="py-6">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header with Status -->
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-            <!-- Header -->
-            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <div class="px-4 py-5 sm:px-6 flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">{{ pilot.title }}</h1>
-                    <p class="mt-1 text-sm text-gray-500">Created by {{ pilot.organization.name }}</p>
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if is_owner %}
+                            Your pilot
+                        {% elif is_bidder %}
+                            {% if has_working_agreement %}
+                                Working with {{ pilot.organization.name }}
+                            {% else %}
+                                Opportunity from {{ pilot.organization.name }}
+                            {% endif %}
+                        {% else %}
+                            Opportunity from {{ pilot.organization.name }}
+                        {% endif %}
+                    </p>
                 </div>
-                <span class="px-2 py-1 text-xs rounded-full 
-                    {% if pilot.status == 'published' %}bg-green-100 text-green-800
-                    {% elif pilot.status == 'draft' %}bg-gray-100 text-gray-800
-                    {% elif pilot.status == 'pending_approval' %}bg-yellow-100 text-yellow-800
-                    {% elif pilot.status == 'in_progress' %}bg-blue-100 text-blue-800
-                    {% elif pilot.status == 'completed' %}bg-purple-100 text-purple-800
-                    {% else %}bg-red-100 text-red-800{% endif %}">
-                    {% if pilot.status == 'pending_approval' %}
-                        Pending Approval
-                    {% elif pilot.status == 'in_progress' %}
-                        In Progress
-                    {% else %}
-                        {{ pilot.status|title }}
+                <div class="text-right">
+                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full
+                        {% if pilot.status == 'published' %}bg-green-100 text-green-800 border border-green-200
+                        {% elif pilot.status == 'draft' %}bg-gray-100 text-gray-800 border border-gray-200
+                        {% elif pilot.status == 'pending_approval' %}bg-yellow-100 text-yellow-800 border border-yellow-200
+                        {% elif pilot.status == 'in_progress' %}bg-blue-100 text-blue-800 border border-blue-200
+                        {% elif pilot.status == 'completed' %}bg-purple-100 text-purple-800 border border-purple-200
+                        {% else %}bg-gray-100 text-gray-800 border border-gray-200{% endif %}">
+                        {% if pilot.status == 'pending_approval' %}
+                            Pending Approval
+                        {% elif pilot.status == 'in_progress' %}
+                            In Progress
+                        {% else %}
+                            {{ pilot.status|title }}
+                        {% endif %}
+                    </span>
+                    
+                    {% if summary %}
+                    <div class="mt-2 text-sm text-gray-600 max-w-xs">
+                        <p class="font-medium">{{ summary }}</p>
+                        {% if next_action %}
+                        <p class="text-gray-500">Next: {{ next_action }}</p>
+                        {% endif %}
+                    </div>
                     {% endif %}
-                </span>
+                </div>
             </div>
             
-            <!-- Content -->
+            <!-- WORKING AGREEMENT SECTION (Primary for active work) -->
+            {% if has_working_agreement %}
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 bg-blue-50">
+                <h3 class="text-lg font-medium text-blue-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Working Agreement
+                </h3>
+                
+                <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Agreed Amount</dt>
+                        <dd class="mt-1 text-lg font-semibold text-blue-900">${{ working_agreement.amount|format_currency }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Work Status</dt>
+                        <dd class="mt-1 text-sm text-blue-900 font-medium">{{ relationship.bid.get_status_display }}</dd>
+                    </div>
+                    
+                    {% if is_owner %}
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Startup</dt>
+                        <dd class="mt-1 text-sm text-blue-900">{{ working_agreement.startup.name }}</dd>
+                    </div>
+                    {% else %}
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Enterprise</dt>
+                        <dd class="mt-1 text-sm text-blue-900">{{ working_agreement.enterprise.name }}</dd>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-blue-800">Started</dt>
+                        <dd class="mt-1 text-sm text-blue-900">{{ relationship.bid.created_at|date:"M j, Y" }}</dd>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <dt class="text-sm font-medium text-blue-800">Agreed Scope</dt>
+                    <dd class="mt-1 text-sm text-blue-900 whitespace-pre-line bg-white p-3 rounded border">{{ working_agreement.proposal }}</dd>
+                </div>
+                
+                <!-- Work Progress Actions -->
+                {% if can_request_completion %}
+                <div class="mt-4 flex justify-end">
+                    <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                            Request Completion Verification
+                        </button>
+                    </form>
+                </div>
+                {% elif can_verify_completion %}
+                <div class="mt-4 flex justify-end">
+                    <form method="post" action="{% url 'pilots:verify_completion' relationship.bid.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                                onclick="return confirm('Verify that the work is completed satisfactorily? This will trigger payment release.');">
+                            Verify Completion
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- BID MANAGEMENT SECTION (For enterprises with pending bids) -->
+            {% if is_owner and relationship.bids_count > 0 %}
             <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                    <div class="sm:col-span-2">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Bid Management</h3>
+                
+                <!-- Approved/Active Bids -->
+                {% if approved_bids %}
+                <div class="mb-6">
+                    <h4 class="text-md font-medium text-green-700 mb-3">Active Work</h4>
+                    {% for bid in approved_bids %}
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium text-green-900">{{ bid.startup.name }}</p>
+                                <p class="text-sm text-green-700">Amount: ${{ bid.amount|format_currency }}</p>
+                                <p class="text-sm text-green-700">Status: {{ bid.get_status_display }}</p>
+                            </div>
+                            <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                               class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Pending Bids -->
+                {% if pending_bids %}
+                <div class="mb-6">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">Pending Review ({{ pending_bids.count }})</h4>
+                    {% for bid in pending_bids %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-3">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-medium text-gray-900">{{ bid.startup.name }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">${{ bid.amount|format_currency }}</p>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">{{ bid.proposal|truncatewords:20 }}</p>
+                                <p class="text-xs text-gray-500">Submitted {{ bid.created_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex justify-between items-center">
+                            <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                               class="text-sm text-indigo-600 hover:text-indigo-900">View Full Proposal</a>
+                            
+                            <div class="flex space-x-2">
+                                {% if bid.status == 'pending' %}
+                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="review">
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-2 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                        Mark Under Review
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="decline">
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100"
+                                            onclick="return confirm('Are you sure you want to decline this bid?');">
+                                        Decline
+                                    </button>
+                                </form>
+                                
+                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                                            onclick="return confirm('Approve this bid for ${{ bid.calculate_total_amount_for_enterprise|format_currency }}? This will trigger invoice generation.');">
+                                        Approve
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- PILOT INFORMATION SECTION (Collapsed when working agreement exists) -->
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 {% if has_working_agreement %}bg-gray-50{% endif %}">
+                {% if has_working_agreement %}
+                <details class="mb-4">
+                    <summary class="cursor-pointer text-lg font-medium text-gray-700 hover:text-gray-900">
+                        Original Pilot Details
+                        <span class="ml-2 text-sm text-gray-500">(Click to expand)</span>
+                    </summary>
+                    <div class="mt-4 space-y-4">
+                {% else %}
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Pilot Details</h3>
+                <div class="space-y-4">
+                {% endif %}
+                
+                    <div>
                         <dt class="text-sm font-medium text-gray-500">Description</dt>
                         <dd class="mt-1 text-sm text-gray-900">{{ pilot.description }}</dd>
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <dt class="text-sm font-medium text-gray-500">Price</dt>
-                        <dd class="mt-1 text-sm text-gray-900">
-                            {% if pilot.price == 0 %}
-                                Free
-                            {% else %}
-                                ${{ pilot.price }}
-                            {% endif %}
-                        </dd>
+                    <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Budget</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">
+                                {% if pilot.price == 0 %}Free{% else %} ${{ pilot.price|format_currency }}{% endif %}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Created</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ pilot.created_at|date:"F j, Y" }}</dd>
+                        </div>
                     </div>
 
-                    {% if pilot.technical_specs_doc %}
+                    <!-- Technical Specifications -->
+                    {% if pilot.technical_specs_doc or pilot.technical_specs_text %}
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Technical Specifications</dt>
                         <dd class="mt-1 text-sm text-gray-900">
-                            <a href="{{ pilot.technical_specs_doc.url }}" 
-                               class="text-indigo-600 hover:text-indigo-900"
-                               target="_blank">
-                                Download Document
-                            </a>
+                            {% if pilot.technical_specs_doc %}
+                                <a href="{{ pilot.technical_specs_doc.url }}" 
+                                   class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
+                                   target="_blank">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Download Document
+                                </a>
+                            {% elif pilot.technical_specs_text %}
+                                <div class="mt-1 text-sm text-gray-900">{{ pilot.technical_specs_text }}</div>
+                            {% endif %}
                         </dd>
                     </div>
                     {% endif %}
 
-                    {% if pilot.performance_metrics %}
-                    <div class="sm:col-span-2">
+                    {% if pilot.performance_metrics or pilot.performance_metrics_doc %}
+                    <div>
                         <dt class="text-sm font-medium text-gray-500">Performance Metrics</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ pilot.performance_metrics }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {% if pilot.performance_metrics_doc %}
+                                <a href="{{ pilot.performance_metrics_doc.url }}" 
+                                   class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
+                                   target="_blank">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Download Document
+                                </a>
+                            {% elif pilot.performance_metrics %}
+                                <div class="mt-1 text-sm text-gray-900">{{ pilot.performance_metrics }}</div>
+                            {% endif %}
+                        </dd>
                     </div>
                     {% endif %}
 
-                    {% if pilot.compliance_requirements %}
-                    <div class="sm:col-span-2">
+                    {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}
+                    <div>
                         <dt class="text-sm font-medium text-gray-500">Definition of Done</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ pilot.compliance_requirements }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {% if pilot.compliance_requirements_doc %}
+                                <a href="{{ pilot.compliance_requirements_doc.url }}" 
+                                   class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
+                                   target="_blank">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Download Document
+                                </a>
+                            {% elif pilot.compliance_requirements %}
+                                <div class="mt-1 text-sm text-gray-900">{{ pilot.compliance_requirements }}</div>
+                            {% endif %}
+                        </dd>
                     </div>
                     {% endif %}
-
-                    <div class="sm:col-span-2">
-                        <dt class="text-sm font-medium text-gray-500">Created</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ pilot.created_at|date:"F j, Y" }}</dd>
+                
+                {% if has_working_agreement %}
                     </div>
-                </dl>
-            </div>
-
-            {% if previous_bid_declined %}
-            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                    <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-yellow-700">
-                        Your previous bid of ${{ declined_bid.amount }} was declined. You may submit a new bid if you wish.
-                        </p>
-                    </div>
-                    </div>
+                </details>
+                {% else %}
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
-
-            {% if request.user.organization.type == 'startup' and pilot.status == 'published' %}
-            <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                <div class="flex flex-col items-center justify-center space-y-3">
-                    <h3 class="text-lg font-medium text-gray-900">Interested in this pilot?</h3>
+            
+            <!-- BID SUBMISSION SECTION (For available opportunities) -->
+            {% if can_bid %}
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 bg-blue-50">
+                <div class="text-center">
+                    <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
+                    <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
                     <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Submit a Bid
+                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        Bid Now
                     </a>
                 </div>
             </div>
             {% endif %}
-
-            {% if request.user.organization == pilot.organization and pilot.status == 'draft' %}
-                <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
-                    <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="space-y-4">
-                        {% csrf_token %}
-                        
-                        <div class="relative flex items-start">
-                            <div class="flex items-center h-5">
-                                <input id="legal_agreement_accepted" name="legal_agreement_accepted" type="checkbox" 
-                                    class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" required>
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="legal_agreement_accepted" class="font-medium text-gray-700">Legal Agreement</label>
-                                <p class="text-gray-500">I agree that by publishing this pilot, I am responsible for ensuring accuracy of all information provided. I acknowledge that Fend Marketplace has the right to reject or remove any pilot that violates platform guidelines.</p>
-                            </div>
+            
+            <!-- LEGAL AGREEMENT SECTION (For draft pilots) -->
+            {% if is_owner and pilot.status == 'draft' %}
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 bg-yellow-50">
+                <h3 class="text-lg font-medium text-yellow-900 mb-4">Ready to Publish?</h3>
+                <form method="post" action="{% url 'pilots:publish' pilot.pk %}" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="legal_agreement_accepted" name="legal_agreement_accepted" type="checkbox" 
+                                class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" required>
                         </div>
-                        
-                        <div class="flex justify-end">
-                            <button type="submit" 
-                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Submit for Approval
-                            </button>
+                        <div class="ml-3 text-sm">
+                            <label for="legal_agreement_accepted" class="font-medium text-yellow-800">Legal Agreement</label>
+                            <p class="text-yellow-700">I agree that by publishing this pilot, I am responsible for ensuring accuracy of all information provided. I acknowledge that Fend Marketplace has the right to reject or remove any pilot that violates platform guidelines.</p>
                         </div>
-                    </form>
-                </div>
-                {% endif %}
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700">
+                            Submit for Approval
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
 
-            <!-- Actions -->
+            <!-- Actions Footer -->
             <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between">
                 <a href="{% url 'pilots:list' %}" 
                    class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                     ← Back to Pilots
                 </a>
                 
-                {% if request.user.organization == pilot.organization %}
-                    <div class="space-x-3">
-                        <a href="{% url 'pilots:edit' pilot.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
-                            Edit
-                        </a>
+                <div class="flex space-x-3">
+                    {% if can_edit %}
+                    <a href="{% url 'pilots:edit' pilot.pk %}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Edit Pilot
+                    </a>
+                    {% endif %}
 
-                        <form method="post" action="{% url 'pilots:delete' pilot.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="text-sm font-medium text-red-600 hover:text-red-900"
-                                    onclick="return confirm('Are you sure you want to delete this pilot? This action cannot be undone.');">
-                                Delete
-                            </button>
-                        </form>
-                    </div>
-                {% endif %}
+                    {% if can_delete %}
+                    <form method="post" action="{% url 'pilots:delete' pilot.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                onclick="return confirm('Are you sure you want to delete this pilot? This action cannot be undone.');">
+                            Delete Pilot
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    {% if can_withdraw_bid %}
+                    <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                onclick="return confirm('Are you sure you want to withdraw this bid?');">
+                            Withdraw Bid
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

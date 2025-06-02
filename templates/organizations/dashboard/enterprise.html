@@ -5,182 +5,207 @@
 {% block content %}
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 class="text-2xl font-semibold text-gray-900 mb-6">Your Dashboard</h1>
-        
-        <!-- Status Card with Token Information -->
-        <div class="mb-8 bg-white shadow rounded-lg overflow-hidden">
-            <div class="px-6 py-4 flex justify-between items-center">
-                <div>
-                    <h2 class="text-lg font-medium text-gray-900">Account Status</h2>
-                    <p class="text-sm text-gray-500 mt-1">
-                        {% if user.organization.has_active_subscription %}
-                            Your subscription is active
-                        {% else %}
-                            Your subscription needs attention
-                        {% endif %}
-                    </p>
-                </div>
-                <div class="flex items-center bg-indigo-50 rounded-lg p-4">
-                    <div class="text-center mr-3">
-                        {% if user.organization.subscription.plan.pilot_limit %}
-                            <div class="text-xl font-bold text-indigo-600">{{ request.user.organization.get_remaining_pilots }}</div>
-                            <div class="text-xs text-gray-500">Pilots Remaining</div>
-                        {% else %}
-                            <div class="text-xl font-bold text-indigo-600">Unlimited</div>
-                            <div class="text-xs text-gray-500">Pilots Available</div>
-                        {% endif %}
+        <div class="lg:flex lg:items-center lg:justify-between">
+            <div class="flex-1 min-w-0">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                    Welcome back, {{ request.user.organization.name }}
+                </h2>
+                <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+                    <div class="mt-2 flex items-center text-sm text-gray-500">
+                        <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clip-rule="evenodd"/>
+                        </svg>
+                        Enterprise Partner
                     </div>
-                    {% if user.organization.subscription.plan.pilot_limit and user.organization.get_remaining_pilots == 0 %}
-                    <a href="{% url 'payments:upgrade_subscription' %}" class="text-xs px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full hover:bg-indigo-200">
-                        Upgrade Plan
-                    </a>
-                    {% endif %}
                 </div>
             </div>
-            
-            <div class="px-6 py-2 bg-gray-50">
-                {% if user.organization.subscription.plan.pilot_limit %}
-                    <p class="text-xs text-gray-600">Your {{ user.organization.subscription.plan.name }} plan includes {{ user.organization.subscription.plan.pilot_limit }} pilots</p>
-                {% else %}
-                    <p class="text-xs text-gray-600">Your {{ user.organization.subscription.plan.name }} plan includes unlimited pilots</p>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Your Pilots Section -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-medium text-gray-900">Your Pilots</h2>
-                <a href="{% url 'pilots:list' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                    View All Pilots →
-                </a>
-            </div>
-            
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                {% if active_pilots %}
-                <ul class="divide-y divide-gray-200">
-                    {% for pilot in active_pilots|slice:":3" %}
-                    <li>
-                        <a href="{% url 'pilots:detail' pilot.pk %}" class="block dashboard-card">
-                            <div class="px-4 py-4 sm:px-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="text-lg font-medium text-indigo-600 truncate">
-                                            {{ pilot.title }}
-                                        </h3>
-                                        <p class="mt-1 text-sm text-gray-500">
-                                            {{ pilot.description|truncatewords:20 }}
-                                        </p>
-                                    </div>
-                                    <div class="ml-4 flex-shrink-0 flex items-center space-x-4">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            {% if pilot.status == 'published' %}bg-green-100 text-green-800
-                                            {% elif pilot.status == 'draft' %}bg-gray-100 text-gray-800
-                                            {% else %}bg-blue-100 text-blue-800{% endif %}">
-                                            {{ pilot.status|title }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="px-6 py-8 flex flex-col items-center justify-center">
-                    <p class="text-gray-500 mb-4">You haven't created any pilots yet.</p>
-                    <a href="{% url 'pilots:create' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+            <div class="mt-5 flex lg:mt-0 lg:ml-4">
+                <span class="sm:ml-3">
+                    <a href="{% url 'pilots:create' %}"
+                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
                         Create New Pilot
                     </a>
-                </div>
-                {% endif %}
+                </span>
             </div>
         </div>
 
-        <!-- Recent Bids Section -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-medium text-gray-900">Recent Bids</h2>
-                <a href="{% url 'pilots:bid_list' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                    View All Bids →
-                </a>
-            </div>
-            
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div class="px-6 py-8 text-center">
-                    <p class="text-gray-500">When startups submit bids on your pilots, they'll appear here.</p>
+        <!-- Quick Stats -->
+        <div class="mt-8">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <!-- Active Pilots -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Active Pilots
+                                    </dt>
+                                    <dd class="text-lg font-medium text-gray-900">
+                                        {{ active_pilots|length }}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'pilots:list' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                View all pilots
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pilot Limit -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Pilots Remaining
+                                    </dt>
+                                    <dd class="text-lg font-medium text-gray-900">
+                                        {% if request.user.organization.subscription.plan.pilot_limit %}
+                                            {{ request.user.organization.get_remaining_pilots }}
+                                        {% else %}
+                                            Unlimited
+                                        {% endif %}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'payments:subscription_detail' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Manage subscription
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Startups Connected -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Startup Network
+                                    </dt>
+                                    <dd class="text-lg font-medium text-gray-900">
+                                        {{ startups|length }}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'organizations:startup_directory' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Browse startups
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enterprise Network -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Enterprise Partners
+                                    </dt>
+                                    <dd class="text-lg font-medium text-gray-900">
+                                        {{ enterprises|length }}
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-5 py-3">
+                        <div class="text-sm">
+                            <a href="{% url 'organizations:enterprise_directory' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Browse enterprises
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Two-Column Grid Layout for Partners and Network -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <!-- Enterprise Partners Section -->
-            <div>
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-medium text-gray-900">Enterprise Network</h2>
-                    <a href="{% url 'organizations:enterprise_directory' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                        View All →
-                    </a>
-                </div>
-                
-                <div class="bg-white shadow sm:rounded-lg p-6">
-                    {% if enterprises %}
-                    <div class="flex flex-wrap gap-6 justify-center">
-                        {% for enterprise in enterprises %}
-                        <a href="{% url 'organizations:profile' enterprise.id %}" class="text-center partner-logo">
-                            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center icon-container">
-                                {% if enterprise.logo %}
-                                    <img src="{{ enterprise.logo.url }}" alt="{{ enterprise.name }}" class="w-10 h-10 object-contain">
-                                {% else %}
-                                    <span class="text-xl font-bold text-indigo-600">{{ enterprise.name|slice:":1" }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="mt-2 text-sm font-medium">{{ enterprise.name }}</div>
-                        </a>
-                        {% endfor %}
+
+        <!-- Recent Pilots -->
+        {% if active_pilots %}
+        <div class="mt-8">
+            <div class="bg-white shadow sm:rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Recent Pilots
+                    </h3>
+                    <div class="mt-5">
+                        <div class="flow-root">
+                            <ul class="-my-5 divide-y divide-gray-200">
+                                {% for pilot in active_pilots %}
+                                <li class="py-4">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate">
+                                                {{ pilot.title }}
+                                            </p>
+                                            <p class="text-sm text-gray-500 truncate">
+                                                {{ pilot.status|title }} • Created {{ pilot.created_at|date:"M j" }}
+                                            </p>
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <a href="{% url 'pilots:detail' pilot.pk %}"
+                                               class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
+                                                View
+                                            </a>
+                                        </div>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="mt-6">
+                            <a href="{% url 'pilots:list' %}"
+                               class="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                View all pilots
+                            </a>
+                        </div>
                     </div>
-                    {% else %}
-                    <div class="text-center text-gray-500 py-4">
-                        No enterprise partners yet
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Startup Network Section -->
-            <div>
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-medium text-gray-900">Startup Network</h2>
-                    <a href="{% url 'organizations:startup_directory' %}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                        View All →
-                    </a>
-                </div>
-                
-                <div class="bg-white shadow sm:rounded-lg p-6">
-                    {% if startups %}
-                    <div class="flex flex-wrap gap-6 justify-center">
-                        {% for startup in startups %}
-                        <a href="{% url 'organizations:profile' startup.id %}" class="text-center partner-logo">
-                            <div class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center icon-container">
-                                {% if startup.logo %}
-                                    <img src="{{ startup.logo.url }}" alt="{{ startup.name }}" class="w-10 h-10 object-contain">
-                                {% else %}
-                                    <span class="text-xl font-bold text-indigo-600">{{ startup.name|slice:":1" }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="mt-2 text-sm font-medium">{{ startup.name }}</div>
-                        </a>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center text-gray-500 py-4">
-                        No startups yet
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
+
 {% endblock %}
