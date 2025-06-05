@@ -42,7 +42,6 @@
                         {% endif %}
                     </span>
                     
-                    <!-- Simplified status info -->
                     {% if summary and has_working_agreement %}
                     <div class="mt-2 text-sm text-gray-600">
                         <p class="font-medium">{{ working_agreement.startup.name }}</p>
@@ -54,7 +53,6 @@
                     {% endif %}
                 </div>
             </div>
-            
             
             <!-- BID MANAGEMENT SECTION (For enterprises with pending bids) -->
             {% if is_owner and relationship.bids_count > 0 %}
@@ -125,16 +123,7 @@
                             
                             <!-- Action Buttons -->
                             <div class="mt-4 flex justify-end space-x-2">
-                                {% if bid.can_request_completion %}
-                                <form method="post" action="{% url 'pilots:request_completion' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                            onclick="return confirm('Mark your work as complete and request enterprise verification?');">
-                                        Request Completion
-                                    </button>
-                                </form>
-                                {% elif bid.can_verify_completion %}
+                                {% if can_verify_completion %}
                                 <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
                                     {% csrf_token %}
                                     <button type="submit" 
@@ -155,8 +144,146 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+                
+                <!-- Pending Bids -->
+                {% if pending_bids %}
+                <div class="mb-6">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">Pending Review ({{ pending_bids.count }})</h4>
+                    {% for bid in pending_bids %}
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-medium text-gray-900">{{ bid.startup.name }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">${{ bid.amount|format_currency }}</p>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-3">{{ bid.proposal|truncatewords:20 }}</p>
+                                <p class="text-xs text-gray-500">Submitted {{ bid.created_at|date:"M j, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 flex justify-between items-center">
+                            <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                               class="text-sm text-indigo-600 hover:text-indigo-900">View Full Proposal</a>
+                            
+                            <div class="flex space-x-2">
+                                {% if bid.status == 'pending' %}
+                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="review">
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-2 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                        Mark Under Review
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <!-- Enhanced Decline Button with Modal -->
+                                <button type="button" 
+                                        class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100"
+                                        data-bid-id="{{ bid.pk }}"
+                                        data-startup-name="{{ bid.startup.name|escapejs }}"
+                                        onclick="handleDeclineClick(this)">
+                                    Decline
+                                </button>
 
-                <!-- WORKING AGREEMENT SECTION (Primary for active work) -->
+                                <!-- Enhanced Approve Button -->
+                                <button type="button" 
+                                        class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                                        data-bid-id="{{ bid.pk }}"
+                                        data-total="{{ bid.calculate_total_amount_for_enterprise|floatformat:'2' }}"
+                                        data-amount="{{ bid.amount|floatformat:'2' }}"
+                                        data-fee="{{ bid.enterprise_fee_percentage|floatformat:'2' }}"
+                                        onclick="handleApproveClick(this)">
+                                    Approve
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- STARTUP BID SECTION (Enhanced with Edit/Withdraw/Resubmit) -->
+            {% if is_bidder %}
+            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <h3 class="text-lg font-medium text-blue-900 mb-4">Your Bid Status</h3>
+                
+                <div class="bg-white rounded-lg p-4 border border-blue-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-lg font-semibold text-blue-900">Your Bid: ${{ relationship.bid.amount|format_currency }}</p>
+                            <p class="text-sm text-blue-700">Status: {{ relationship.bid.get_status_display }}</p>
+                        </div>
+                        <div class="text-right">
+                            {% if relationship.bid_status in 'approved,live,completion_pending,completed' %}
+                            <p class="text-sm text-blue-700">Net Amount: ${{ relationship.bid.calculate_startup_net_amount|format_currency }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Show rejection reason if available -->
+                    {% if relationship.bid_status == 'declined' and relationship.rejection_reason %}
+                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                        <h5 class="text-sm font-medium text-red-800 mb-2">Rejection Feedback:</h5>
+                        <p class="text-sm text-red-700">{{ relationship.rejection_reason }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Bid Actions -->
+                    <div class="flex justify-end space-x-2">
+                        {% if can_edit_bid %}
+                        <!-- Edit pending bid -->
+                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                            Edit Bid
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_withdraw_bid %}
+                        <!-- Withdraw pending bid -->
+                        <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                    onclick="return confirm('Are you sure you want to withdraw this bid?');">
+                                Withdraw Bid
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if can_resubmit_bid %}
+                        <!-- Resubmit after decline -->
+                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100">
+                            Submit New Bid
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_request_completion %}
+                        <!-- Request completion -->
+                        <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                    onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                                Request Completion
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <a href="{% url 'pilots:bid_detail' relationship.bid.pk %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- WORKING AGREEMENT SECTION (Primary for active work) -->
             {% if has_working_agreement %}
             <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
                 <h3 class="text-lg font-medium text-blue-900 mb-4 flex items-center">
@@ -201,65 +328,18 @@
                 </div>
             </div>
             {% endif %}
-                
-                <!-- Pending Bids -->
-                {% if pending_bids %}
-                <div class="mb-6">
-                    <h4 class="text-md font-medium text-gray-700 mb-3">Pending Review ({{ pending_bids.count }})</h4>
-                    {% for bid in pending_bids %}
-                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex justify-between items-center mb-2">
-                                    <p class="font-medium text-gray-900">{{ bid.startup.name }}</p>
-                                    <p class="text-lg font-semibold text-gray-900">${{ bid.amount|format_currency }}</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mb-3">{{ bid.proposal|truncatewords:20 }}</p>
-                                <p class="text-xs text-gray-500">Submitted {{ bid.created_at|date:"M j, Y g:i A" }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3 flex justify-between items-center">
-                            <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                               class="text-sm text-indigo-600 hover:text-indigo-900">View Full Proposal</a>
-                            
-                            <div class="flex space-x-2">
-                                {% if bid.status == 'pending' %}
-                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="review">
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-2 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100">
-                                        Mark Under Review
-                                    </button>
-                                </form>
-                                {% endif %}
-                                
-                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="decline">
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100"
-                                            onclick="return confirm('Are you sure you want to decline this bid?');">
-                                        Decline
-                                    </button>
-                                </form>
-                                
-                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="approve">
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                            onclick="return confirm('Approve this bid for ${{ bid.calculate_total_amount_for_enterprise|format_currency }}? (${{ bid.amount|format_currency }} + {{ bid.enterprise_fee_percentage}}%)     This will trigger invoice generation.');">
-                                        Approve
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
+            
+            <!-- BID SUBMISSION SECTION (For available opportunities) -->
+            {% if can_bid %}
+            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <div class="text-center">
+                    <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
+                    <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
+                    <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        Submit Bid
+                    </a>
                 </div>
-                {% endif %}
             </div>
             {% endif %}
             
@@ -365,20 +445,6 @@
                 {% endif %}
             </div>
             
-            <!-- BID SUBMISSION SECTION (For available opportunities) -->
-            {% if can_bid %}
-            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <div class="text-center">
-                    <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
-                    <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
-                    <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                        Bid Now
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-            
             <!-- LEGAL AGREEMENT SECTION (For draft pilots) -->
             {% if is_owner and pilot.status == 'draft' %}
             <div class="border-t-4 border-yellow-500 bg-yellow-50 px-6 py-6 mx-4 mb-6 rounded-lg">
@@ -432,20 +498,176 @@
                         </button>
                     </form>
                     {% endif %}
-
-                    {% if can_withdraw_bid and relationship.active_bid %}
-                    <form method="post" action="{% url 'pilots:delete_bid' relationship.active_bid.pk %}" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                onclick="return confirm('Are you sure you want to withdraw this bid?');">
-                            Withdraw Bid
-                        </button>
-                    </form>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Enhanced Decline Modal -->
+<div id="declineModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Decline Bid</h3>
+            <p class="text-sm text-gray-600 mb-4">Please provide a reason for declining this bid. This feedback will help the startup understand your decision and potentially submit a better proposal.</p>
+            
+            <form id="declineForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="decline">
+                
+                <div class="mb-4">
+                    <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                        Reason for Decline <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="rejection_reason" 
+                              name="rejection_reason" 
+                              rows="4" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" 
+                              placeholder="e.g., Budget too high, timeline doesn't work, technical approach concerns, etc."
+                              required></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" 
+                            onclick="closeDeclineModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                        Decline Bid
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openDeclineModal(bidId, startupName) {
+    const modal = document.getElementById('declineModal');
+    const form = document.getElementById('declineForm');
+    const title = document.querySelector('#declineModal h3');
+    
+    if (!modal || !form || !title) {
+        console.error('Modal elements not found');
+        return;
+    }
+    
+    modal.classList.remove('hidden');
+    form.action = `/pilots/bids/${bidId}/update-status/`;
+    title.textContent = `Decline Bid from ${startupName}`;
+    
+    // Focus on textarea
+    setTimeout(() => {
+        const textarea = document.getElementById('rejection_reason');
+        if (textarea) {
+            textarea.focus();
+        }
+    }, 100);
+}
+
+function closeDeclineModal() {
+    document.getElementById('declineModal').classList.add('hidden');
+    document.getElementById('rejection_reason').value = '';
+}
+
+function confirmApproval(bidId, totalAmount, bidAmount, feePercentage) {
+    // Convert to numbers and format for display
+    const totalAmountNum = parseFloat(totalAmount);
+    const bidAmountNum = parseFloat(bidAmount);
+    const feePercentageNum = parseFloat(feePercentage);
+    const feeAmount = totalAmountNum - bidAmountNum;
+    
+    // Format numbers with commas for display
+    const formatCurrency = (amount) => {
+        return amount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
+    
+    // Create a detailed confirmation message
+    const message = `Approve this bid for ${formatCurrency(totalAmountNum)}?\n\nBreakdown:\n• Bid Amount: ${formatCurrency(bidAmountNum)}\n• Platform Fee (${feePercentageNum}%): ${formatCurrency(feeAmount)}\n• Total Payment: ${formatCurrency(totalAmountNum)}\n\nThis will trigger invoice generation.`;
+    
+    if (confirm(message)) {
+        // Create form programmatically for Chrome compatibility
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/pilots/bids/${bidId}/update-status/`;
+        form.style.display = 'none';
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add action input
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'approve';
+        form.appendChild(actionInput);
+        
+        // Submit form
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+}
+
+function handleDeclineClick(button) {
+    const bidId = button.dataset.bidId;
+    const startupName = button.dataset.startupName;
+    openDeclineModal(bidId, startupName);
+}
+
+function handleApproveClick(button) {
+    const bidId = button.dataset.bidId;
+    const total = parseFloat(button.dataset.total);
+    const amount = parseFloat(button.dataset.amount);
+    const fee = parseFloat(button.dataset.fee);
+    confirmApproval(bidId, total, amount, fee);
+}
+
+// Close modal when clicking outside or pressing Escape
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('declineModal');
+    
+    if (modal) {
+        // Close on outside click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeDeclineModal();
+            }
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeDeclineModal();
+            }
+        });
+    }
+    
+    // Form validation for decline modal
+    const declineForm = document.getElementById('declineForm');
+    if (declineForm) {
+        declineForm.addEventListener('submit', function(e) {
+            const textarea = document.getElementById('rejection_reason');
+            
+            if (textarea && textarea.value.trim().length < 10) {
+                e.preventDefault();
+                alert('Please provide a more detailed reason for declining this bid (at least 10 characters).');
+                textarea.focus();
+                return false;
+            }
+        });
+    }
+});
+</script>
+
 {% endblock %}
