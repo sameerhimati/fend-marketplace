@@ -94,6 +94,7 @@
                         <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"M j, Y g:i A" }}</dd>
                     </div>
 
+                    <!-- Only show enterprise's total payment to enterprise -->
                     {% if bid.is_active and is_enterprise %}
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Total Payment Required</dt>
@@ -102,6 +103,7 @@
                     </div>
                     {% endif %}
 
+                    <!-- Only show startup's net amount to startup -->
                     {% if bid.is_active and is_startup %}
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Your Net Amount</dt>
@@ -110,7 +112,7 @@
                     </div>
                     {% endif %}
 
-                    <!-- Admin Financial Overview -->
+                    <!-- Admin Financial Overview - only for admins -->
                     {% if is_admin %}
                     <div class="sm:col-span-2 bg-gray-50 p-4 rounded-lg">
                         <h4 class="text-sm font-medium text-gray-700 mb-3">Admin Financial Overview</h4>
@@ -415,18 +417,23 @@ function closeDeclineModal() {
 }
 
 function confirmApprovalSubmit(totalAmount, bidAmount, feePercentage) {
+    // Parse string values to numbers for calculation
+    const totalAmountNum = parseFloat(totalAmount);
+    const bidAmountNum = parseFloat(bidAmount);
+    const feePercentageNum = parseFloat(feePercentage);
+    
     // Format numbers with commas for display
     const formatCurrency = (amount) => {
-        return amount.toLocaleString('en-US', {
+        return parseFloat(amount).toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
     };
     
-    const feeAmount = totalAmount - bidAmount;
+    const feeAmount = totalAmountNum - bidAmountNum;
     
     // Create a detailed confirmation message
-    const message = `Approve this bid for $${formatCurrency(totalAmount)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmount)}\n• Platform Fee (${feePercentage}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmount)}\n\nThis will trigger invoice generation.`;
+    const message = `Approve this bid for $${formatCurrency(totalAmountNum)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmountNum)}\n• Platform Fee (${feePercentageNum}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmountNum)}\n\nThis will trigger invoice generation.`;
     
     return confirm(message);
 }
