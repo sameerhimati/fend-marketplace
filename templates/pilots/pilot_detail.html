@@ -83,15 +83,29 @@
                                     <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted</dt>
                                     <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"M j, Y g:i A" }}</dd>
                                 </div>
+                                
+                                <!-- Only show enterprise's payment info to enterprise -->
+                                {% if is_owner %}
                                 <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Enterprise Pays</dt>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Payment Required</dt>
                                     <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_total_amount_for_enterprise|format_currency }}</dd>
                                     <dd class="text-xs text-gray-500">Includes {{ bid.enterprise_fee_percentage }}% platform fee</dd>
                                 </div>
+                                {% endif %}
+                                
+                                <!-- Only show startup's net amount to startup -->
+                                {% if user.organization == bid.startup %}
                                 <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Startup Receives</dt>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Your Net Amount</dt>
                                     <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_startup_net_amount|format_currency }}</dd>
                                     <dd class="text-xs text-gray-500">After {{ bid.startup_fee_percentage }}% platform fee</dd>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Show basic bid amount to both parties -->
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Bid Amount</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.amount|format_currency }}</dd>
                                 </div>
                             </div>
                             
@@ -114,8 +128,16 @@
                                         <dd class="mt-1 text-sm text-gray-900">{{ bid.escrow_payment.get_status_display }}</dd>
                                     </div>
                                     <div>
-                                        <dt class="text-xs font-medium text-gray-500">Total Amount</dt>
-                                        <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.escrow_payment.total_amount|format_currency }}</dd>
+                                        <dt class="text-xs font-medium text-gray-500">
+                                            {% if is_owner %}Total Amount Due{% else %}Total Contract Value{% endif %}
+                                        </dt>
+                                        <dd class="mt-1 text-sm font-semibold text-gray-900">
+                                            {% if is_owner %}
+                                                ${{ bid.escrow_payment.total_amount|format_currency }}
+                                            {% else %}
+                                                ${{ bid.amount|format_currency }}
+                                            {% endif %}
+                                        </dd>
                                     </div>
                                 </div>
                             </div>
@@ -135,7 +157,7 @@
                                 {% endif %}
                                 
                                 <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                                   class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
+                                class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
                                     Full Details
                                 </a>
                             </div>
@@ -193,7 +215,7 @@
                                     <input type="hidden" name="action" value="approve">
                                     <button type="submit" 
                                             class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                            onclick="return confirmApprovalSubmit('{{ bid.pk }}', '{{ bid.calculate_total_amount_for_enterprise}}', '{{ bid.amount}}', '{{ bid.enterprise_fee_percentage}}')">
+                                            onclick="return confirmApprovalSubmit('{{ bid.calculate_total_amount_for_enterprise}}', '{{ bid.amount}}', '{{ bid.enterprise_fee_percentage}}')">
                                         Approve
                                     </button>
                                 </form>
@@ -203,83 +225,6 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-            </div>
-            {% endif %}
-
-            <!-- STARTUP BID SECTION (Enhanced with Edit/Withdraw/Resubmit) -->
-            {% if is_bidder %}
-            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <h3 class="text-lg font-medium text-blue-900 mb-4">Your Bid Status</h3>
-                
-                <div class="bg-white rounded-lg p-4 border border-blue-200">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <p class="text-lg font-semibold text-blue-900">Your Bid: ${{ relationship.bid.amount|format_currency }}</p>
-                            <p class="text-sm text-blue-700">Status: {{ relationship.bid.get_status_display }}</p>
-                        </div>
-                        <div class="text-right">
-                            {% if relationship.bid_status in 'approved,live,completion_pending,completed' %}
-                            <p class="text-sm text-blue-700">Net Amount: ${{ relationship.bid.calculate_startup_net_amount|format_currency }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Show rejection reason if available -->
-                    {% if relationship.bid_status == 'declined' and relationship.rejection_reason %}
-                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded">
-                        <h5 class="text-sm font-medium text-red-800 mb-2">Rejection Feedback:</h5>
-                        <p class="text-sm text-red-700">{{ relationship.rejection_reason }}</p>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Bid Actions -->
-                    <div class="flex justify-end space-x-2">
-                        {% if can_edit_bid %}
-                        <!-- Edit pending bid -->
-                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                            Edit Bid
-                        </a>
-                        {% endif %}
-                        
-                        {% if can_withdraw_bid %}
-                        <!-- Withdraw pending bid -->
-                        <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                    onclick="return confirm('Are you sure you want to withdraw this bid?');">
-                                Withdraw Bid
-                            </button>
-                        </form>
-                        {% endif %}
-                        
-                        {% if can_resubmit_bid %}
-                        <!-- Resubmit after decline -->
-                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100">
-                            Submit New Bid
-                        </a>
-                        {% endif %}
-                        
-                        {% if can_request_completion %}
-                        <!-- Request completion -->
-                        <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                    onclick="return confirm('Mark your work as complete and request enterprise verification?');">
-                                Request Completion
-                            </button>
-                        </form>
-                        {% endif %}
-                        
-                        <a href="{% url 'pilots:bid_detail' relationship.bid.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                            View Details
-                        </a>
-                    </div>
-                </div>
             </div>
             {% endif %}
 
@@ -325,20 +270,6 @@
                 <div class="mt-4">
                     <dt class="text-sm font-medium text-blue-800">Agreed Scope</dt>
                     <dd class="mt-1 text-sm text-blue-900 whitespace-pre-line bg-white p-3 rounded border">{{ working_agreement.proposal }}</dd>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- BID SUBMISSION SECTION (For available opportunities) -->
-            {% if can_bid %}
-            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <div class="text-center">
-                    <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
-                    <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
-                    <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                        Submit Bid
-                    </a>
                 </div>
             </div>
             {% endif %}
@@ -444,6 +375,97 @@
                 </div>
                 {% endif %}
             </div>
+
+            <!-- BID SUBMISSION SECTION (For available opportunities) -->
+            {% if can_bid %}
+            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <div class="text-center">
+                    <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
+                    <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
+                    <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        Submit Bid
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- STARTUP BID SECTION (Enhanced with Edit/Withdraw/Resubmit) -->
+            {% if is_bidder %}
+            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <h3 class="text-lg font-medium text-blue-900 mb-4">Your Bid Status</h3>
+                
+                <div class="bg-white rounded-lg p-4 border border-blue-200">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-lg font-semibold text-blue-900">Your Bid: ${{ relationship.bid.amount|format_currency }}</p>
+                            <p class="text-sm text-blue-700">Status: {{ relationship.bid.get_status_display }}</p>
+                        </div>
+                        <div class="text-right">
+                            {% if relationship.bid_status in 'approved,live,completion_pending,completed' %}
+                            <p class="text-sm text-blue-700">Net Amount: ${{ relationship.bid.calculate_startup_net_amount|format_currency }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Show rejection reason if available -->
+                    {% if relationship.bid_status == 'declined' and relationship.rejection_reason %}
+                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                        <h5 class="text-sm font-medium text-red-800 mb-2">Rejection Feedback:</h5>
+                        <p class="text-sm text-red-700">{{ relationship.rejection_reason }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Bid Actions -->
+                    <div class="flex justify-end space-x-2">
+                        {% if can_edit_bid %}
+                        <!-- Edit pending bid -->
+                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                            Edit Bid
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_withdraw_bid %}
+                        <!-- Withdraw pending bid -->
+                        <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                    onclick="return confirm('Are you sure you want to withdraw this bid?');">
+                                Withdraw Bid
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if can_resubmit_bid %}
+                        <!-- Resubmit after decline -->
+                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100">
+                            Submit New Bid
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_request_completion %}
+                        <!-- Request completion -->
+                        <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                    onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                                Request Completion
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <a href="{% url 'pilots:bid_detail' relationship.bid.pk %}" 
+                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             
             <!-- LEGAL AGREEMENT SECTION (For draft pilots) -->
             {% if is_owner and pilot.status == 'draft' %}
@@ -580,46 +602,26 @@ function closeDeclineModal() {
 }
 
 function confirmApprovalSubmit(totalAmount, bidAmount, feePercentage) {
+    // Parse string values to numbers for calculation
+    const totalAmountNum = parseFloat(totalAmount);
+    const bidAmountNum = parseFloat(bidAmount);
+    const feePercentageNum = parseFloat(feePercentage);
+    
     // Format numbers with commas for display
     const formatCurrency = (amount) => {
-        return amount.toLocaleString('en-US', {
+        return parseFloat(amount).toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
     };
     
-    // Create a detailed confirmation message
-    const message = `Approve this bid for $${formatCurrency(totalAmount)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmount)}\n• Platform Fee (${feePercentage}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmount)}\n\nThis will trigger invoice generation.`;
+    const feeAmount = totalAmountNum - bidAmountNum;
     
-    if (confirm(message)) {
-        // Create form programmatically for Chrome compatibility
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/pilots/bids/${bidId}/update-status/`;
-        form.style.display = 'none';
-        
-        // Add CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
-        
-        // Add action input
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = 'approve';
-        form.appendChild(actionInput);
-        
-        // Submit form
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-    }
+    // Create a detailed confirmation message
+    const message = `Approve this bid for $${formatCurrency(totalAmountNum)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmountNum)}\n• Platform Fee (${feePercentageNum}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmountNum)}\n\nThis will trigger invoice generation.`;
+    
+    return confirm(message);
 }
-
 
 // Close modal when clicking outside or pressing Escape
 document.addEventListener('DOMContentLoaded', function() {
