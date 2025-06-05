@@ -183,20 +183,20 @@
                                         class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100"
                                         data-bid-id="{{ bid.pk }}"
                                         data-startup-name="{{ bid.startup.name|escapejs }}"
-                                        onclick="handleDeclineClick(this)">
+                                        onclick="openDeclineModal('{{ bid.pk }}', '{{ bid.startup.name|escapejs }}')">
                                     Decline
                                 </button>
 
-                                <!-- Enhanced Approve Button -->
-                                <button type="button" 
-                                        class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                        data-bid-id="{{ bid.pk }}"
-                                        data-total="{{ bid.calculate_total_amount_for_enterprise|floatformat:'2' }}"
-                                        data-amount="{{ bid.amount|floatformat:'2' }}"
-                                        data-fee="{{ bid.enterprise_fee_percentage|floatformat:'2' }}"
-                                        onclick="handleApproveClick(this)">
-                                    Approve
-                                </button>
+                                <!-- Enhanced Approve Button - Use Form instead of JavaScript -->
+                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                                            onclick="return confirmApprovalSubmit('{{ bid.pk }}', '{{ bid.calculate_total_amount_for_enterprise}}', '{{ bid.amount}}', '{{ bid.enterprise_fee_percentage}}')">
+                                        Approve
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -568,17 +568,18 @@ function openDeclineModal(bidId, startupName) {
 }
 
 function closeDeclineModal() {
-    document.getElementById('declineModal').classList.add('hidden');
-    document.getElementById('rejection_reason').value = '';
+    const modal = document.getElementById('declineModal');
+    const textarea = document.getElementById('rejection_reason');
+    
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    if (textarea) {
+        textarea.value = '';
+    }
 }
 
-function confirmApproval(bidId, totalAmount, bidAmount, feePercentage) {
-    // Convert to numbers and format for display
-    const totalAmountNum = parseFloat(totalAmount);
-    const bidAmountNum = parseFloat(bidAmount);
-    const feePercentageNum = parseFloat(feePercentage);
-    const feeAmount = totalAmountNum - bidAmountNum;
-    
+function confirmApprovalSubmit(totalAmount, bidAmount, feePercentage) {
     // Format numbers with commas for display
     const formatCurrency = (amount) => {
         return amount.toLocaleString('en-US', {
@@ -588,7 +589,7 @@ function confirmApproval(bidId, totalAmount, bidAmount, feePercentage) {
     };
     
     // Create a detailed confirmation message
-    const message = `Approve this bid for ${formatCurrency(totalAmountNum)}?\n\nBreakdown:\n• Bid Amount: ${formatCurrency(bidAmountNum)}\n• Platform Fee (${feePercentageNum}%): ${formatCurrency(feeAmount)}\n• Total Payment: ${formatCurrency(totalAmountNum)}\n\nThis will trigger invoice generation.`;
+    const message = `Approve this bid for $${formatCurrency(totalAmount)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmount)}\n• Platform Fee (${feePercentage}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmount)}\n\nThis will trigger invoice generation.`;
     
     if (confirm(message)) {
         // Create form programmatically for Chrome compatibility
@@ -619,19 +620,6 @@ function confirmApproval(bidId, totalAmount, bidAmount, feePercentage) {
     }
 }
 
-function handleDeclineClick(button) {
-    const bidId = button.dataset.bidId;
-    const startupName = button.dataset.startupName;
-    openDeclineModal(bidId, startupName);
-}
-
-function handleApproveClick(button) {
-    const bidId = button.dataset.bidId;
-    const total = parseFloat(button.dataset.total);
-    const amount = parseFloat(button.dataset.amount);
-    const fee = parseFloat(button.dataset.fee);
-    confirmApproval(bidId, total, amount, fee);
-}
 
 // Close modal when clicking outside or pressing Escape
 document.addEventListener('DOMContentLoaded', function() {
