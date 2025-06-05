@@ -262,6 +262,8 @@ class Pilot(models.Model):
                     'bid': user_bid,
                     'bid_status': user_bid.status,
                     'can_withdraw': user_bid.status == 'pending',
+                    'can_edit': user_bid.status == 'pending',
+                    'can_resubmit': user_bid.status == 'declined',
                 }
                 
                 # If bid is active, treat it as the active bid
@@ -278,6 +280,8 @@ class Pilot(models.Model):
                             'enterprise': self.organization,
                         }
                     })
+                if user_bid.status == 'declined' and user_bid.rejection_reason:
+                    relationship['rejection_reason'] = user_bid.rejection_reason
                 
                 return relationship
             except:
@@ -391,6 +395,8 @@ class PilotBid(models.Model):
     
     # Stripe integration
     stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True)
+
+    rejection_reason = models.TextField(null=True, blank=True, help_text="Reason for rejection provided by enterprise")
     
     class Meta:
         unique_together = ['pilot', 'startup']
@@ -458,16 +464,22 @@ class PilotBid(models.Model):
         self._notify_completion_verified()
         return True
     
-    def decline_bid(self, declined_by_enterprise=True):
-        """Decline the bid with proper notification"""
+    def decline_bid_with_reason(self, declined_by_enterprise=True, reason=None):
+        """Decline the bid with a detailed reason"""
         if self.status not in ['pending', 'under_review']:
             return False
         
         self.status = 'declined'
-        self.save(update_fields=['status', 'updated_at'])
+        if reason:
+            self.rejection_reason = reason
+        self.save(update_fields=['status', 'updated_at', 'rejection_reason'])
         
-        self._notify_bid_declined(declined_by_enterprise)
+        self._notify_bid_declined_with_reason(declined_by_enterprise, reason)
         return True
+    
+    def decline_bid(self, declined_by_enterprise=True):
+        """Original decline method for backward compatibility"""
+        return self.decline_bid_with_reason(declined_by_enterprise)
     
     # Financial calculations - CRITICAL for payment processing
     def calculate_total_amount_for_enterprise(self):
@@ -510,7 +522,7 @@ class PilotBid(models.Model):
         ).exclude(id=self.id)
         
         for bid in competing_bids:
-            bid.decline_bid(declined_by_enterprise=False)
+            bid.decline_bid_with_reason(declined_by_enterprise=False)
     
     def _create_escrow_payment(self):
         """Create escrow payment record with calculated amounts"""
@@ -587,11 +599,16 @@ class PilotBid(models.Model):
             message=f"Work for pilot '{self.pilot.title}' has been completed and verified. Payment will be released soon."
         )
     
-    def _notify_bid_declined(self, declined_by_enterprise):
+    def _notify_bid_declined_with_reason(self, declined_by_enterprise, reason=None):
+        """Enhanced notification with rejection reason"""
         from apps.notifications.services import create_bid_notification
         
         if declined_by_enterprise:
-            message = f"Your bid of ${self.amount} for pilot '{self.pilot.title}' has been declined by the enterprise."
+            base_message = f"Your bid of ${self.amount} for pilot '{self.pilot.title}' has been declined by the enterprise."
+            if reason:
+                message = f"{base_message}\n\nReason: {reason}\n\nYou can submit a revised bid if you'd like to address the feedback."
+            else:
+                message = f"{base_message}\n\nYou can submit a new bid if you'd like."
         else:
             message = f"Your bid of ${self.amount} for pilot '{self.pilot.title}' was automatically declined because another bid was accepted."
         

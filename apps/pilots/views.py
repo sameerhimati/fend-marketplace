@@ -336,86 +336,9 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
 # =============================================================================
 # BID MANAGEMENT FUNCTIONS
 # =============================================================================
-
-@login_required
-def create_bid(request, pilot_id):
-    """Enhanced bid creation with better validation and notifications"""
-    pilot = get_object_or_404(Pilot, id=pilot_id, status='published', is_private=False)
-    user_org = request.user.organization
-    
-    # Only startups can create bids
-    if user_org.type != 'startup':
-        messages.error(request, "Only startups can submit bids")
-        return redirect('pilots:detail', pk=pilot_id)
-    
-    # Check if startup already has ANY bid for this pilot (including declined ones)
-    existing_bid = PilotBid.objects.filter(
-        pilot=pilot, 
-        startup=user_org
-    ).first()
-    
-    # If there's an existing declined bid, we'll update it instead of creating a new one
-    is_resubmission = existing_bid and existing_bid.status == 'declined'
-    
-    if existing_bid and not is_resubmission:
-        messages.info(request, "You already have an active bid for this pilot")
-        return redirect('pilots:bid_detail', pk=existing_bid.pk)
-    
-    if request.method == 'POST':
-        form = PilotBidForm(request.POST, instance=existing_bid if is_resubmission else None)
-        if form.is_valid():
-            bid_amount = form.cleaned_data['amount']
-            
-            # Enhanced validation
-            if bid_amount <= 0:
-                messages.error(request, "Bid amount must be greater than zero")
-                return render(request, 'pilots/bid_form.html', {
-                    'form': form,
-                    'pilot': pilot,
-                    'is_resubmission': is_resubmission
-                })
-            
-            bid = form.save(commit=False)
-            bid.pilot = pilot
-            bid.startup = user_org
-            bid.startup_fee_percentage = 5.00
-            bid.enterprise_fee_percentage = 5.00 
-            bid.fee_percentage = 10.00
-            
-            # If this is a resubmission, make sure we reset the status to pending
-            if is_resubmission:
-                bid.status = 'pending'
-                
-            bid.save()
-            
-            # Enhanced notification
-            create_bid_notification(
-                bid=bid,
-                notification_type='bid_submitted',
-                title=f"{'New' if not is_resubmission else 'Revised'} bid received: {pilot.title}",
-                message=f"{user_org.name} has submitted a {'new' if not is_resubmission else 'revised'} bid of ${bid.amount} for your pilot '{pilot.title}'. Amount includes platform fees."
-            )
-
-            messages.success(request, f"Your bid has been {'submitted' if not is_resubmission else 'resubmitted'} successfully")
-            return redirect('pilots:detail', pk=pilot.pk)
-    else:
-        # For GET requests, pre-populate with existing bid data if it's a resubmission
-        initial_data = {
-            'pilot': pilot,
-            'amount': existing_bid.amount if is_resubmission else pilot.price,
-            'proposal': existing_bid.proposal if is_resubmission else ''
-        }
-        form = PilotBidForm(initial=initial_data, instance=existing_bid if is_resubmission else None)
-    
-    return render(request, 'pilots/bid_form.html', {
-        'form': form,
-        'pilot': pilot,
-        'is_resubmission': is_resubmission
-    })
-
 @login_required
 def update_bid_status(request, pk):
-    """Enhanced bid status updates with comprehensive validation"""
+    """Enhanced bid status updates with rejection comments"""
     if request.method != 'POST':
         return redirect('pilots:detail', pk=pk)
     
@@ -437,9 +360,15 @@ def update_bid_status(request, pk):
             messages.error(request, "Unable to approve bid at this time.")
     
     elif action == 'decline':
-        success = bid.decline_bid(declined_by_enterprise=True)
+        # Get rejection reason
+        rejection_reason = request.POST.get('rejection_reason', '').strip()
+        if not rejection_reason:
+            messages.error(request, "Please provide a reason for declining this bid.")
+            return redirect('pilots:detail', pk=bid.pilot.pk)
+        
+        success = bid.decline_bid_with_reason(declined_by_enterprise=True, reason=rejection_reason)
         if success:
-            messages.success(request, "Bid has been declined.")
+            messages.success(request, "Bid has been declined with feedback sent to the startup.")
         else:
             messages.error(request, "Unable to decline bid at this time.")
     
@@ -464,6 +393,134 @@ def update_bid_status(request, pk):
         messages.error(request, "Invalid action.")
     
     return redirect('pilots:detail', pk=bid.pilot.pk)
+
+@login_required
+def create_bid(request, pilot_id):
+    """Enhanced bid creation with better validation and resubmission handling"""
+    pilot = get_object_or_404(Pilot, id=pilot_id, status='published', is_private=False)
+    user_org = request.user.organization
+    
+    # Only startups can create bids
+    if user_org.type != 'startup':
+        messages.error(request, "Only startups can submit bids")
+        return redirect('pilots:detail', pk=pilot_id)
+    
+    # Check if startup already has ANY bid for this pilot
+    existing_bid = PilotBid.objects.filter(
+        pilot=pilot, 
+        startup=user_org
+    ).first()
+    
+    # Allow resubmission for declined bids
+    is_resubmission = existing_bid and existing_bid.status == 'declined'
+    can_edit = existing_bid and existing_bid.status == 'pending'
+    
+    if existing_bid and not is_resubmission and not can_edit:
+        if existing_bid.status in ['under_review', 'approved', 'live', 'completion_pending', 'completed']:
+            messages.info(request, "You already have an active bid for this pilot")
+            return redirect('pilots:bid_detail', pk=existing_bid.pk)
+    
+    if request.method == 'POST':
+        # Use existing bid instance for resubmission or editing
+        form = PilotBidForm(request.POST, instance=existing_bid if (is_resubmission or can_edit) else None)
+        if form.is_valid():
+            bid_amount = form.cleaned_data['amount']
+            
+            # Enhanced validation
+            if bid_amount <= 0:
+                messages.error(request, "Bid amount must be greater than zero")
+                return render(request, 'pilots/bid_form.html', {
+                    'form': form,
+                    'pilot': pilot,
+                    'is_resubmission': is_resubmission,
+                    'is_edit': can_edit
+                })
+            
+            bid = form.save(commit=False)
+            bid.pilot = pilot
+            bid.startup = user_org
+            bid.startup_fee_percentage = 5.00
+            bid.enterprise_fee_percentage = 5.00 
+            bid.fee_percentage = 10.00
+            
+            # Reset status for resubmissions and edits
+            if is_resubmission or can_edit:
+                bid.status = 'pending'
+                
+            bid.save()
+            
+            # Enhanced notification
+            action_text = 'revised' if (is_resubmission or can_edit) else 'new'
+            create_bid_notification(
+                bid=bid,
+                notification_type='bid_submitted',
+                title=f"{'Revised' if (is_resubmission or can_edit) else 'New'} bid received: {pilot.title}",
+                message=f"{user_org.name} has submitted a {action_text} bid of ${bid.amount} for your pilot '{pilot.title}'."
+            )
+
+            action_past = 'updated' if can_edit else ('resubmitted' if is_resubmission else 'submitted')
+            messages.success(request, f"Your bid has been {action_past} successfully")
+            return redirect('pilots:detail', pk=pilot.pk)
+    else:
+        # For GET requests, pre-populate with existing bid data if available
+        initial_data = {}
+        if existing_bid and (is_resubmission or can_edit):
+            initial_data = {
+                'amount': existing_bid.amount,
+                'proposal': existing_bid.proposal
+            }
+        else:
+            initial_data = {
+                'amount': pilot.price,
+                'proposal': ''
+            }
+        
+        form = PilotBidForm(
+            initial=initial_data, 
+            instance=existing_bid if (is_resubmission or can_edit) else None
+        )
+    
+    return render(request, 'pilots/bid_form.html', {
+        'form': form,
+        'pilot': pilot,
+        'is_resubmission': is_resubmission,
+        'is_edit': can_edit,
+        'existing_bid': existing_bid
+    })
+
+@login_required
+def delete_bid(request, pk):
+    """Allow startup to withdraw their pending bid"""
+    if request.method != 'POST':
+        return redirect('pilots:bid_detail', pk=pk)
+    
+    bid = get_object_or_404(PilotBid, pk=pk)
+    user_org = request.user.organization
+    pilot_pk = bid.pilot.pk
+    
+    # Check permissions - only startup can withdraw their own bid
+    if user_org != bid.startup:
+        messages.error(request, "You don't have permission to withdraw this bid")
+        return redirect('pilots:detail', pk=pilot_pk)
+    
+    # Only allow withdrawal of pending bids
+    if bid.status != 'pending':
+        messages.error(request, "Only pending bids can be withdrawn")
+        return redirect('pilots:detail', pk=pilot_pk)
+    
+    # Create notification before deleting
+    create_pilot_notification(
+        pilot=bid.pilot,
+        notification_type='bid_withdrawn',
+        title=f"Bid Withdrawn: {bid.pilot.title}",
+        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
+    )
+    
+    # Delete the bid
+    bid.delete()
+    messages.success(request, "Your bid has been withdrawn successfully.")
+    
+    return redirect('pilots:detail', pk=pilot_pk)
 
 @login_required
 def request_completion(request, bid_id):
@@ -510,40 +567,6 @@ def verify_completion(request, bid_id):
         messages.error(request, "Unable to verify completion at this time.")
     
     return redirect('pilots:detail', pk=bid.pilot.pk)
-
-@login_required
-def delete_bid(request, pk):
-    """Allow startup to withdraw their pending bid"""
-    if request.method != 'POST':
-        return redirect('pilots:bid_detail', pk=pk)
-    
-    bid = get_object_or_404(PilotBid, pk=pk)
-    user_org = request.user.organization
-    pilot_pk = bid.pilot.pk
-    
-    # Check permissions - only startup can withdraw their own bid
-    if user_org != bid.startup:
-        messages.error(request, "You don't have permission to withdraw this bid")
-        return redirect('pilots:detail', pk=pilot_pk)
-    
-    # Only allow withdrawal of pending bids
-    if bid.status != 'pending':
-        messages.error(request, "Only pending bids can be withdrawn")
-        return redirect('pilots:detail', pk=pilot_pk)
-    
-    # Create notification before deleting
-    create_pilot_notification(
-        pilot=bid.pilot,
-        notification_type='bid_withdrawn',
-        title=f"Bid Withdrawn: {bid.pilot.title}",
-        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
-    )
-    
-    # Delete the bid
-    bid.delete()
-    messages.success(request, "Your bid has been withdrawn successfully.")
-    
-    return redirect('pilots:detail', pk=pilot_pk)
 
 # =============================================================================
 # PILOT ACTION FUNCTIONS
