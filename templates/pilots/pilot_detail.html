@@ -53,421 +53,450 @@
                     {% endif %}
                 </div>
             </div>
-            
-            <!-- BID MANAGEMENT SECTION (For enterprises with pending bids) -->
-            {% if is_owner and relationship.bids_count > 0 %}
-            <div class="border-t-4 border-gray-300 bg-gray-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Bid Management</h3>
-                
-                <!-- Approved/Active Bids -->
-                {% if approved_bids %}
-                <div class="mb-6">
-                    <h4 class="text-md font-medium text-green-700 mb-3">Active Work</h4>
-                    {% for bid in approved_bids %}
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-3">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <p class="text-lg font-semibold text-green-900">{{ bid.startup.name }}</p>
-                                <p class="text-sm text-green-700">Status: {{ bid.get_status_display }}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xl font-bold text-green-900">${{ bid.amount|format_currency }}</p>
-                                <p class="text-sm text-green-700">Total: ${{ bid.calculate_total_amount_for_enterprise|format_currency }}</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Full Bid Details -->
-                        <div class="bg-white rounded-lg p-4 border border-green-200">
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"M j, Y g:i A" }}</dd>
-                                </div>
-                                
-                                <!-- Only show enterprise's payment info to enterprise -->
-                                {% if is_owner %}
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Payment Required</dt>
-                                    <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_total_amount_for_enterprise|format_currency }}</dd>
-                                    <dd class="text-xs text-gray-500">Includes {{ bid.enterprise_fee_percentage }}% platform fee</dd>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Only show startup's net amount to startup -->
-                                {% if user.organization == bid.startup %}
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Your Net Amount</dt>
-                                    <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_startup_net_amount|format_currency }}</dd>
-                                    <dd class="text-xs text-gray-500">After {{ bid.startup_fee_percentage }}% platform fee</dd>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Show basic bid amount to both parties -->
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Bid Amount</dt>
-                                    <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.amount|format_currency }}</dd>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Proposal</dt>
-                                <dd class="text-sm text-gray-900 whitespace-pre-line bg-gray-50 p-3 rounded border">{{ bid.proposal }}</dd>
-                            </div>
-                            
-                            <!-- Payment Information if exists -->
-                            {% if bid.escrow_payment %}
-                            <div class="mt-4 pt-4 border-t border-green-200">
-                                <h5 class="text-sm font-medium text-green-800 mb-2">Payment Tracking</h5>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <dt class="text-xs font-medium text-gray-500">Reference Code</dt>
-                                        <dd class="mt-1 text-sm text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">{{ bid.escrow_payment.reference_code }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-xs font-medium text-gray-500">Payment Status</dt>
-                                        <dd class="mt-1 text-sm text-gray-900">{{ bid.escrow_payment.get_status_display }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-xs font-medium text-gray-500">
-                                            {% if is_owner %}Total Amount Due{% else %}Total Contract Value{% endif %}
-                                        </dt>
-                                        <dd class="mt-1 text-sm font-semibold text-gray-900">
-                                            {% if is_owner %}
-                                                ${{ bid.escrow_payment.total_amount|format_currency }}
-                                            {% else %}
-                                                ${{ bid.amount|format_currency }}
-                                            {% endif %}
-                                        </dd>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Action Buttons -->
-                            <div class="mt-4 flex justify-end space-x-2">
-                                {% if can_verify_completion %}
-                                <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                                            onclick="return confirm('Verify that the work is completed satisfactorily? This will trigger payment release.');">
-                                        Verify Completion
-                                    </button>
-                                </form>
-                                {% endif %}
-                                
-                                <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                                class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
-                                    Full Details
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                
-                <!-- Pending Bids -->
-                {% if pending_bids %}
-                <div class="mb-6">
-                    <h4 class="text-md font-medium text-gray-700 mb-3">Pending Review ({{ pending_bids.count }})</h4>
-                    {% for bid in pending_bids %}
-                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <div class="flex justify-between items-center mb-2">
-                                    <p class="font-medium text-gray-900">{{ bid.startup.name }}</p>
-                                    <p class="text-lg font-semibold text-gray-900">${{ bid.amount|format_currency }}</p>
-                                </div>
-                                <p class="text-sm text-gray-600 mb-3">{{ bid.proposal|truncatewords:20 }}</p>
-                                <p class="text-xs text-gray-500">Submitted {{ bid.created_at|date:"M j, Y g:i A" }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3 flex justify-between items-center">
-                            <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                               class="text-sm text-indigo-600 hover:text-indigo-900">View Full Proposal</a>
-                            
-                            <div class="flex space-x-2">
-                                {% if bid.status == 'pending' %}
-                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="review">
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-2 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100">
-                                        Mark Under Review
-                                    </button>
-                                </form>
-                                {% endif %}
-                                
-                                <!-- Enhanced Decline Button with Modal -->
-                                <button type="button" 
-                                        class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100"
-                                        data-bid-id="{{ bid.pk }}"
-                                        data-startup-name="{{ bid.startup.name|escapejs }}"
-                                        onclick="openDeclineModal('{{ bid.pk }}', '{{ bid.startup.name|escapejs }}')">
-                                    Decline
-                                </button>
 
-                                <!-- Enhanced Approve Button - Use Form instead of JavaScript -->
-                                <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="approve">
-                                    <button type="submit" 
-                                            class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                            onclick="return confirmApprovalSubmit('{{ bid.calculate_total_amount_for_enterprise}}', '{{ bid.amount}}', '{{ bid.enterprise_fee_percentage}}')">
-                                        Approve
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <!-- WORKING AGREEMENT SECTION (Primary for active work) -->
-            {% if has_working_agreement %}
-            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <h3 class="text-lg font-medium text-blue-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Working Agreement
-                </h3>
-                
-                <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-                    <div>
-                        <dt class="text-sm font-medium text-blue-800">Agreed Amount</dt>
-                        <dd class="mt-1 text-lg font-semibold text-blue-900">${{ working_agreement.amount|format_currency }}</dd>
-                    </div>
-                    
-                    <div>
-                        <dt class="text-sm font-medium text-blue-800">Work Status</dt>
-                        <dd class="mt-1 text-sm text-blue-900 font-medium">{{ relationship.bid.get_status_display }}</dd>
-                    </div>
-                    
-                    {% if is_owner %}
-                    <div>
-                        <dt class="text-sm font-medium text-blue-800">Startup</dt>
-                        <dd class="mt-1 text-sm text-blue-900">{{ working_agreement.startup.name }}</dd>
-                    </div>
-                    {% else %}
-                    <div>
-                        <dt class="text-sm font-medium text-blue-800">Enterprise</dt>
-                        <dd class="mt-1 text-sm text-blue-900">{{ working_agreement.enterprise.name }}</dd>
-                    </div>
-                    {% endif %}
-                    
-                    <div>
-                        <dt class="text-sm font-medium text-blue-800">Started</dt>
-                        <dd class="mt-1 text-sm text-blue-900">{{ relationship.bid.created_at|date:"M j, Y" }}</dd>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    <dt class="text-sm font-medium text-blue-800">Agreed Scope</dt>
-                    <dd class="mt-1 text-sm text-blue-900 whitespace-pre-line bg-white p-3 rounded border">{{ working_agreement.proposal }}</dd>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- PILOT INFORMATION SECTION (Collapsed when working agreement exists) -->
-            <div class="border-t-4 border-indigo-300 {% if has_working_agreement %}bg-gray-50{% else %}bg-white{% endif %} px-6 py-6 mx-4 mb-6 rounded-lg">
-                {% if has_working_agreement %}
-                <details class="mb-4">
-                    <summary class="cursor-pointer text-lg font-medium text-gray-700 hover:text-gray-900">
-                        Original Pilot Details
-                        <span class="ml-2 text-sm text-gray-500">(Click to expand)</span>
+            <!-- ACTIVE WORK SECTION (For enterprises with approved bids - COLLAPSIBLE) -->
+            {% if is_owner and approved_bids %}
+            <div class="border-t-4 border-green-500 bg-green-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <details {% if approved_bids %}open{% endif %}>
+                    <summary class="cursor-pointer text-lg font-medium text-green-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Active Work ({{ approved_bids.count }})
+                        <span class="ml-2 text-sm text-green-700">(Click to collapse)</span>
                     </summary>
-                    <div class="mt-4 space-y-4">
-                {% else %}
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Pilot Details</h3>
-                <div class="space-y-4">
-                {% endif %}
-                
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Description</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ pilot.description }}</dd>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Budget</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">
-                                {% if pilot.price == 0 %}Free{% else %} ${{ pilot.price|format_currency }}{% endif %}
-                            </dd>
+                    
+                    <div class="mt-4">
+                        {% for bid in approved_bids %}
+                        <div class="bg-white border border-green-200 rounded-lg p-6 {% if not forloop.last %}mb-4{% endif %}">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-lg font-semibold text-green-900">{{ bid.startup.name }}</p>
+                                    <p class="text-sm text-green-700">Status: {{ bid.get_status_display }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xl font-bold text-green-900">${{ bid.amount|format_currency }}</p>
+                                    <p class="text-sm text-green-700">Total: ${{ bid.calculate_total_amount_for_enterprise|format_currency }}</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Full Bid Details -->
+                            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Submitted</dt>
+                                        <dd class="mt-1 text-sm text-gray-900">{{ bid.created_at|date:"M j, Y g:i A" }}</dd>
+                                    </div>
+                                    
+                                    <!-- Only show enterprise's payment info to enterprise -->
+                                    {% if is_owner %}
+                                    <div>
+                                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Payment Required</dt>
+                                        <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.calculate_total_amount_for_enterprise|format_currency }}</dd>
+                                        <dd class="text-xs text-gray-500">Includes {{ bid.enterprise_fee_percentage }}% platform fee</dd>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Show basic bid amount to both parties -->
+                                    <div>
+                                        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Bid Amount</dt>
+                                        <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.amount|format_currency }}</dd>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Proposal</dt>
+                                    <dd class="text-sm text-gray-900 whitespace-pre-line bg-white p-3 rounded border">{{ bid.proposal }}</dd>
+                                </div>
+                                
+                                <!-- Payment Information if exists -->
+                                {% if bid.escrow_payment %}
+                                <div class="mt-4 pt-4 border-t border-green-200">
+                                    <h5 class="text-sm font-medium text-green-800 mb-2">Payment Tracking</h5>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <dt class="text-xs font-medium text-gray-500">Reference Code</dt>
+                                            <dd class="mt-1 text-sm text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">{{ bid.escrow_payment.reference_code }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-xs font-medium text-gray-500">Payment Status</dt>
+                                            <dd class="mt-1 text-sm text-gray-900">{{ bid.escrow_payment.get_status_display }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-xs font-medium text-gray-500">Total Amount Due</dt>
+                                            <dd class="mt-1 text-sm font-semibold text-gray-900">${{ bid.escrow_payment.total_amount|format_currency }}</dd>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Action Buttons -->
+                                <div class="mt-4 flex justify-end space-x-2">
+                                    {% if can_verify_completion %}
+                                    <form method="post" action="{% url 'pilots:verify_completion' bid.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                                                onclick="return confirm('Verify that the work is completed satisfactorily? This will trigger payment release.');">
+                                            Verify Completion
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                                       class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200">
+                                        Full Details
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Created</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ pilot.created_at|date:"F j, Y" }}</dd>
-                        </div>
-                    </div>
-
-                    <!-- Technical Specifications -->
-                    {% if pilot.technical_specs_doc or pilot.technical_specs_text %}
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Technical Specifications</dt>
-                        <dd class="mt-1 text-sm text-gray-900">
-                            {% if pilot.technical_specs_doc %}
-                                <a href="{{ pilot.technical_specs_doc.url }}" 
-                                   class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
-                                   target="_blank">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Download Document
-                                </a>
-                            {% elif pilot.technical_specs_text %}
-                                <div class="mt-1 text-sm text-gray-900">{{ pilot.technical_specs_text }}</div>
-                            {% endif %}
-                        </dd>
-                    </div>
-                    {% endif %}
-
-                    {% if pilot.performance_metrics or pilot.performance_metrics_doc %}
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Performance Metrics</dt>
-                        <dd class="mt-1 text-sm text-gray-900">
-                            {% if pilot.performance_metrics_doc %}
-                                <a href="{{ pilot.performance_metrics_doc.url }}" 
-                                   class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
-                                   target="_blank">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Download Document
-                                </a>
-                            {% elif pilot.performance_metrics %}
-                                <div class="mt-1 text-sm text-gray-900">{{ pilot.performance_metrics }}</div>
-                            {% endif %}
-                        </dd>
-                    </div>
-                    {% endif %}
-
-                    {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">Definition of Done</dt>
-                        <dd class="mt-1 text-sm text-gray-900">
-                            {% if pilot.compliance_requirements_doc %}
-                                <a href="{{ pilot.compliance_requirements_doc.url }}" 
-                                   class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
-                                   target="_blank">
-                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Download Document
-                                </a>
-                            {% elif pilot.compliance_requirements %}
-                                <div class="mt-1 text-sm text-gray-900">{{ pilot.compliance_requirements }}</div>
-                            {% endif %}
-                        </dd>
-                    </div>
-                    {% endif %}
-                
-                {% if has_working_agreement %}
+                        {% endfor %}
                     </div>
                 </details>
-                {% else %}
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- BID SUBMISSION SECTION (For available opportunities) -->
-            {% if can_bid %}
-            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <div class="text-center">
-                    <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
-                    <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
-                    <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                       class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                        Submit Bid
-                    </a>
-                </div>
             </div>
             {% endif %}
 
-            <!-- STARTUP BID SECTION (Enhanced with Edit/Withdraw/Resubmit) -->
-            {% if is_bidder %}
+            <!-- WORKING AGREEMENT SECTION (For startups with approved bids - COLLAPSIBLE) -->
+            {% if has_working_agreement %}
             <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
-                <h3 class="text-lg font-medium text-blue-900 mb-4">Your Bid Status</h3>
-                
-                <div class="bg-white rounded-lg p-4 border border-blue-200">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <p class="text-lg font-semibold text-blue-900">Your Bid: ${{ relationship.bid.amount|format_currency }}</p>
-                            <p class="text-sm text-blue-700">Status: {{ relationship.bid.get_status_display }}</p>
-                        </div>
-                        <div class="text-right">
-                            {% if relationship.bid_status in 'approved,live,completion_pending,completed' %}
-                            <p class="text-sm text-blue-700">Net Amount: ${{ relationship.bid.calculate_startup_net_amount|format_currency }}</p>
+                <details {% if has_working_agreement %}open{% endif %}>
+                    <summary class="cursor-pointer text-lg font-medium text-blue-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Working Agreement
+                        <span class="ml-2 text-sm text-blue-700">(Click to collapse)</span>
+                    </summary>
+                    
+                    <div class="mt-4">
+                        <div class="bg-white rounded-lg p-4 border border-blue-200">
+                            <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 mb-4">
+                                <div>
+                                    <dt class="text-sm font-medium text-blue-800">Agreed Amount</dt>
+                                    <dd class="mt-1 text-lg font-semibold text-blue-900">${{ working_agreement.amount|format_currency }}</dd>
+                                </div>
+                                
+                                <div>
+                                    <dt class="text-sm font-medium text-blue-800">Work Status</dt>
+                                    <dd class="mt-1 text-sm text-blue-900 font-medium">{{ relationship.bid.get_status_display }}</dd>
+                                </div>
+                                
+                                {% if is_owner %}
+                                <div>
+                                    <dt class="text-sm font-medium text-blue-800">Startup</dt>
+                                    <dd class="mt-1 text-sm text-blue-900">{{ working_agreement.startup.name }}</dd>
+                                </div>
+                                {% else %}
+                                <div>
+                                    <dt class="text-sm font-medium text-blue-800">Enterprise</dt>
+                                    <dd class="mt-1 text-sm text-blue-900">{{ working_agreement.enterprise.name }}</dd>
+                                </div>
+                                {% endif %}
+                                
+                                <div>
+                                    <dt class="text-sm font-medium text-blue-800">Started</dt>
+                                    <dd class="mt-1 text-sm text-blue-900">{{ relationship.bid.created_at|date:"M j, Y" }}</dd>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <dt class="text-sm font-medium text-blue-800">Agreed Scope</dt>
+                                <dd class="mt-1 text-sm text-blue-900 whitespace-pre-line bg-blue-50 p-3 rounded border">{{ working_agreement.proposal }}</dd>
+                            </div>
+
+                            <!-- Show net amount to startup only -->
+                            {% if user.organization == working_agreement.startup %}
+                            <div class="bg-blue-50 rounded-lg p-3 mb-4">
+                                <dt class="text-sm font-medium text-blue-800">Your Net Amount</dt>
+                                <dd class="mt-1 text-lg font-semibold text-blue-900">${{ working_agreement.calculate_startup_net_amount|format_currency }}</dd>
+                                <dd class="text-xs text-blue-700">After {{ working_agreement.startup_fee_percentage }}% platform fee</dd>
+                            </div>
+                            {% endif %}
+
+                            <!-- Action Buttons for Startup -->
+                            {% if can_request_completion %}
+                            <div class="flex justify-end">
+                                <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                            onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                                        Request Completion Verification
+                                    </button>
+                                </form>
+                            </div>
                             {% endif %}
                         </div>
                     </div>
+                </details>
+            </div>
+            {% endif %}
+
+            <!-- BID MANAGEMENT SECTION (For enterprises with pending bids - COLLAPSIBLE) -->
+            {% if is_owner and pending_bids %}
+            <div class="border-t-4 border-orange-400 bg-orange-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <details {% if pending_bids and not approved_bids %}open{% endif %}>
+                    <summary class="cursor-pointer text-lg font-medium text-orange-900 mb-4">
+                        Pending Bids ({{ pending_bids.count }})
+                        <span class="ml-2 text-sm text-orange-700">(Click to {% if pending_bids and not approved_bids %}collapse{% else %}expand{% endif %})</span>
+                    </summary>
                     
-                    <!-- Show rejection reason if available -->
-                    {% if relationship.bid_status == 'declined' and relationship.rejection_reason %}
-                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded">
-                        <h5 class="text-sm font-medium text-red-800 mb-2">Rejection Feedback:</h5>
-                        <p class="text-sm text-red-700">{{ relationship.rejection_reason }}</p>
+                    <div class="mt-4">
+                        {% for bid in pending_bids %}
+                        <div class="bg-white border border-orange-200 rounded-lg p-4 {% if not forloop.last %}mb-3{% endif %} shadow-sm">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <p class="font-medium text-gray-900">{{ bid.startup.name }}</p>
+                                        <p class="text-lg font-semibold text-gray-900">${{ bid.amount|format_currency }}</p>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">{{ bid.proposal|truncatewords:20 }}</p>
+                                    <p class="text-xs text-gray-500">Submitted {{ bid.created_at|date:"M j, Y g:i A" }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3 flex justify-between items-center">
+                                <a href="{% url 'pilots:bid_detail' bid.pk %}" 
+                                   class="text-sm text-indigo-600 hover:text-indigo-900">View Full Proposal</a>
+                                
+                                <div class="flex space-x-2">
+                                    {% if bid.status == 'pending' %}
+                                    <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="review">
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-2 py-1 border border-blue-300 text-xs font-medium rounded text-blue-700 bg-blue-50 hover:bg-blue-100">
+                                            Mark Under Review
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    
+                                    <!-- Enhanced Decline Button with Modal -->
+                                    <button type="button" 
+                                            class="inline-flex items-center px-2 py-1 border border-red-300 text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100"
+                                            onclick="openDeclineModal('{{ bid.pk }}', '{{ bid.startup.name|escapejs }}')">
+                                        Decline
+                                    </button>
+
+                                    <!-- Enhanced Approve Button -->
+                                    <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
+                                                onclick="return confirmApprovalSubmit('{{ bid.calculate_total_amount_for_enterprise}}', '{{ bid.amount}}', '{{ bid.enterprise_fee_percentage}}')">
+                                            Approve
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endif %}
+                </details>
+            </div>
+            {% endif %}
+
+            <!-- BID STATUS SECTION (For startups with bids - COLLAPSIBLE) -->
+            {% if is_bidder %}
+            <div class="border-t-4 border-yellow-500 bg-yellow-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <details {% if relationship.bid_status in 'pending,under_review,declined' %}open{% endif %}>
+                    <summary class="cursor-pointer text-lg font-medium text-yellow-900 mb-4">
+                        Your Bid Status
+                        <span class="ml-2 text-sm text-yellow-700">(Click to {% if relationship.bid_status in 'pending,under_review,declined' %}collapse{% else %}expand{% endif %})</span>
+                    </summary>
                     
-                    <!-- Bid Actions -->
-                    <div class="flex justify-end space-x-2">
-                        {% if can_edit_bid %}
-                        <!-- Edit pending bid -->
-                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                            Edit Bid
-                        </a>
-                        {% endif %}
-                        
-                        {% if can_withdraw_bid %}
-                        <!-- Withdraw pending bid -->
-                        <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                    onclick="return confirm('Are you sure you want to withdraw this bid?');">
-                                Withdraw Bid
-                            </button>
-                        </form>
-                        {% endif %}
-                        
-                        {% if can_resubmit_bid %}
-                        <!-- Resubmit after decline -->
-                        <a href="{% url 'pilots:create_bid' pilot.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100">
-                            Submit New Bid
-                        </a>
-                        {% endif %}
-                        
-                        {% if can_request_completion %}
-                        <!-- Request completion -->
-                        <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                    onclick="return confirm('Mark your work as complete and request enterprise verification?');">
-                                Request Completion
-                            </button>
-                        </form>
-                        {% endif %}
-                        
-                        <a href="{% url 'pilots:bid_detail' relationship.bid.pk %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                            View Details
-                        </a>
+                    <div class="mt-4">
+                        <div class="bg-white rounded-lg p-4 border border-yellow-200">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-lg font-semibold text-yellow-900">Your Bid: ${{ relationship.bid.amount|format_currency }}</p>
+                                    <p class="text-sm text-yellow-700">Status: {{ relationship.bid.get_status_display }}</p>
+                                </div>
+                                <div class="text-right">
+                                    {% if relationship.bid_status in 'approved,live,completion_pending,completed' %}
+                                    <p class="text-sm text-yellow-700">Net Amount: ${{ relationship.bid.calculate_startup_net_amount|format_currency }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Show rejection reason if available -->
+                            {% if relationship.bid_status == 'declined' and relationship.rejection_reason %}
+                            <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                                <h5 class="text-sm font-medium text-red-800 mb-2">Rejection Feedback:</h5>
+                                <p class="text-sm text-red-700">{{ relationship.rejection_reason }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Bid Actions -->
+                            <div class="flex justify-end space-x-2">
+                                {% if can_edit_bid %}
+                                <!-- Edit pending bid -->
+                                <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-yellow-300 text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200">
+                                    Edit Bid
+                                </a>
+                                {% endif %}
+                                
+                                {% if can_withdraw_bid %}
+                                <!-- Withdraw pending bid -->
+                                <form method="post" action="{% url 'pilots:delete_bid' relationship.bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
+                                            onclick="return confirm('Are you sure you want to withdraw this bid?');">
+                                        Withdraw Bid
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                {% if can_resubmit_bid %}
+                                <!-- Resubmit after decline -->
+                                <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100">
+                                    Submit New Bid
+                                </a>
+                                {% endif %}
+                                
+                                {% if can_request_completion %}
+                                <!-- Request completion -->
+                                <form method="post" action="{% url 'pilots:request_completion' relationship.bid.pk %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                            onclick="return confirm('Mark your work as complete and request enterprise verification?');">
+                                        Request Completion
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <a href="{% url 'pilots:bid_detail' relationship.bid.pk %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-yellow-300 text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </details>
             </div>
             {% endif %}
             
-            <!-- LEGAL AGREEMENT SECTION (For draft pilots) -->
+            <!-- PILOT INFORMATION SECTION (COLLAPSIBLE) -->
+            <div class="border-t-4 border-indigo-300 bg-white px-6 py-6 mx-4 mb-6 rounded-lg">
+                <details {% if not has_working_agreement and not approved_bids and not is_bidder %}open{% endif %}>
+                    <summary class="cursor-pointer text-lg font-medium text-gray-700 hover:text-gray-900">
+                        📋 Pilot Details
+                        <span class="ml-2 text-sm text-gray-500">(Click to {% if not has_working_agreement and not approved_bids and not is_bidder %}collapse{% else %}expand{% endif %})</span>
+                    </summary>
+                    
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Description</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ pilot.description }}</dd>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Budget</dt>
+                                <dd class="mt-1 text-lg font-semibold text-gray-900">
+                                    {% if pilot.price == 0 %}Free{% else %} ${{ pilot.price|format_currency }}{% endif %}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Created</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ pilot.created_at|date:"F j, Y" }}</dd>
+                            </div>
+                        </div>
+
+                        <!-- Technical Specifications -->
+                        {% if pilot.technical_specs_doc or pilot.technical_specs_text %}
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Technical Specifications</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {% if pilot.technical_specs_doc %}
+                                    <a href="{{ pilot.technical_specs_doc.url }}" 
+                                       class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
+                                       target="_blank">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download Document
+                                    </a>
+                                {% elif pilot.technical_specs_text %}
+                                    <div class="mt-1 text-sm text-gray-900">{{ pilot.technical_specs_text }}</div>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% endif %}
+
+                        {% if pilot.performance_metrics or pilot.performance_metrics_doc %}
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Performance Metrics</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {% if pilot.performance_metrics_doc %}
+                                    <a href="{{ pilot.performance_metrics_doc.url }}" 
+                                       class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
+                                       target="_blank">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download Document
+                                    </a>
+                                {% elif pilot.performance_metrics %}
+                                    <div class="mt-1 text-sm text-gray-900">{{ pilot.performance_metrics }}</div>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% endif %}
+
+                        {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Definition of Done</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {% if pilot.compliance_requirements_doc %}
+                                    <a href="{{ pilot.compliance_requirements_doc.url }}" 
+                                       class="inline-flex items-center text-indigo-600 hover:text-indigo-900"
+                                       target="_blank">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Download Document
+                                    </a>
+                                {% elif pilot.compliance_requirements %}
+                                    <div class="mt-1 text-sm text-gray-900">{{ pilot.compliance_requirements }}</div>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% endif %}
+                    </div>
+                </details>
+            </div>
+
+            <!-- BID SUBMISSION SECTION (For startups who can bid - COLLAPSIBLE) -->
+            {% if can_bid %}
+            <div class="border-t-4 border-blue-500 bg-blue-50 px-6 py-6 mx-4 mb-6 rounded-lg">
+                <details open>
+                    <summary class="cursor-pointer text-lg font-medium text-blue-900 mb-4">
+                        Submit Your Bid
+                        <span class="ml-2 text-sm text-blue-700">(Click to collapse)</span>
+                    </summary>
+                    
+                    <div class="mt-4">
+                        <div class="text-center">
+                            <h3 class="text-lg font-medium text-blue-900 mb-2">Interested in this opportunity?</h3>
+                            <p class="text-sm text-blue-700 mb-4">Submit your proposal and bid amount</p>
+                            <a href="{% url 'pilots:create_bid' pilot.pk %}" 
+                               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                Submit Bid
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            {% endif %}
+
+            <!-- LEGAL AGREEMENT SECTION (For draft pilots - ALWAYS EXPANDED) -->
             {% if is_owner and pilot.status == 'draft' %}
             <div class="border-t-4 border-yellow-500 bg-yellow-50 px-6 py-6 mx-4 mb-6 rounded-lg">
                 <h3 class="text-lg font-medium text-yellow-900 mb-4">Ready to Publish?</h3>
@@ -503,7 +532,7 @@
                 </a>
                 
                 <div class="flex space-x-3">
-                    {% if can_edit %}
+                    {% if enterprise and can_edit %}
                     <a href="{% url 'pilots:edit' pilot.pk %}" 
                        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Edit Pilot
@@ -607,6 +636,9 @@ function confirmApprovalSubmit(totalAmount, bidAmount, feePercentage) {
     const bidAmountNum = parseFloat(bidAmount);
     const feePercentageNum = parseFloat(feePercentage);
     
+    // Calculate the actual fee amount using percentage
+    const feeAmount = bidAmountNum * (feePercentageNum / 100);
+    
     // Format numbers with commas for display
     const formatCurrency = (amount) => {
         return parseFloat(amount).toLocaleString('en-US', {
@@ -614,8 +646,6 @@ function confirmApprovalSubmit(totalAmount, bidAmount, feePercentage) {
             maximumFractionDigits: 2
         });
     };
-    
-    const feeAmount = totalAmountNum - bidAmountNum;
     
     // Create a detailed confirmation message
     const message = `Approve this bid for $${formatCurrency(totalAmountNum)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmountNum)}\n• Platform Fee (${feePercentageNum}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmountNum)}\n\nThis will trigger invoice generation.`;
