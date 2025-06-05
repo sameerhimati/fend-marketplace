@@ -259,18 +259,17 @@
                         <!-- Enhanced Decline Button with Modal -->
                         <button type="button" 
                                 class="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100"
-                                data-bid-id="{{ bid.pk }}"
-                                data-startup-name="{{ bid.startup.name|escapejs }}"
-                                onclick="handleDeclineClick(this)">
+                                onclick="openDeclineModal('{{ bid.pk }}', '{{ bid.startup.name|escapejs }}')">
                             Decline Bid
                         </button>
                         
+                        <!-- Enhanced Approve Button - Consistent with pilot_detail -->
                         <form method="post" action="{% url 'pilots:update_bid_status' bid.pk %}" class="inline">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="approve">
                             <button type="submit" 
                                     class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                    onclick="return confirm('Approve this bid for ${{ bid.calculate_total_amount_for_enterprise|format_currency }}? This will trigger invoice generation.');">
+                                    onclick="return confirmApprovalSubmit('{{ bid.calculate_total_amount_for_enterprise}}', '{{ bid.amount}}', '{{ bid.enterprise_fee_percentage}}')">
                                 Approve Bid
                             </button>
                         </form>
@@ -291,7 +290,7 @@
                     <!-- Enhanced Startup Actions for Pending Bids -->
                     {% if is_startup and bid.status == 'pending' %}
                         <a href="{% url 'pilots:create_bid' bid.pilot.pk %}" 
-                           class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100">
+                        class="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100">
                             Edit Bid
                         </a>
                     {% endif %}
@@ -299,7 +298,7 @@
                     <!-- Resubmit for Declined Bids -->
                     {% if is_startup and bid.status == 'declined' %}
                         <a href="{% url 'pilots:create_bid' bid.pilot.pk %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
                             Submit New Bid
                         </a>
                     {% endif %}
@@ -381,33 +380,55 @@
 
 <script>
 function openDeclineModal(bidId, startupName) {
-    document.getElementById('declineModal').classList.remove('hidden');
-    document.getElementById('declineForm').action = `/pilots/bids/${bidId}/update-status/`;
-    document.querySelector('#declineModal h3').textContent = `Decline Bid from ${startupName}`;
+    const modal = document.getElementById('declineModal');
+    const form = document.getElementById('declineForm');
+    const title = document.querySelector('#declineModal h3');
+    
+    if (!modal || !form || !title) {
+        console.error('Modal elements not found');
+        return;
+    }
+    
+    modal.classList.remove('hidden');
+    form.action = `/pilots/bids/${bidId}/update-status/`;
+    title.textContent = `Decline Bid from ${startupName}`;
     
     // Focus on textarea
     setTimeout(() => {
-        document.getElementById('rejection_reason').focus();
+        const textarea = document.getElementById('rejection_reason');
+        if (textarea) {
+            textarea.focus();
+        }
     }, 100);
 }
 
 function closeDeclineModal() {
-    document.getElementById('declineModal').classList.add('hidden');
-    document.getElementById('rejection_reason').value = '';
+    const modal = document.getElementById('declineModal');
+    const textarea = document.getElementById('rejection_reason');
+    
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    if (textarea) {
+        textarea.value = '';
+    }
 }
 
-function handleDeclineClick(button) {
-    const bidId = button.dataset.bidId;
-    const startupName = button.dataset.startupName;
-    openDeclineModal(bidId, startupName);
-}
-
-function handleApproveClick(button) {
-    const bidId = button.dataset.bidId;
-    const total = parseFloat(button.dataset.total);
-    const amount = parseFloat(button.dataset.amount);
-    const fee = parseFloat(button.dataset.fee);
-    confirmApproval(bidId, total, amount, fee);
+function confirmApprovalSubmit(totalAmount, bidAmount, feePercentage) {
+    // Format numbers with commas for display
+    const formatCurrency = (amount) => {
+        return amount.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
+    
+    const feeAmount = totalAmount - bidAmount;
+    
+    // Create a detailed confirmation message
+    const message = `Approve this bid for $${formatCurrency(totalAmount)}?\n\nBreakdown:\n• Bid Amount: $${formatCurrency(bidAmount)}\n• Platform Fee (${feePercentage}%): $${formatCurrency(feeAmount)}\n• Total Payment: $${formatCurrency(totalAmount)}\n\nThis will trigger invoice generation.`;
+    
+    return confirm(message);
 }
 
 // Close modal when clicking outside
