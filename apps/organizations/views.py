@@ -385,6 +385,12 @@ class PartnerPromotionCreateView(LoginRequiredMixin, CreateView):
     model = PartnerPromotion
     form_class = PartnerPromotionForm
     template_name = 'organizations/affiliates/promo_form.html'
+
+    def get_form(self, form_class=None):
+        """Set the organization on the form instance before validation"""
+        form = super().get_form(form_class)
+        form.instance.organization = self.request.user.organization
+        return form
     
     def form_valid(self, form):
         # Check promotion limit
@@ -397,7 +403,6 @@ class PartnerPromotionCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "You can only have up to 5 active promotions.")
             return self.form_invalid(form)
         
-        form.instance.organization = self.request.user.organization
         messages.success(self.request, "Partner promotion created successfully!")
         return super().form_valid(form)
     
