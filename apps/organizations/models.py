@@ -271,7 +271,7 @@ class PartnerPromotion(models.Model):
         super().clean()
         
         # Limit number of promotions per organization
-        if not self.pk:  # Only for new instances
+        if not self.pk and hasattr(self, 'organization') and self.organization:
             existing_count = PartnerPromotion.objects.filter(
                 organization=self.organization,
                 is_active=True
