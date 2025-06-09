@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Promotions - Fend{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Partner Promotions</h1>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Manage partnerships and promotional content that appears on your organization profile
+                        </p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <a href="{% url 'organizations:profile_edit' %}" 
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Edit Profile
+                        </a>
+                        {% if promotions.count < 5 %}
+                        <a href="{% url 'organizations:partner_promotion_create' %}" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Add Promotion
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Promotion Limit Info -->
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-blue-700">
+                                You have <strong>{{ promotions.count }}/5</strong> active promotions. 
+                                {% if promotions.count >= 5 %}
+                                    You've reached the maximum limit. Delete a promotion to add a new one.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Promotions List -->
+        {% if promotions %}
+        <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+                <h2 class="text-lg font-medium text-gray-900">Your Promotions</h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    These promotions appear on your organization profile for visitors to see
+                </p>
+            </div>
+            <div class="border-t border-gray-200">
+                <ul class="divide-y divide-gray-200">
+                    {% for promotion in promotions %}
+                    <li class="px-4 py-5 sm:px-6 hover:bg-gray-50">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <h3 class="text-base font-medium text-gray-900 truncate">
+                                        {{ promotion.title }}
+                                    </h3>
+                                    {% if promotion.is_affiliate %}
+                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Affiliate
+                                    </span>
+                                    {% endif %}
+                                    {% if not promotion.is_active %}
+                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        Inactive
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    {{ promotion.description|truncatewords:20 }}
+                                </p>
+                                <div class="mt-2 flex items-center text-xs text-gray-500">
+                                    <span>Display order: {{ promotion.display_order }}</span>
+                                    <span class="mx-2">•</span>
+                                    <span>Created {{ promotion.created_at|date:"M j, Y" }}</span>
+                                    {% if promotion.updated_at != promotion.created_at %}
+                                    <span class="mx-2">•</span>
+                                    <span>Updated {{ promotion.updated_at|date:"M j, Y" }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mt-2">
+                                    <a href="{{ promotion.link_url }}" target="_blank" 
+                                       class="text-sm text-indigo-600 hover:text-indigo-900 break-all">
+                                        {{ promotion.link_url|truncatechars:60 }}
+                                        <svg class="inline ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="ml-4 flex-shrink-0 flex space-x-2">
+                                <a href="{% url 'organizations:partner_promotion_edit' promotion.pk %}" 
+                                   class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
+                                    Edit
+                                </a>
+                                <a href="{% url 'organizations:partner_promotion_delete' promotion.pk %}" 
+                                   class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200">
+                                    Delete
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="mt-8 bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-12 sm:px-6 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-900">No promotions yet</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Get started by creating your first partner promotion or special offer.
+                </p>
+                <div class="mt-6">
+                    <a href="{% url 'organizations:partner_promotion_create' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Create Your First Promotion
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tips Section -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Tips for Effective Promotions</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900">Best Practices</h4>
+                    <ul class="mt-2 text-sm text-gray-600 space-y-1">
+                        <li>• Use clear, descriptive titles</li>
+                        <li>• Include specific benefits or offers</li>
+                        <li>• Keep descriptions concise but informative</li>
+                        <li>• Update inactive promotions regularly</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-900">Affiliate Links</h4>
+                    <ul class="mt-2 text-sm text-gray-600 space-y-1">
+                        <li>• Mark affiliate links appropriately</li>
+                        <li>• Disclose partnerships transparently</li>
+                        <li>• Track performance and ROI</li>
+                        <li>• Ensure links are working correctly</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -34,6 +34,30 @@ urlpatterns = [
     path('profile/remove-logo/', views.remove_logo, name='remove_logo'),
     
     # =============================================================================
+    # PARTNER PROMOTION MANAGEMENT
+    # =============================================================================
+    
+    # List all partner promotions for the organization
+    path('partner-promotions/', 
+         views.PartnerPromotionListView.as_view(), 
+         name='partner_promotions_list'),
+    
+    # Create new partner promotion
+    path('partner-promotions/create/', 
+         views.PartnerPromotionCreateView.as_view(), 
+         name='partner_promotion_create'),
+    
+    # Edit existing partner promotion
+    path('partner-promotions/<int:pk>/edit/', 
+         views.PartnerPromotionUpdateView.as_view(), 
+         name='partner_promotion_edit'),
+    
+    # Delete partner promotion
+    path('partner-promotions/<int:pk>/delete/', 
+         views.PartnerPromotionDeleteView.as_view(), 
+         name='partner_promotion_delete'),
+    
+    # =============================================================================
     # ADMIN URLS - Organization Approval Workflow
     # =============================================================================
     
