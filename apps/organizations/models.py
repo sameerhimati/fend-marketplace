@@ -5,6 +5,8 @@ from apps.payments.models import Subscription
 from django.conf import settings
 from django.dispatch import receiver
 import phonenumbers
+from django.core.exceptions import ValidationError
+from datetime import datetime
 
 class Organization(models.Model):
     ORGANIZATION_TYPES = (
@@ -24,6 +26,15 @@ class Organization(models.Model):
         ('pending', 'Pending Approval'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
+    )
+
+    EMPLOYEE_COUNT_CHOICES = (
+        ('', 'Select employee count'),
+        ('1-10', '1-10 employees'),
+        ('11-50', '11-50 employees'),
+        ('51-200', '51-200 employees'),
+        ('201-1000', '201-1000 employees'),
+        ('1000+', '1000+ employees'),
     )
 
     # Basic Organization Info
@@ -50,6 +61,37 @@ class Organization(models.Model):
 
     description = models.TextField(blank=True, null=True, help_text="Company description")
     logo = models.ImageField(upload_to='organization_logos/', blank=True, null=True)
+
+    # Extended Company Information (New fields)
+    employee_count = models.CharField(
+        max_length=20,
+        choices=EMPLOYEE_COUNT_CHOICES,
+        blank=True,
+        null=True,
+        help_text="Number of employees in your organization"
+    )
+    founding_year = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Year the company was founded"
+    )
+    headquarters_location = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="City, State/Country where your headquarters is located"
+    )
+
+    linkedin_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="LinkedIn company page URL"
+    )
+    twitter_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="Twitter/X profile URL"
+    )
 
     # Primary Contact Info
     primary_contact_name = models.CharField(max_length=255, null=True, blank=True)
@@ -78,6 +120,39 @@ class Organization(models.Model):
     bank_routing_number = models.CharField(max_length=255, blank=True, null=True)
     
     published_pilot_count = models.IntegerField(default=0, help_text="Number of published pilots")
+
+    def clean(self):
+        super().clean()
+        
+        # Validate founding year
+        if self.founding_year:
+            current_year = datetime.now().year
+            if self.founding_year < 1800 or self.founding_year > current_year:
+                raise ValidationError(f"Founding year must be between 1800 and {current_year}")
+
+        # Only validate enterprise-specific fields if type is enterprise 
+        # AND onboarding_completed is True (means they've gone through all steps)
+        if self.type == 'enterprise' and self.onboarding_completed:
+            required_fields = [
+                'business_type',
+                'business_registration_number',
+                'tax_identification_number',
+                'primary_contact_name',
+                'primary_contact_phone'
+            ]
+            
+            for field in required_fields:
+                if not getattr(self, field):
+                    raise ValidationError(f"{field.replace('_', ' ').title()} is required for enterprise organizations.")
+
+            # Validate phone number format
+            try:
+                if self.primary_contact_phone:
+                    parsed_number = phonenumbers.parse(self.primary_contact_phone, None)
+                    if not phonenumbers.is_valid_number(parsed_number):
+                        raise ValidationError("Invalid phone number format")
+            except phonenumbers.NumberParseException:
+                raise ValidationError("Invalid phone number format")
 
     def has_active_subscription(self):
         """
@@ -144,58 +219,66 @@ class Organization(models.Model):
     def __str__(self):
         return self.name
 
+
+class PartnerPromotion(models.Model):
+    """
+    Model for affiliate/partner promotions that organizations can display on their profiles
+    """
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='partner_promotions'
+    )
+    title = models.CharField(
+        max_length=100,
+        help_text="Title of the promotion or partnership"
+    )
+    description = models.TextField(
+        max_length=500,
+        blank=True,
+        help_text="Brief description of the promotion or partnership"
+    )
+    link_url = models.URLField(
+        help_text="URL link for the promotion"
+    )
+    is_affiliate = models.BooleanField(
+        default=False,
+        help_text="Check if this is an affiliate link"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this promotion is currently active"
+    )
+    
+    # Order for display
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order in which this promotion appears (lower numbers first)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', '-created_at']
+        verbose_name = "Partner Promotion"
+        verbose_name_plural = "Partner Promotions"
+
+    def __str__(self):
+        return f"{self.organization.name} - {self.title}"
+
     def clean(self):
-        from django.core.exceptions import ValidationError
+        super().clean()
         
-        # Only validate enterprise-specific fields if type is enterprise 
-        # AND onboarding_completed is True (means they've gone through all steps)
-        if self.type == 'enterprise' and self.onboarding_completed:
-            required_fields = [
-                'business_type',
-                'business_registration_number',
-                'tax_identification_number',
-                'primary_contact_name',
-                'primary_contact_phone'
-            ]
-            
-            for field in required_fields:
-                if not getattr(self, field):
-                    raise ValidationError(f"{field.replace('_', ' ').title()} is required for enterprise organizations.")
+        # Limit number of promotions per organization
+        if not self.pk:  # Only for new instances
+            existing_count = PartnerPromotion.objects.filter(
+                organization=self.organization,
+                is_active=True
+            ).count()
+            if existing_count >= 5:  # Max 5 active promotions
+                raise ValidationError("Maximum 5 active promotions allowed per organization")
 
-            # Validate phone number format
-            try:
-                if self.primary_contact_phone:
-                    parsed_number = phonenumbers.parse(self.primary_contact_phone, None)
-                    if not phonenumbers.is_valid_number(parsed_number):
-                        raise ValidationError("Invalid phone number format")
-            except phonenumbers.NumberParseException:
-                raise ValidationError("Invalid phone number format")
-
-@receiver(post_save, sender=Organization)
-def create_stripe_customer(sender, instance, created, **kwargs):
-    """Create a Stripe customer when a new organization is created"""
-    if created and not instance.stripe_customer_id:
-        try:
-            import stripe
-            stripe.api_key = settings.STRIPE_SECRET_KEY
-            
-            # Find a user associated with this organization
-            user = instance.users.first()
-            
-            if user:
-                customer = stripe.Customer.create(
-                    email=user.email,
-                    name=instance.name,
-                    metadata={
-                        'organization_id': instance.id,
-                        'organization_type': instance.type
-                    }
-                )
-                
-                instance.stripe_customer_id = customer.id
-                instance.save(update_fields=['stripe_customer_id'])
-        except Exception as e:
-            print(f"Error creating Stripe customer: {e}")
 
 class PilotDefinition(models.Model):
     organization = models.OneToOneField(
@@ -241,3 +324,30 @@ class PilotDefinition(models.Model):
 
     def __str__(self):
         return f"Pilot Definition for {self.organization.name}"
+
+
+@receiver(post_save, sender=Organization)
+def create_stripe_customer(sender, instance, created, **kwargs):
+    """Create a Stripe customer when a new organization is created"""
+    if created and not instance.stripe_customer_id:
+        try:
+            import stripe
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            
+            # Find a user associated with this organization
+            user = instance.users.first()
+            
+            if user:
+                customer = stripe.Customer.create(
+                    email=user.email,
+                    name=instance.name,
+                    metadata={
+                        'organization_id': instance.id,
+                        'organization_type': instance.type
+                    }
+                )
+                
+                instance.stripe_customer_id = customer.id
+                instance.save(update_fields=['stripe_customer_id'])
+        except Exception as e:
+            print(f"Error creating Stripe customer: {e}")

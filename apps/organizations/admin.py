@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from django.utils import timezone
 from django.contrib.admin.sites import AdminSite
 from django.shortcuts import redirect
-from .models import Organization, PilotDefinition
+from .models import Organization, PilotDefinition, PartnerPromotion
 
 # Import the new admin views
 from . import views as org_views
@@ -15,11 +15,21 @@ class PilotDefinitionInline(admin.StackedInline):
     can_delete = False
     verbose_name_plural = 'Pilot Definition'
 
+class PartnerPromotionInline(admin.TabularInline):
+    model = PartnerPromotion
+    extra = 0
+    max_num = 5
+    fields = ('title', 'description', 'link_url', 'is_affiliate', 'is_active', 'display_order')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).order_by('display_order', '-created_at')
+
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'type', 'approval_status', 'business_type', 'primary_contact_name', 'onboarding_completed', 'payment_status')
-    list_filter = ('type', 'approval_status', 'business_type', 'onboarding_completed', 'has_payment_method')
-    search_fields = ('name', 'primary_contact_name', 'users__email')
+    list_display = ('name', 'type', 'approval_status', 'business_type', 'employee_count', 'founding_year', 'primary_contact_name', 'onboarding_completed', 'payment_status')
+    list_filter = ('type', 'approval_status', 'business_type', 'employee_count', 'onboarding_completed', 'has_payment_method')
+    search_fields = ('name', 'primary_contact_name', 'users__email', 'website', 'headquarters_location')
     actions = ['approve_organizations', 'reject_organizations']
 
     def payment_status(self, obj):
@@ -28,11 +38,11 @@ class OrganizationAdmin(admin.ModelAdmin):
         return format_html('<span style="color: #EF4444;">Unpaid</span>')
     payment_status.short_description = 'Payment'
     
-    inlines = [PilotDefinitionInline]
+    inlines = [PilotDefinitionInline, PartnerPromotionInline]
 
     fieldsets = [
         ('Basic Information', {
-            'fields': ('name', 'type', 'website', 'approval_status', 'approval_date')
+            'fields': ('name', 'type', 'website', 'description', 'logo', 'approval_status', 'approval_date')
         }),
         ('Business Information', {
             'fields': (
@@ -40,6 +50,21 @@ class OrganizationAdmin(admin.ModelAdmin):
                 'business_registration_number',
                 'tax_identification_number'
             )
+        }),
+        ('Company Details', {
+            'fields': (
+                'employee_count',
+                'founding_year', 
+                'headquarters_location'
+            ),
+            'classes': ('collapse',),
+        }),
+        ('Social Media & Online Presence', {
+            'fields': (
+                'linkedin_url',
+                'twitter_url',
+            ),
+            'classes': ('collapse',),
         }),
         ('Primary Contact', {
             'fields': (
@@ -53,6 +78,14 @@ class OrganizationAdmin(admin.ModelAdmin):
         }),
         ('Payment Information', {
             'fields': ('stripe_customer_id', 'has_payment_method')
+        }),
+        ('Banking Information', {
+            'fields': (
+                'bank_name',
+                'bank_account_number',
+                'bank_routing_number'
+            ),
+            'classes': ('collapse',),
         })
     ]
     
@@ -65,8 +98,8 @@ class OrganizationAdmin(admin.ModelAdmin):
         }
 
     def get_queryset(self, request):
-        # Prefetch related users for performance
-        return super().get_queryset(request).prefetch_related('users')
+        # Prefetch related users and promotions for performance
+        return super().get_queryset(request).prefetch_related('users', 'partner_promotions')
 
     def approve_organizations(self, request, queryset):
         """Bulk action to approve selected organizations"""
@@ -148,3 +181,49 @@ class OrganizationAdmin(admin.ModelAdmin):
             )
         
         return form
+
+
+@admin.register(PartnerPromotion)
+class PartnerPromotionAdmin(admin.ModelAdmin):
+    list_display = ('title', 'organization', 'is_affiliate', 'is_active', 'display_order', 'created_at')
+    list_filter = ('is_affiliate', 'is_active', 'organization__type', 'created_at')
+    search_fields = ('title', 'description', 'organization__name', 'link_url')
+    list_editable = ('is_active', 'display_order')
+    ordering = ('organization', 'display_order', '-created_at')
+    
+    fieldsets = [
+        (None, {
+            'fields': ('organization', 'title', 'description', 'link_url')
+        }),
+        ('Settings', {
+            'fields': ('is_affiliate', 'is_active', 'display_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        })
+    ]
+    
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('organization')
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "organization":
+            kwargs["queryset"] = Organization.objects.filter(
+                approval_status='approved'
+            ).order_by('name')
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+# Keep the existing PilotDefinition admin registration if it exists separately
+@admin.register(PilotDefinition)
+class PilotDefinitionAdmin(admin.ModelAdmin):
+    list_display = ('organization', 'is_private', 'created_at', 'updated_at')
+    list_filter = ('is_private', 'organization__type', 'created_at')
+    search_fields = ('organization__name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('organization')

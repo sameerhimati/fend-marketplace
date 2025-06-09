@@ -4,70 +4,164 @@
 
 {% block content %}
 <div class="py-6">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:p-6">
-                <h1 class="text-2xl font-semibold text-gray-900 mb-6">Edit Profile</h1>
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-semibold text-gray-900">Edit Profile</h1>
+                    <a href="{% url 'organizations:partner_promotions_list' %}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="-ml-0.5 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        Manage Promotions
+                    </a>
+                </div>
                 
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" class="space-y-8">
                     {% csrf_token %}
                     
-                    <div class="space-y-6">
-                        <div>
-                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Organization Name
-                            </label>
-                            <div class="mt-1">
-                                <input type="text" 
-                                       name="{{ form.name.name }}" 
-                                       id="{{ form.name.id_for_label }}"
-                                       value="{{ form.name.value|default:'' }}"
-                                       class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    <!-- Basic Information Section -->
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div class="sm:col-span-1">
+                                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Organization Name
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.name }}
+                                </div>
+                                {% if form.name.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.name.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.name.help_text }}</p>
+                                {% endif %}
                             </div>
-                            {% if form.name.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Website
-                            </label>
-                            <div class="mt-1">
-                                <input type="text" 
-                                       name="{{ form.website.name }}" 
-                                       id="{{ form.website.id_for_label }}"
-                                       value="{{ form.website.value|default:'' }}"
-                                       class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            
+                            <div class="sm:col-span-1">
+                                <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Website
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.website }}
+                                </div>
+                                {% if form.website.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.website.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.website.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.website.help_text }}</p>
+                                {% endif %}
                             </div>
-                            {% if form.website.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.website.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <div>
-                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                About Your Organization
-                            </label>
-                            <div class="mt-1">
-                                <textarea name="{{ form.description.name }}" 
-                                          id="{{ form.description.id_for_label }}"
-                                          rows="4"
-                                          class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">{{ form.description.value|default:'' }}</textarea>
+                            
+                            <div class="sm:col-span-2">
+                                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    About Your Organization
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.description }}
+                                </div>
+                                {% if form.description.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.description.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.description.help_text }}</p>
+                                {% endif %}
                             </div>
-                            {% if form.description.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
-                            {% endif %}
                         </div>
-                        
-                        <div>
-                            <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Logo
-                            </label>
-                            {% if organization.logo %}
-                                <div class="mt-2 mb-4">
-                                    <img src="{{ organization.logo.url }}" alt="Current logo" class="h-20 w-20 rounded-full bg-gray-100">
-                                    <div class="mt-2">
+                    </div>
+
+                    <!-- Company Details Section -->
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">Company Details</h2>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                            <div class="sm:col-span-1">
+                                <label for="{{ form.employee_count.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Employee Count
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.employee_count }}
+                                </div>
+                                {% if form.employee_count.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.employee_count.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.employee_count.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.employee_count.help_text }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="sm:col-span-1">
+                                <label for="{{ form.founding_year.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Founding Year
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.founding_year }}
+                                </div>
+                                {% if form.founding_year.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.founding_year.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.founding_year.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.founding_year.help_text }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="sm:col-span-1">
+                                <label for="{{ form.headquarters_location.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Headquarters Location
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.headquarters_location }}
+                                </div>
+                                {% if form.headquarters_location.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.headquarters_location.errors.0 }}</p>
+                                {% endif %}
+                                {% if form.headquarters_location.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.headquarters_location.help_text }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media Section -->
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">Social Media & Online Presence</h2>
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label for="{{ form.linkedin_url.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    LinkedIn Company Page
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.linkedin_url }}
+                                </div>
+                                {% if form.linkedin_url.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.linkedin_url.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.twitter_url.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                    Twitter/X Profile
+                                </label>
+                                <div class="mt-1">
+                                    {{ form.twitter_url }}
+                                </div>
+                                {% if form.twitter_url.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.twitter_url.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logo Section -->
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">Logo</h2>
+                        {% if organization.logo %}
+                            <div class="mb-4">
+                                <div class="flex items-center space-x-4">
+                                    <img src="{{ organization.logo.url }}" alt="Current logo" class="h-16 w-16 rounded-lg bg-gray-100 object-cover">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Current Logo</p>
                                         <a href="{% url 'organizations:remove_logo' %}" 
                                            class="text-sm text-red-600 hover:text-red-900"
                                            onclick="return confirm('Are you sure you want to remove your logo?');">
@@ -75,26 +169,30 @@
                                         </a>
                                     </div>
                                 </div>
-                            {% endif %}
+                            </div>
+                        {% endif %}
+                        <div>
+                            <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {% if organization.logo %}Upload New Logo{% else %}Upload Logo{% endif %}
+                            </label>
                             <div class="mt-1">
-                                <input type="file" 
-                                       name="{{ form.logo.name }}" 
-                                       id="{{ form.logo.id_for_label }}"
-                                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                {{ form.logo }}
                             </div>
                             {% if form.logo.errors %}
                             <p class="mt-2 text-sm text-red-600">{{ form.logo.errors.0 }}</p>
                             {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Recommended size: 400x400 pixels. Supported formats: JPG, PNG, GIF (max 5MB)</p>
                         </div>
                     </div>
                     
-                    <div class="mt-8 flex justify-end">
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                         <a href="{% url 'organizations:profile' request.user.organization.id %}" 
                            class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Cancel
                         </a>
                         <button type="submit" 
-                                class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Save Changes
                         </button>
                     </div>

@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if object %}Edit Promotion{% else %}Create Promotion{% endif %} - Fend
+{% endblock %}
+
+{% block content %}
+<div class="py-6">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="mb-6">
+                    <h1 class="text-2xl font-semibold text-gray-900">
+                        {% if object %}Edit Promotion{% else %}Create New Promotion{% endif %}
+                    </h1>
+                    <p class="mt-1 text-sm text-gray-600">
+                        {% if object %}
+                            Update your promotion details below.
+                        {% else %}
+                            Add a new partner promotion or special offer to your profile.
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Title -->
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Promotion Title <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.title }}
+                        </div>
+                        {% if form.title.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                        {% endif %}
+                        {% if form.title.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.title.help_text }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Make it compelling and descriptive (100 characters max)</p>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Description <!-- <span class="text-red-500">*</span> -->
+                        </label>
+                        <div class="mt-1">
+                            {{ form.description }}
+                        </div>
+                        {% if form.description.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                        {% endif %}
+                        {% if form.description.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.description.help_text }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Explain what this promotion offers (500 characters max)</p>
+                    </div>
+
+                    <!-- Link URL -->
+                    <div>
+                        <label for="{{ form.link_url.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Link URL <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.link_url }}
+                        </div>
+                        {% if form.link_url.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.link_url.errors.0 }}</p>
+                        {% endif %}
+                        {% if form.link_url.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.link_url.help_text }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Where visitors will go when they click "Learn More"</p>
+                    </div>
+
+                    <!-- Affiliate Checkbox and Display Order -->
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label for="{{ form.display_order.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Display Order
+                            </label>
+                            <div class="mt-1">
+                                {{ form.display_order }}
+                            </div>
+                            {% if form.display_order.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.display_order.errors.0 }}</p>
+                            {% endif %}
+                            {% if form.display_order.help_text %}
+                            <p class="mt-1 text-sm text-gray-500">{{ form.display_order.help_text }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex items-center pt-6">
+                            <div class="flex items-center h-5">
+                                {{ form.is_affiliate }}
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="{{ form.is_affiliate.id_for_label }}" class="font-medium text-gray-700">
+                                    This is an affiliate link
+                                </label>
+                                <p class="text-gray-500">Check if you receive commission from this link</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <a href="{% url 'organizations:partner_promotions_list' %}" 
+                           class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Cancel
+                        </a>
+                        <button type="submit" 
+                                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            {% if object %}Update Promotion{% else %}Create Promotion{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+                <h2 class="text-lg font-medium text-gray-900">Preview</h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    This is how your promotion will appear on your profile
+                </p>
+            </div>
+            <div class="border-t border-gray-200 px-4 py-5 sm:px-6 bg-gray-50">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1" id="preview-content">
+                        <div class="flex items-center">
+                            <h3 class="text-base font-medium text-gray-900" id="preview-title">
+                                {% if object %}{{ object.title }}{% else %}Your promotion title will appear here{% endif %}
+                            </h3>
+                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" 
+                                  id="preview-affiliate" 
+                                  {% if not object.is_affiliate and not form.is_affiliate.value %}style="display: none;"{% endif %}>
+                                Affiliate
+                            </span>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-600" id="preview-description">
+                            {% if object %}{{ object.description }}{% else %}Your promotion description will appear here{% endif %}
+                        </p>
+                    </div>
+                    <div class="ml-4 flex-shrink-0">
+                        <span class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600">
+                            Learn More
+                            <svg class="ml-1 -mr-0.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guidelines -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Promotion Guidelines</h3>
+            <div class="text-sm text-gray-700 space-y-2">
+                <p><strong>Best Practices:</strong></p>
+                <ul class="list-disc list-inside space-y-1 ml-4">
+                    <li>Use clear, action-oriented titles that explain the benefit</li>
+                    <li>Include specific details about the offer or partnership</li>
+                    <li>Ensure all links are working and lead to relevant content</li>
+                    <li>Keep descriptions concise but informative</li>
+                    <li>Update or remove expired promotions promptly</li>
+                </ul>
+                <p class="mt-4"><strong>Affiliate Link Disclosure:</strong></p>
+                <ul class="list-disc list-inside space-y-1 ml-4">
+                    <li>Always mark affiliate links to maintain transparency</li>
+                    <li>This helps build trust with potential partners</li>
+                    <li>Required by most affiliate programs and regulations</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get form elements
+    const titleInput = document.getElementById('{{ form.title.id_for_label }}');
+    const descriptionInput = document.getElementById('{{ form.description.id_for_label }}');
+    const affiliateCheckbox = document.getElementById('{{ form.is_affiliate.id_for_label }}');
+    
+    // Get preview elements
+    const previewTitle = document.getElementById('preview-title');
+    const previewDescription = document.getElementById('preview-description');
+    const previewAffiliate = document.getElementById('preview-affiliate');
+    
+    // Update preview when inputs change
+    function updatePreview() {
+        // Update title
+        const titleValue = titleInput.value.trim();
+        previewTitle.textContent = titleValue || 'Your promotion title will appear here';
+        
+        // Update description
+        const descriptionValue = descriptionInput.value.trim();
+        previewDescription.textContent = descriptionValue || 'Your promotion description will appear here';
+        
+        // Update affiliate badge
+        if (affiliateCheckbox.checked) {
+            previewAffiliate.style.display = 'inline-flex';
+        } else {
+            previewAffiliate.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners
+    titleInput.addEventListener('input', updatePreview);
+    descriptionInput.addEventListener('input', updatePreview);
+    affiliateCheckbox.addEventListener('change', updatePreview);
+    
+    // Initial preview update
+    updatePreview();
+});
+</script>
+{% endblock %}

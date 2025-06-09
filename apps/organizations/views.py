@@ -1,4 +1,4 @@
-from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView
+from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView, DeleteView
 from django.shortcuts import redirect, get_object_or_404, render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
@@ -10,8 +10,11 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import Organization, PilotDefinition
-from .forms import OrganizationBasicForm, PilotDefinitionForm, OrganizationProfileForm
+from .models import Organization, PilotDefinition, PartnerPromotion
+from .forms import (
+    OrganizationBasicForm, PilotDefinitionForm, EnhancedOrganizationProfileForm, 
+    PartnerPromotionForm
+)
 from django.views.generic import TemplateView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -308,11 +311,32 @@ class OrganizationProfileView(LoginRequiredMixin, DetailView):
             }
             context['pilot_stats'] = pilot_stats
         
+        # Add partner promotions (MOST IMPORTANT FEATURE)
+        context['partner_promotions'] = organization.partner_promotions.filter(
+            is_active=True
+        ).order_by('display_order', '-created_at')
+        
+        # Add social media links for display
+        social_links = []
+        if organization.linkedin_url:
+            social_links.append({
+                'name': 'LinkedIn',
+                'url': organization.linkedin_url,
+                'icon': 'linkedin'
+            })
+        if organization.twitter_url:
+            social_links.append({
+                'name': 'Twitter',
+                'url': organization.twitter_url,
+                'icon': 'twitter'
+            })
+        context['social_links'] = social_links
+        
         return context
 
 class ProfileEditView(LoginRequiredMixin, UpdateView):
     model = Organization
-    form_class = OrganizationProfileForm
+    form_class = EnhancedOrganizationProfileForm  # Use the enhanced form
     template_name = 'organizations/profile_edit.html'
     
     def get_object(self, queryset=None):
@@ -320,6 +344,7 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
         return self.request.user.organization
     
     def get_success_url(self):
+        messages.success(self.request, "Profile updated successfully!")
         return reverse('organizations:profile', kwargs={'pk': self.object.pk})
 
 class StartupDirectoryView(LoginRequiredMixin, ListView):
@@ -338,6 +363,84 @@ class StartupDirectoryView(LoginRequiredMixin, ListView):
         ).exclude(
             id=self.request.user.organization.id
         ).order_by('name')
+
+
+# =============================================================================
+# PARTNER PROMOTION VIEWS
+# =============================================================================
+
+class PartnerPromotionListView(LoginRequiredMixin, ListView):
+    """View to list and manage partner promotions"""
+    model = PartnerPromotion
+    template_name = 'organizations/affiliates/promo_list.html'
+    context_object_name = 'promotions'
+    
+    def get_queryset(self):
+        return PartnerPromotion.objects.filter(
+            organization=self.request.user.organization
+        ).order_by('display_order', '-created_at')
+
+class PartnerPromotionCreateView(LoginRequiredMixin, CreateView):
+    """View to create new partner promotions"""
+    model = PartnerPromotion
+    form_class = PartnerPromotionForm
+    template_name = 'organizations/affiliates/promo_form.html'
+    
+    def form_valid(self, form):
+        # Check promotion limit
+        existing_count = PartnerPromotion.objects.filter(
+            organization=self.request.user.organization,
+            is_active=True
+        ).count()
+        
+        if existing_count >= 5:
+            messages.error(self.request, "You can only have up to 5 active promotions.")
+            return self.form_invalid(form)
+        
+        form.instance.organization = self.request.user.organization
+        messages.success(self.request, "Partner promotion created successfully!")
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('organizations:partner_promotions_list')
+
+class PartnerPromotionUpdateView(LoginRequiredMixin, UpdateView):
+    """View to edit partner promotions"""
+    model = PartnerPromotion
+    form_class = PartnerPromotionForm
+    template_name = 'organizations/affiliates/promo_form.html'
+    
+    def get_queryset(self):
+        # Only allow editing own organization's promotions
+        return PartnerPromotion.objects.filter(
+            organization=self.request.user.organization
+        )
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Partner promotion updated successfully!")
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('organizations:partner_promotions_list')
+
+class PartnerPromotionDeleteView(LoginRequiredMixin, DeleteView):
+    """View to delete partner promotions"""
+    model = PartnerPromotion
+    template_name = 'organizations/affiliates/promo_delete.html'
+    
+    def get_queryset(self):
+        # Only allow deleting own organization's promotions
+        return PartnerPromotion.objects.filter(
+            organization=self.request.user.organization
+        )
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, "Partner promotion deleted successfully!")
+        return super().delete(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        return reverse('organizations:partner_promotions_list')
+
 
 # =============================================================================
 # ADMIN VIEWS - Organization Approval Workflow

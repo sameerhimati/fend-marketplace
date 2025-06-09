@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import Organization, PilotDefinition
+from .models import Organization, PilotDefinition, PartnerPromotion
+from datetime import datetime
 
 User = get_user_model()
 
@@ -316,6 +317,153 @@ class OrganizationBasicForm(forms.ModelForm):
         
         return phone_digits
 
+
+class EnhancedOrganizationProfileForm(forms.ModelForm):
+    """Enhanced form for editing organization profiles with extended fields"""
+    
+    class Meta:
+        model = Organization
+        fields = [
+            'name', 'website', 'description', 'logo', 
+            'employee_count', 'founding_year', 'headquarters_location',
+            'linkedin_url', 'twitter_url',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={
+                'rows': 4,
+                'placeholder': 'Tell us about your organization, what you do, and what makes you unique...'
+            }),
+            'headquarters_location': forms.TextInput(attrs={
+                'placeholder': 'e.g., San Francisco, CA'
+            }),
+            'founding_year': forms.NumberInput(attrs={
+                'placeholder': f'e.g., {datetime.now().year - 5}',
+                'min': '1800',
+                'max': str(datetime.now().year)
+            }),
+            'linkedin_url': forms.URLInput(attrs={
+                'placeholder': 'https://linkedin.com/company/your-company'
+            }),
+            'twitter_url': forms.URLInput(attrs={
+                'placeholder': 'https://twitter.com/your-company'
+            }),
+        }
+        help_texts = {
+            'name': 'Your organization\'s official name',
+            'website': 'Your main website (without http://)',
+            'description': 'Brief description of your organization and what you do',
+            'employee_count': 'Approximate number of employees',
+            'founding_year': 'Year your company was founded',
+            'headquarters_location': 'Primary location of your headquarters',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add CSS classes for styling
+        for field_name, field in self.fields.items():
+            if field_name == 'description':
+                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+            elif field_name == 'logo':
+                field.widget.attrs['class'] = 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
+            else:
+                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+
+    def clean_website(self):
+        """Clean and validate website field"""
+        website = self.cleaned_data.get('website', '').strip().lower()
+        if not website:
+            return website
+            
+        # Remove http:// or https:// if present
+        if website.startswith('http://'):
+            website = website[7:]
+        elif website.startswith('https://'):
+            website = website[8:]
+        
+        # Remove www. if present
+        if website.startswith('www.'):
+            website = website[4:]
+        
+        # Validate website format - must end with .something
+        import re
+        if not re.match(r'.*\.[a-zA-Z]{2,}$', website):
+            raise forms.ValidationError("Website must be a valid domain (e.g., example.com)")
+        
+        # Check max length (50 characters)
+        if len(website) > 50:
+            raise forms.ValidationError("Website must be less than 50 characters")
+        
+        return website
+
+    def clean_founding_year(self):
+        """Validate founding year"""
+        year = self.cleaned_data.get('founding_year')
+        if year:
+            current_year = datetime.now().year
+            if year < 1800 or year > current_year:
+                raise forms.ValidationError(f"Founding year must be between 1800 and {current_year}")
+        return year
+
+    def clean_linkedin_url(self):
+        """Validate LinkedIn URL"""
+        url = self.cleaned_data.get('linkedin_url')
+        if url and 'linkedin.com' not in url.lower():
+            raise forms.ValidationError("Please enter a valid LinkedIn URL")
+        return url
+
+    def clean_twitter_url(self):
+        """Validate Twitter URL"""
+        url = self.cleaned_data.get('twitter_url')
+        if url and not any(domain in url.lower() for domain in ['twitter.com', 'x.com']):
+            raise forms.ValidationError("Please enter a valid Twitter/X URL")
+        return url
+
+class PartnerPromotionForm(forms.ModelForm):
+    """Form for managing partner promotions"""
+    
+    class Meta:
+        model = PartnerPromotion
+        fields = ['title', 'description', 'link_url', 'is_affiliate', 'display_order']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'placeholder': 'e.g., "Special Partnership with TechCorp"',
+                'maxlength': '100'
+            }),
+            'description': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Brief description of this partnership or promotion...',
+                'maxlength': '500'
+            }),
+            'link_url': forms.URLInput(attrs={
+                'placeholder': 'https://example.com/promotion'
+            }),
+            'display_order': forms.NumberInput(attrs={
+                'min': '0',
+                'max': '5'
+            }),
+        }
+        help_texts = {
+            'title': 'Short, descriptive title for this promotion',
+            'description': 'Brief description that will appear on your profile',
+            'link_url': 'URL where visitors will be directed when they click',
+            'is_affiliate': 'Check this if you receive commission from this link',
+            'display_order': 'Lower numbers appear first (0-10)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add CSS classes for styling
+        for field_name, field in self.fields.items():
+            if field_name == 'description':
+                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+            elif field_name == 'is_affiliate':
+                field.widget.attrs['class'] = 'focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded'
+            else:
+                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+
+
 class PilotDefinitionForm(forms.ModelForm):
     """Optional third step for enterprise pilot definition"""
     class Meta:
@@ -333,6 +481,8 @@ class PilotDefinitionForm(forms.ModelForm):
             'compliance_requirements': forms.Textarea(attrs={'rows': 4}),
         }
 
+
+# Keep the original form for backward compatibility
 class OrganizationProfileForm(forms.ModelForm):
     class Meta:
         model = Organization
