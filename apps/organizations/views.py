@@ -241,23 +241,6 @@ class CustomLoginView(LoginView):
     
     def get_success_url(self):
         return reverse_lazy('organizations:dashboard')
-    
-class EnterpriseDirectoryView(LoginRequiredMixin, ListView):
-    model = Organization
-    template_name = 'organizations/enterprise_directory.html'
-    context_object_name = 'enterprises'
-    
-    def get_queryset(self):
-        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
-            return Organization.objects.none() 
-        # Show only approved enterprises except the current user's organization
-        return Organization.objects.filter(
-            type='enterprise',
-            approval_status='approved',
-            onboarding_completed=True
-        ).exclude(
-            id=self.request.user.organization.id
-        ).order_by('name')
 
 class OrganizationProfileView(LoginRequiredMixin, DetailView):
     model = Organization
@@ -346,23 +329,6 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(self.request, "Profile updated successfully!")
         return reverse('organizations:profile', kwargs={'pk': self.object.pk})
-
-class StartupDirectoryView(LoginRequiredMixin, ListView):
-    model = Organization
-    template_name = 'organizations/startup_directory.html'
-    context_object_name = 'startups'
-    
-    def get_queryset(self):
-        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
-            return Organization.objects.none() 
-        # Show only approved startups except the current user's organization
-        return Organization.objects.filter(
-            type='startup',
-            approval_status='approved',
-            onboarding_completed=True
-        ).exclude(
-            id=self.request.user.organization.id
-        ).order_by('name')
 
 
 # =============================================================================

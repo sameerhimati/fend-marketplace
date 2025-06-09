@@ -22,8 +22,6 @@ urlpatterns = [
     path('dashboard/startup/', views.StartupDashboardView.as_view(), name='startup_dashboard'),
     
     # Organization Directories & Profiles
-    path('enterprises/', views.EnterpriseDirectoryView.as_view(), name='enterprise_directory'),
-    path('startups/', views.StartupDirectoryView.as_view(), name='startup_directory'),
     path('directory/', 
          views.DirectoryView.as_view(), 
          name='directory'),
