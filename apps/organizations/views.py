@@ -419,7 +419,7 @@ class ProfileEditView(LoginRequiredMixin, UpdateView):
 class PartnerPromotionListView(LoginRequiredMixin, ListView):
     """View to list and manage partner promotions"""
     model = PartnerPromotion
-    template_name = 'organizations/affiliates/promo_list.html'
+    template_name = 'organizations/promotions/promo_list.html'
     context_object_name = 'promotions'
     
     def get_queryset(self):
@@ -431,7 +431,7 @@ class PartnerPromotionCreateView(LoginRequiredMixin, CreateView):
     """View to create new partner promotions"""
     model = PartnerPromotion
     form_class = PartnerPromotionForm
-    template_name = 'organizations/affiliates/promo_form.html'
+    template_name = 'organizations/promotions/promo_form.html'
 
     def get_form(self, form_class=None):
         """Set the organization on the form instance before validation"""
@@ -460,7 +460,7 @@ class PartnerPromotionUpdateView(LoginRequiredMixin, UpdateView):
     """View to edit partner promotions"""
     model = PartnerPromotion
     form_class = PartnerPromotionForm
-    template_name = 'organizations/affiliates/promo_form.html'
+    template_name = 'organizations/promotions/promo_form.html'
     
     def get_queryset(self):
         # Only allow editing own organization's promotions
@@ -478,7 +478,7 @@ class PartnerPromotionUpdateView(LoginRequiredMixin, UpdateView):
 class PartnerPromotionDeleteView(LoginRequiredMixin, DeleteView):
     """View to delete partner promotions"""
     model = PartnerPromotion
-    template_name = 'organizations/affiliates/promo_delete.html'
+    template_name = 'organizations/promotions/promo_delete.html'
     
     def get_queryset(self):
         # Only allow deleting own organization's promotions
