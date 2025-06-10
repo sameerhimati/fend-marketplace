@@ -20,10 +20,16 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.pilots.models import Pilot, PilotBid
 from apps.users.models import User
-from django.urls import reverse
 from django.views import View
 from apps.notifications.services import create_notification
 from django.db.models import Sum
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Case, When, IntegerField, Q
+from random import shuffle
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 class OrganizationRegistrationView(CreateView):
     model = Organization
@@ -146,6 +152,79 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             return redirect('organizations:enterprise_dashboard')
         return redirect('organizations:startup_dashboard')
 
+def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=6):
+    """
+    Get 'hot' partner promotions for dashboard display
+    
+    Algorithm:
+    1. Recent promotions get priority (last 30 days)
+    2. Max 2 promotions per organization 
+    3. Mix of enterprise/startup promotions
+    4. Manual curation via display_order
+    5. Active promotions only
+    
+    Args:
+        user_organization_type: 'enterprise' or 'startup'
+        exclude_org_id: Current user's org ID to exclude
+        limit: Max promotions to return
+    """
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
+    # Base queryset - active promotions only
+    base_qs = PartnerPromotion.objects.filter(
+        is_active=True,
+        organization__approval_status='approved'
+    ).select_related('organization')
+    
+    # Exclude current user's organization
+    if exclude_org_id:
+        base_qs = base_qs.exclude(organization_id=exclude_org_id)
+    
+    # Prioritize different types based on user type
+    if user_organization_type == 'enterprise':
+        # Enterprises see startup promotions first (solutions/tools)
+        priority_orgs = base_qs.filter(organization__type='startup')
+        secondary_orgs = base_qs.filter(organization__type='enterprise')
+    else:
+        # Startups see enterprise promotions first (opportunities)
+        priority_orgs = base_qs.filter(organization__type='enterprise') 
+        secondary_orgs = base_qs.filter(organization__type='startup')
+    
+    # Add recency scoring
+    def add_recency_score(queryset):
+        return queryset.annotate(
+            recency_score=Case(
+                When(created_at__gte=thirty_days_ago, then=10),  # Recent = high score
+                When(created_at__gte=timezone.now() - timedelta(days=60), then=5),
+                default=1,
+                output_field=IntegerField()
+            )
+        ).order_by('-recency_score', 'display_order', '-created_at')
+    
+    priority_promotions = add_recency_score(priority_orgs)
+    secondary_promotions = add_recency_score(secondary_orgs)
+    
+    # Limit to max 2 per organization and collect results
+    featured_promotions = []
+    org_count = {}
+    
+    # First pass: Priority type (startups for enterprises, enterprises for startups)
+    for promo in priority_promotions:
+        org_id = promo.organization_id
+        if org_count.get(org_id, 0) < 2 and len(featured_promotions) < limit:
+            featured_promotions.append(promo)
+            org_count[org_id] = org_count.get(org_id, 0) + 1
+    
+    # Second pass: Secondary type if we need more
+    for promo in secondary_promotions:
+        org_id = promo.organization_id
+        if org_count.get(org_id, 0) < 2 and len(featured_promotions) < limit:
+            featured_promotions.append(promo)
+            org_count[org_id] = org_count.get(org_id, 0) + 1
+    
+    return featured_promotions[:limit]
+
+
 class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/dashboard/enterprise.html'
 
@@ -158,28 +237,33 @@ class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
     
         user_org = self.request.user.organization
         
-        # Get all pilots for this enterprise
+        # Existing pilot data
         context['active_pilots'] = Pilot.objects.filter(
             organization=user_org
-        ).order_by('-created_at')[:5]  # Get 5 most recent pilots
+        ).order_by('-created_at')[:5]
         
-        # Get other enterprises for display
+        # Existing network data
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             approval_status='approved',
             onboarding_completed=True
-        ).exclude(
-            id=user_org.id
-        ).order_by('?')[:4]  # Random selection of 4 other enterprises
+        ).exclude(id=user_org.id).order_by('?')[:4]
         
-        # Get startups for display
         context['startups'] = Organization.objects.filter(
             type='startup',
             approval_status='approved',
             onboarding_completed=True
-        ).order_by('?')[:4]  # Random selection of 4 startups
+        ).order_by('?')[:4]
+        
+        # NEW: Featured Partner Promotions
+        context['featured_promotions'] = get_featured_promotions(
+            user_organization_type='enterprise',
+            exclude_org_id=user_org.id,
+            limit=6
+        )
         
         return context
+
 
 class StartupDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/dashboard/startup.html'
@@ -193,46 +277,43 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
     
         user_org = self.request.user.organization
         
-        # Get available pilots for startups
+        # Existing pilots data
         pilots = Pilot.objects.filter(
             status='published',
             is_private=False,
-            organization__approval_status='approved'  # Only show pilots from approved organizations
+            organization__approval_status='approved'
         ).order_by('-created_at')
         
-        # Exclude pilots where this startup already has an active bid
         active_bid_pilot_ids = PilotBid.objects.filter(
             startup=user_org
-        ).exclude(
-            status='declined'
-        ).values_list('pilot_id', flat=True)
+        ).exclude(status='declined').values_list('pilot_id', flat=True)
         
-        # Exclude pilots that already have any approved bid
         pilots_with_approved_bids = PilotBid.objects.filter(
             status='approved'
         ).values_list('pilot_id', flat=True)
         
-        # Create a set of all pilots to exclude
         excluded_pilots = set(active_bid_pilot_ids) | set(pilots_with_approved_bids)
-        
-        # Apply exclusions
         context['pilots'] = pilots.exclude(id__in=excluded_pilots)
         
-        # Get fellow startups for the network section - exclude current startup
+        # Existing network data
         context['fellow_startups'] = Organization.objects.filter(
             type='startup',
             approval_status='approved',
             onboarding_completed=True
-        ).exclude(
-            id=user_org.id
-        ).order_by('?')[:4]  # Random selection of 4 other startups
+        ).exclude(id=user_org.id).order_by('?')[:4]
         
-        # Get enterprise partners - alphabetical order
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             approval_status='approved',
             onboarding_completed=True
-        ).order_by('?')[:4]  # Random selection of 4 enterprises
+        ).order_by('?')[:4]
+        
+        # NEW: Featured Partner Promotions  
+        context['featured_promotions'] = get_featured_promotions(
+            user_organization_type='startup',
+            exclude_org_id=user_org.id,
+            limit=6
+        )
         
         return context
     
@@ -616,3 +697,23 @@ class DirectoryView(LoginRequiredMixin, TemplateView):
         })
         
         return context
+
+
+@csrf_exempt
+@require_POST
+def track_promotion_click(request):
+    """
+    Track promotion clicks for analytics
+    Optional endpoint - you can remove if not needed
+    """
+    try:
+        data = json.loads(request.body)
+        promotion_id = data.get('promotion_id')
+        organization_name = data.get('organization_name')
+        source = data.get('source', 'unknown')
+        
+        print(f"Promotion click: {promotion_id} from {organization_name} via {source}")
+        
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
