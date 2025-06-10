@@ -318,47 +318,78 @@ class OrganizationBasicForm(forms.ModelForm):
         return phone_digits
 
 
-class EnhancedOrganizationProfileForm(forms.ModelForm):
-    """Enhanced form for editing organization profiles with extended fields"""
+class EnhancedOrganizationProfileForm(forms.Form):
+    """Simplified form that doesn't inherit from ModelForm to avoid model validation"""
     
-    class Meta:
-        model = Organization
-        fields = [
-            'name', 'website', 'description', 'logo', 
-            'employee_count', 'founding_year', 'headquarters_location',
-            'linkedin_url', 'twitter_url',
-        ]
-        widgets = {
-            'description': forms.Textarea(attrs={
-                'rows': 4,
-                'placeholder': 'Tell us about your organization, what you do, and what makes you unique...'
-            }),
-            'headquarters_location': forms.TextInput(attrs={
-                'placeholder': 'e.g., San Francisco, CA'
-            }),
-            'founding_year': forms.NumberInput(attrs={
-                'placeholder': f'e.g., {datetime.now().year - 5}',
-                'min': '1800',
-                'max': str(datetime.now().year)
-            }),
-            'linkedin_url': forms.URLInput(attrs={
-                'placeholder': 'https://linkedin.com/company/your-company'
-            }),
-            'twitter_url': forms.URLInput(attrs={
-                'placeholder': 'https://twitter.com/your-company'
-            }),
-        }
-        help_texts = {
-            'name': 'Your organization\'s official name',
-            'website': 'Your main website (without http://)',
-            'description': 'Brief description of your organization and what you do',
-            'employee_count': 'Approximate number of employees',
-            'founding_year': 'Year your company was founded',
-            'headquarters_location': 'Primary location of your headquarters',
-        }
+    name = forms.CharField(
+        max_length=50, 
+        help_text="Your organization's official name"
+    )
+    website = forms.CharField(
+        max_length=50, 
+        required=False,
+        help_text="Your main website (without http://)"
+    )
+    description = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'rows': 4,
+            'placeholder': 'Tell us about your organization, what you do, and what makes you unique...'
+        }),
+        required=False,
+        help_text="Brief description of your organization and what you do"
+    )
+    logo = forms.ImageField(
+        required=False,
+        help_text="Recommended size: 400x400 pixels. Supported formats: JPG, PNG, GIF (max 5MB)"
+    )
+    employee_count = forms.ChoiceField(
+        choices=Organization.EMPLOYEE_COUNT_CHOICES,
+        required=False,
+        help_text="Approximate number of employees"
+    )
+    founding_year = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={
+            'placeholder': f'e.g., {datetime.now().year - 5}',
+            'min': '1800',
+            'max': str(datetime.now().year)
+        }),
+        help_text="Year your company was founded"
+    )
+    headquarters_location = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'e.g., San Francisco, CA'
+        }),
+        help_text="Primary location of your headquarters"
+    )
+    linkedin_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'placeholder': 'https://linkedin.com/company/your-company'
+        })
+    )
+    twitter_url = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'placeholder': 'https://twitter.com/your-company'
+        })
+    )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, instance=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Pre-populate with existing data
+        if instance:
+            self.fields['name'].initial = instance.name
+            self.fields['website'].initial = instance.website
+            self.fields['description'].initial = instance.description
+            self.fields['employee_count'].initial = instance.employee_count
+            self.fields['founding_year'].initial = instance.founding_year
+            self.fields['headquarters_location'].initial = instance.headquarters_location
+            self.fields['linkedin_url'].initial = instance.linkedin_url
+            self.fields['twitter_url'].initial = instance.twitter_url
         
         # Add CSS classes for styling
         for field_name, field in self.fields.items():
