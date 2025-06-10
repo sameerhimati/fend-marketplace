@@ -249,16 +249,19 @@
                         </div>
                         <div class="hidden md:ml-6 md:flex md:space-x-8">
                             <a href="{% url 'organizations:dashboard' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                            class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'enterprise_dashboard' or request.resolver_match.url_name == 'startup_dashboard' %}active{% endif %}">
                                 Dashboard
                             </a>
-                            <!-- UNIFIED PILOTS TAB - NO MORE SEPARATE BIDS TAB -->
                             <a href="{% url 'pilots:list' %}" 
                             class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %}">
                                 Pilots
                             </a>
+                            <a href="{% url 'organizations:deals' %}" 
+                            class="nav-link {% if request.resolver_match.url_name == 'deals' %}active{% endif %}">
+                                Deals
+                            </a>
                             <a href="{% url 'organizations:directory' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'directory' or request.resolver_match.url_name == 'enterprise_directory' or request.resolver_match.url_name == 'startup_directory' %}active{% endif %}">
+                            class="nav-link {% if request.resolver_match.url_name == 'directory' %}active{% endif %}">
                                 Organizations
                             </a>
                         </div>

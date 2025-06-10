@@ -717,3 +717,94 @@ def track_promotion_click(request):
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+    
+
+class DealsView(LoginRequiredMixin, TemplateView):
+    """
+    Dedicated page for browsing all Fend exclusive deals and partnerships
+    """
+    template_name = 'organizations/deals.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        if not hasattr(self.request.user, 'organization') or self.request.user.organization is None:
+            context['deals'] = PartnerPromotion.objects.none()
+            return context
+        
+        user_org = self.request.user.organization
+        
+        # Get search and filter parameters
+        search_query = self.request.GET.get('search', '').strip()
+        org_type_filter = self.request.GET.get('org_type', '')  # 'enterprise', 'startup', or empty
+        deal_type_filter = self.request.GET.get('deal_type', '')  # 'affiliate', 'partnership', or empty
+        sort_by = self.request.GET.get('sort', 'recent')  # 'recent', 'popular', 'title'
+        
+        # Base queryset - active promotions from approved organizations, exclude current user's org
+        deals_queryset = PartnerPromotion.objects.filter(
+            is_active=True,
+            organization__approval_status='approved'
+        ).exclude(
+            organization_id=user_org.id
+        ).select_related('organization')
+        
+        # Apply search filter
+        if search_query:
+            deals_queryset = deals_queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(organization__name__icontains=search_query)
+            )
+        
+        # Apply organization type filter
+        if org_type_filter:
+            deals_queryset = deals_queryset.filter(organization__type=org_type_filter)
+        
+        # Apply deal type filter
+        if deal_type_filter == 'affiliate':
+            deals_queryset = deals_queryset.filter(is_affiliate=True)
+        elif deal_type_filter == 'partnership':
+            deals_queryset = deals_queryset.filter(is_affiliate=False)
+        
+        # Apply sorting
+        if sort_by == 'recent':
+            deals_queryset = deals_queryset.order_by('-created_at')
+        elif sort_by == 'popular':
+            # You could add a click_count field later for real popularity
+            deals_queryset = deals_queryset.order_by('-created_at')  # Fallback to recent for now
+        elif sort_by == 'title':
+            deals_queryset = deals_queryset.order_by('title')
+        else:
+            deals_queryset = deals_queryset.order_by('display_order', '-created_at')
+        
+        # Pagination
+        from django.core.paginator import Paginator
+        paginator = Paginator(deals_queryset, 12)  # 12 deals per page
+        page_number = self.request.GET.get('page', 1)
+        deals_page = paginator.get_page(page_number)
+        
+        # Get statistics for the header
+        total_deals = deals_queryset.count()
+        affiliate_count = deals_queryset.filter(is_affiliate=True).count()
+        partnership_count = deals_queryset.filter(is_affiliate=False).count()
+        
+        # Get featured deals for the hero section (top 3 most recent)
+        featured_deals = get_featured_promotions(
+            user_organization_type=user_org.type,
+            exclude_org_id=user_org.id,
+            limit=3
+        )
+        
+        context.update({
+            'deals': deals_page,
+            'featured_deals': featured_deals,
+            'search_query': search_query,
+            'org_type_filter': org_type_filter,
+            'deal_type_filter': deal_type_filter,
+            'sort_by': sort_by,
+            'total_deals': total_deals,
+            'affiliate_count': affiliate_count,
+            'partnership_count': partnership_count,
+        })
+        
+        return context
