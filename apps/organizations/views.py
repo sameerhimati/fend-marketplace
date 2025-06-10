@@ -154,7 +154,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=6):
     """
-    Get 'hot' partner promotions for dashboard display
+    Get 'featured' partner promotions for dashboard display
     
     Algorithm:
     1. Recent promotions get priority (last 30 days)
@@ -721,7 +721,7 @@ def track_promotion_click(request):
 
 class DealsView(LoginRequiredMixin, TemplateView):
     """
-    Dedicated page for browsing all Fend exclusive deals and partnerships
+    Dedicated page for browsing all Fend partner deals and exclusive offers
     """
     template_name = 'organizations/deals.html'
     
@@ -737,7 +737,7 @@ class DealsView(LoginRequiredMixin, TemplateView):
         # Get search and filter parameters
         search_query = self.request.GET.get('search', '').strip()
         org_type_filter = self.request.GET.get('org_type', '')  # 'enterprise', 'startup', or empty
-        deal_type_filter = self.request.GET.get('deal_type', '')  # 'affiliate', 'partnership', or empty
+        deal_type_filter = self.request.GET.get('deal_type', '')  # 'exclusive', 'standard', or empty
         sort_by = self.request.GET.get('sort', 'recent')  # 'recent', 'popular', 'title'
         
         # Base queryset - active promotions from approved organizations, exclude current user's org
@@ -761,10 +761,10 @@ class DealsView(LoginRequiredMixin, TemplateView):
             deals_queryset = deals_queryset.filter(organization__type=org_type_filter)
         
         # Apply deal type filter
-        if deal_type_filter == 'affiliate':
-            deals_queryset = deals_queryset.filter(is_affiliate=True)
-        elif deal_type_filter == 'partnership':
-            deals_queryset = deals_queryset.filter(is_affiliate=False)
+        if deal_type_filter == 'exclusive':
+            deals_queryset = deals_queryset.filter(is_exclusive=True)
+        elif deal_type_filter == 'standard':
+            deals_queryset = deals_queryset.filter(is_exclusive=False)
         
         # Apply sorting
         if sort_by == 'recent':
@@ -785,8 +785,8 @@ class DealsView(LoginRequiredMixin, TemplateView):
         
         # Get statistics for the header
         total_deals = deals_queryset.count()
-        affiliate_count = deals_queryset.filter(is_affiliate=True).count()
-        partnership_count = deals_queryset.filter(is_affiliate=False).count()
+        exclusive_count = deals_queryset.filter(is_exclusive=True).count()
+        standard_count = deals_queryset.filter(is_exclusive=False).count()
         
         # Get featured deals for the hero section (top 3 most recent)
         featured_deals = get_featured_promotions(
@@ -803,8 +803,8 @@ class DealsView(LoginRequiredMixin, TemplateView):
             'deal_type_filter': deal_type_filter,
             'sort_by': sort_by,
             'total_deals': total_deals,
-            'affiliate_count': affiliate_count,
-            'partnership_count': partnership_count,
+            'exclusive_count': exclusive_count,
+            'standard_count': standard_count,
         })
         
         return context

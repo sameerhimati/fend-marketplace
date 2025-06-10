@@ -15,9 +15,9 @@
                     </h1>
                     <p class="mt-1 text-sm text-gray-600">
                         {% if object %}
-                            Update your promotion details below.
+                            Update your exclusive offer or partnership details below.
                         {% else %}
-                            Add a new partner promotion or special offer to your profile.
+                            Add a new exclusive deal or special offer to your profile.
                         {% endif %}
                     </p>
                 </div>
@@ -28,7 +28,7 @@
                     <!-- Title -->
                     <div>
                         <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Promotion Title <span class="text-red-500">*</span>
+                            Deal Title <span class="text-red-500">*</span>
                         </label>
                         <div class="mt-1">
                             {{ form.title }}
@@ -45,7 +45,7 @@
                     <!-- Description -->
                     <div>
                         <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Description <!-- <span class="text-red-500">*</span> -->
+                            Description
                         </label>
                         <div class="mt-1">
                             {{ form.description }}
@@ -56,7 +56,7 @@
                         {% if form.description.help_text %}
                         <p class="mt-1 text-sm text-gray-500">{{ form.description.help_text }}</p>
                         {% endif %}
-                        <p class="mt-1 text-xs text-gray-500">Explain what this promotion offers (500 characters max)</p>
+                        <p class="mt-1 text-xs text-gray-500">Explain what this deal offers to Fend members (500 characters max)</p>
                     </div>
 
                     <!-- Link URL -->
@@ -76,7 +76,7 @@
                         <p class="mt-1 text-xs text-gray-500">Where visitors will go when they click "Learn More"</p>
                     </div>
 
-                    <!-- Affiliate Checkbox and Display Order -->
+                    <!-- Exclusive Checkbox and Display Order -->
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
                             <label for="{{ form.display_order.id_for_label }}" class="block text-sm font-medium text-gray-700">
@@ -95,13 +95,13 @@
 
                         <div class="flex items-center pt-6">
                             <div class="flex items-center h-5">
-                                {{ form.is_affiliate }}
+                                {{ form.is_exclusive }}
                             </div>
                             <div class="ml-3 text-sm">
-                                <label for="{{ form.is_affiliate.id_for_label }}" class="font-medium text-gray-700">
-                                    This is an affiliate link
+                                <label for="{{ form.is_exclusive.id_for_label }}" class="font-medium text-gray-700">
+                                    Exclusive to Fend Network
                                 </label>
-                                <p class="text-gray-500">Check if you receive commission from this link</p>
+                                <p class="text-gray-500">Check if this is an exclusive offer for Fend members only</p>
                             </div>
                         </div>
                     </div>
@@ -134,16 +134,16 @@
                     <div class="flex-1" id="preview-content">
                         <div class="flex items-center">
                             <h3 class="text-base font-medium text-gray-900" id="preview-title">
-                                {% if object %}{{ object.title }}{% else %}Your promotion title will appear here{% endif %}
+                                {% if object %}{{ object.title }}{% else %}Your deal title will appear here{% endif %}
                             </h3>
-                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" 
-                                  id="preview-affiliate" 
-                                  {% if not object.is_affiliate and not form.is_affiliate.value %}style="display: none;"{% endif %}>
-                                Affiliate
+                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800" 
+                                  id="preview-exclusive" 
+                                  {% if not object.is_exclusive and not form.is_exclusive.value %}style="display: none;"{% endif %}>
+                                Exclusive
                             </span>
                         </div>
                         <p class="mt-1 text-sm text-gray-600" id="preview-description">
-                            {% if object %}{{ object.description }}{% else %}Your promotion description will appear here{% endif %}
+                            {% if object %}{{ object.description }}{% else %}Your deal description will appear here{% endif %}
                         </p>
                     </div>
                     <div class="ml-4 flex-shrink-0">
@@ -170,11 +170,11 @@
                     <li>Keep descriptions concise but informative</li>
                     <li>Update or remove expired promotions promptly</li>
                 </ul>
-                <p class="mt-4"><strong>Affiliate Link Disclosure:</strong></p>
+                <p class="mt-4"><strong>Exclusive Offers:</strong></p>
                 <ul class="list-disc list-inside space-y-1 ml-4">
-                    <li>Always mark affiliate links to maintain transparency</li>
-                    <li>This helps build trust with potential partners</li>
-                    <li>Required by most affiliate programs and regulations</li>
+                    <li>Mark deals that are exclusive to the Fend network</li>
+                    <li>Helps other members identify special opportunities</li>
+                    <li>Builds trust and value within the community</li>
                 </ul>
             </div>
         </div>
@@ -186,35 +186,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get form elements
     const titleInput = document.getElementById('{{ form.title.id_for_label }}');
     const descriptionInput = document.getElementById('{{ form.description.id_for_label }}');
-    const affiliateCheckbox = document.getElementById('{{ form.is_affiliate.id_for_label }}');
+    const exclusiveCheckbox = document.getElementById('{{ form.is_exclusive.id_for_label }}');
     
     // Get preview elements
     const previewTitle = document.getElementById('preview-title');
     const previewDescription = document.getElementById('preview-description');
-    const previewAffiliate = document.getElementById('preview-affiliate');
+    const previewExclusive = document.getElementById('preview-exclusive');
     
     // Update preview when inputs change
     function updatePreview() {
         // Update title
         const titleValue = titleInput.value.trim();
-        previewTitle.textContent = titleValue || 'Your promotion title will appear here';
+        previewTitle.textContent = titleValue || 'Your deal title will appear here';
         
         // Update description
         const descriptionValue = descriptionInput.value.trim();
-        previewDescription.textContent = descriptionValue || 'Your promotion description will appear here';
+        previewDescription.textContent = descriptionValue || 'Your deal description will appear here';
         
-        // Update affiliate badge
-        if (affiliateCheckbox.checked) {
-            previewAffiliate.style.display = 'inline-flex';
+        // Update exclusive badge
+        if (exclusiveCheckbox.checked) {
+            previewExclusive.style.display = 'inline-flex';
         } else {
-            previewAffiliate.style.display = 'none';
+            previewExclusive.style.display = 'none';
         }
     }
     
     // Add event listeners
     titleInput.addEventListener('input', updatePreview);
     descriptionInput.addEventListener('input', updatePreview);
-    affiliateCheckbox.addEventListener('change', updatePreview);
+    exclusiveCheckbox.addEventListener('change', updatePreview);
     
     // Initial preview update
     updatePreview();

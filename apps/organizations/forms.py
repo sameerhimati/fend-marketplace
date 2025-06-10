@@ -420,23 +420,23 @@ class EnhancedOrganizationProfileForm(forms.ModelForm):
         return url
 
 class PartnerPromotionForm(forms.ModelForm):
-    """Form for managing partner promotions"""
+    """Form for managing partner promotions and exclusive deals"""
     
     class Meta:
         model = PartnerPromotion
-        fields = ['title', 'description', 'link_url', 'is_affiliate', 'display_order']
+        fields = ['title', 'description', 'link_url', 'is_exclusive', 'display_order']
         widgets = {
             'title': forms.TextInput(attrs={
-                'placeholder': 'e.g., "Special Partnership with TechCorp"',
+                'placeholder': 'e.g., "50% Off Enterprise Software Licenses"',
                 'maxlength': '100'
             }),
             'description': forms.Textarea(attrs={
                 'rows': 3,
-                'placeholder': 'Brief description of this partnership or promotion...',
+                'placeholder': 'Brief description of this exclusive offer or partnership...',
                 'maxlength': '500'
             }),
             'link_url': forms.URLInput(attrs={
-                'placeholder': 'https://example.com/promotion'
+                'placeholder': 'https://yourcompany.com/fend-exclusive'
             }),
             'display_order': forms.NumberInput(attrs={
                 'min': '0',
@@ -444,21 +444,24 @@ class PartnerPromotionForm(forms.ModelForm):
             }),
         }
         help_texts = {
-            'title': 'Short, descriptive title for this promotion',
+            'title': 'Short, descriptive title for this exclusive offer',
             'description': 'Brief description that will appear on your profile',
-            'link_url': 'URL where visitors will be directed when they click',
-            'is_affiliate': 'Check this if you receive commission from this link',
+            'link_url': 'URL where visitors can learn more or access the offer',
+            'is_exclusive': 'Mark if this is an exclusive offer for the Fend network',
             'display_order': 'Lower numbers appear first (0-10)',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # Update field labels
+        self.fields['is_exclusive'].label = 'Exclusive to Fend Network'
+        
         # Add CSS classes for styling
         for field_name, field in self.fields.items():
             if field_name == 'description':
                 field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
-            elif field_name == 'is_affiliate':
+            elif field_name == 'is_exclusive':
                 field.widget.attrs['class'] = 'focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded'
             else:
                 field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
