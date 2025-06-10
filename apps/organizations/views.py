@@ -398,18 +398,63 @@ class OrganizationProfileView(LoginRequiredMixin, DetailView):
         
         return context
 
-class ProfileEditView(LoginRequiredMixin, UpdateView):
-    model = Organization
-    form_class = EnhancedOrganizationProfileForm  # Use the enhanced form
+class ProfileEditView(LoginRequiredMixin, TemplateView):
     template_name = 'organizations/profile_edit.html'
     
-    def get_object(self, queryset=None):
-        # Only allow editing own organization
+    def get_organization(self):
         return self.request.user.organization
     
-    def get_success_url(self):
-        messages.success(self.request, "Profile updated successfully!")
-        return reverse('organizations:profile', kwargs={'pk': self.object.pk})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        organization = self.get_organization()
+        
+        if self.request.method == 'GET':
+            form = EnhancedOrganizationProfileForm(instance=organization)
+        else:
+            form = EnhancedOrganizationProfileForm(
+                data=self.request.POST, 
+                files=self.request.FILES,
+                instance=organization
+            )
+        
+        context['form'] = form
+        context['organization'] = organization
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        print("=== POST METHOD CALLED ===")
+        print(f"POST data: {request.POST}")
+        print(f"FILES data: {request.FILES}")
+        print(f"Content type: {request.content_type}")
+        
+        organization = self.get_organization()
+        form = EnhancedOrganizationProfileForm(
+            data=request.POST, 
+            files=request.FILES,
+            instance=organization
+        )
+        
+        if form.is_valid():
+            print("=== FORM VALID ===")
+            print(f"Form cleaned data: {form.cleaned_data}")
+            
+            # Manually update the organization
+            for field_name, value in form.cleaned_data.items():
+                if hasattr(organization, field_name) and value is not None:
+                    setattr(organization, field_name, value)
+            
+            # Save without calling full_clean()
+            organization.save(update_fields=list(form.cleaned_data.keys()))
+            
+            messages.success(request, "Profile updated successfully!")
+            return redirect('organizations:profile', pk=organization.pk)
+        else:
+            print("=== FORM INVALID ===")
+            print(f"Form errors: {form.errors}")
+            messages.error(request, "Please correct the errors below.")
+        
+        # If form is invalid, return the context with errors
+        return self.render_to_response(self.get_context_data())
 
 
 # =============================================================================
