@@ -19,7 +19,7 @@ class PartnerPromotionInline(admin.TabularInline):
     model = PartnerPromotion
     extra = 0
     max_num = 5
-    fields = ('title', 'description', 'link_url', 'is_affiliate', 'is_active', 'display_order')
+    fields = ('title', 'description', 'link_url', 'is_exclusive', 'is_active', 'display_order')
     readonly_fields = ('created_at', 'updated_at')
     
     def get_queryset(self, request):
@@ -185,8 +185,8 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 @admin.register(PartnerPromotion)
 class PartnerPromotionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'organization', 'is_affiliate', 'is_active', 'display_order', 'created_at')
-    list_filter = ('is_affiliate', 'is_active', 'organization__type', 'created_at')
+    list_display = ('title', 'organization', 'is_exclusive', 'is_active', 'display_order', 'created_at')
+    list_filter = ('is_exclusive', 'is_active', 'organization__type', 'created_at')
     search_fields = ('title', 'description', 'organization__name', 'link_url')
     list_editable = ('is_active', 'display_order')
     ordering = ('organization', 'display_order', '-created_at')
@@ -196,7 +196,7 @@ class PartnerPromotionAdmin(admin.ModelAdmin):
             'fields': ('organization', 'title', 'description', 'link_url')
         }),
         ('Settings', {
-            'fields': ('is_affiliate', 'is_active', 'display_order')
+            'fields': ('is_exclusive', 'is_active', 'display_order')
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),

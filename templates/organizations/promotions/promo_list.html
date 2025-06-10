@@ -10,9 +10,9 @@
             <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="text-2xl font-semibold text-gray-900">Partner Promotions</h1>
+                        <h1 class="text-2xl font-semibold text-gray-900">Partner Deals & Promotions</h1>
                         <p class="mt-1 text-sm text-gray-600">
-                            Manage partnerships and promotional content that appears on your organization profile
+                            Manage exclusive offers and partnership content that appears on your organization profile
                         </p>
                     </div>
                     <div class="flex space-x-3">
@@ -26,7 +26,7 @@
                             <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            Add Promotion
+                            Add New Deal
                         </a>
                         {% endif %}
                     </div>
@@ -57,9 +57,9 @@
         {% if promotions %}
         <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:px-6">
-                <h2 class="text-lg font-medium text-gray-900">Your Promotions</h2>
+                <h2 class="text-lg font-medium text-gray-900">Your Deals & Offers</h2>
                 <p class="mt-1 text-sm text-gray-500">
-                    These promotions appear on your organization profile for visitors to see
+                    These deals appear on your organization profile for other Fend members to discover
                 </p>
             </div>
             <div class="border-t border-gray-200">
@@ -72,9 +72,9 @@
                                     <h3 class="text-base font-medium text-gray-900 truncate">
                                         {{ promotion.title }}
                                     </h3>
-                                    {% if promotion.is_affiliate %}
-                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        Affiliate
+                                    {% if promotion.is_exclusive %}
+                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                        Exclusive
                                     </span>
                                     {% endif %}
                                     {% if not promotion.is_active %}
@@ -128,9 +128,9 @@
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                 </svg>
-                <h3 class="mt-2 text-lg font-medium text-gray-900">No promotions yet</h3>
+                <h3 class="mt-2 text-lg font-medium text-gray-900">No deals yet</h3>
                 <p class="mt-1 text-sm text-gray-500">
-                    Get started by creating your first partner promotion or special offer.
+                    Get started by creating your first exclusive offer or partnership deal.
                 </p>
                 <div class="mt-6">
                     <a href="{% url 'organizations:partner_promotion_create' %}" 
@@ -138,7 +138,7 @@
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
-                        Create Your First Promotion
+                        Create Your First Deal
                     </a>
                 </div>
             </div>
@@ -147,7 +147,7 @@
 
         <!-- Tips Section -->
         <div class="mt-8 bg-gray-50 rounded-lg p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Tips for Effective Promotions</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Tips for Effective Partner Deals</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <h4 class="text-sm font-medium text-gray-900">Best Practices</h4>
@@ -159,12 +159,12 @@
                     </ul>
                 </div>
                 <div>
-                    <h4 class="text-sm font-medium text-gray-900">Affiliate Links</h4>
+                    <h4 class="text-sm font-medium text-gray-900">Exclusive Offers</h4>
                     <ul class="mt-2 text-sm text-gray-600 space-y-1">
-                        <li>• Mark affiliate links appropriately</li>
-                        <li>• Disclose partnerships transparently</li>
-                        <li>• Track performance and ROI</li>
-                        <li>• Ensure links are working correctly</li>
+                        <li>• Mark deals exclusive to Fend members</li>
+                        <li>• Highlight special partnerships</li>
+                        <li>• Build trust within the community</li>
+                        <li>• Ensure links work correctly</li>
                     </ul>
                 </div>
             </div>

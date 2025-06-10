@@ -222,7 +222,7 @@ class Organization(models.Model):
 
 class PartnerPromotion(models.Model):
     """
-    Model for affiliate/partner promotions that organizations can display on their profiles
+    Model for exclusive deals and partner promotions that organizations can display on their profiles
     """
     organization = models.ForeignKey(
         Organization,
@@ -231,19 +231,19 @@ class PartnerPromotion(models.Model):
     )
     title = models.CharField(
         max_length=100,
-        help_text="Title of the promotion or partnership"
+        help_text="Title of the exclusive offer or partnership"
     )
     description = models.TextField(
         max_length=500,
         blank=True,
-        help_text="Brief description of the promotion or partnership"
+        help_text="Brief description of what this deal offers"
     )
     link_url = models.URLField(
-        help_text="URL link for the promotion"
+        help_text="URL where visitors can learn more or access the offer"
     )
-    is_affiliate = models.BooleanField(
+    is_exclusive = models.BooleanField(
         default=False,
-        help_text="Check if this is an affiliate link"
+        help_text="Mark as exclusive to the Fend network"
     )
     is_active = models.BooleanField(
         default=True,
