@@ -1,0 +1,13 @@
+# Fend Marketplace Notification Cron Jobs
+# These run inside the Docker container
+
+# Daily subscription expiry check (runs at 9 AM UTC daily)
+0 9 * * * cd /app && python manage.py send_subscription_expiry_notifications >> /var/log/cron.log 2>&1
+
+# Monthly deals digest (runs on 1st of every month at 10 AM UTC)  
+0 10 1 * * cd /app && python manage.py send_monthly_deals_digest >> /var/log/cron.log 2>&1
+
+# Deal refresh notifications (runs monthly on 15th at 9 AM UTC)
+0 9 15 * * cd /app && python manage.py send_deal_expiry_notifications >> /var/log/cron.log 2>&1
+
+# Empty line required at end of crontab file
