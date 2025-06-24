@@ -6,51 +6,44 @@ from django.utils import timezone
 from django.contrib import messages
 from django.template.loader import render_to_string
 
-@login_required
 def terms_of_service(request):
-    """Display Terms of Service"""
+    """Display Terms of Service - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/terms_of_service.html', {'show_acceptance': show_acceptance})
 
-@login_required  
 def privacy_policy(request):
-    """Display Privacy Policy"""
+    """Display Privacy Policy - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/privacy_policy.html', {'show_acceptance': show_acceptance})
 
-@login_required
 def user_agreement(request):
-    """Display User Agreement"""
+    """Display User Agreement - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/user_agreement.html', {'show_acceptance': show_acceptance})
 
-@login_required
 def payment_terms(request):
-    """Display Payment Terms"""
+    """Display Payment Terms - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/payment_terms.html', {'show_acceptance': show_acceptance})
 
-@login_required
 def payment_holding_agreement(request):
-    """Display Payment Holding Service Agreement"""
+    """Display Payment Holding Service Agreement - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/payment_holding_agreement.html', {'show_acceptance': show_acceptance})
 
-@login_required
 def data_processing_agreement(request):
-    """Display Data Processing Agreement (for EU users)"""
+    """Display Data Processing Agreement (for EU users) - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/data_processing_agreement.html', {'show_acceptance': show_acceptance})
 
-@login_required
 def product_listing_agreement(request):
-    """Display Product Listing and Commission Agreement"""
+    """Display Product Listing and Commission Agreement - Public access for registration and footer links"""
     # Only show acceptance in workflow contexts, not when browsing from footer
     show_acceptance = False
     return render(request, 'legal/product_listing_agreement.html', {'show_acceptance': show_acceptance})
