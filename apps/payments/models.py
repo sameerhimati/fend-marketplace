@@ -248,6 +248,9 @@ class EscrowPayment(models.Model):
         
         # Notify enterprise
         self._notify_instructions_sent()
+        
+        # Notify admins to watch for payment
+        self._notify_admins_payment_expected()
     
     def mark_as_received_and_activate(self, user=None, notes=None):
         """Admin confirms payment received AND activates work in one step"""
@@ -301,6 +304,16 @@ class EscrowPayment(models.Model):
         # Notify parties
         self._notify_payment_cancelled()
     
+    def notify_payment_sent_by_enterprise(self, user=None):
+        """Enterprise claims they sent payment - notify admins to verify"""
+        from apps.notifications.services import create_admin_notification
+        create_admin_notification(
+            title=f"🔍 Verify Payment: {self.pilot_bid.pilot.title}",
+            message=f"Enterprise {self.pilot_bid.pilot.organization.name} claims payment sent for ${self.total_amount}. Reference: {self.reference_code}. Please verify receipt and activate work.",
+            related_pilot=self.pilot_bid.pilot,
+            related_bid=self.pilot_bid
+        )
+    
     # Updated payment workflow status checks for 4-stage workflow
     def can_send_instructions(self):
         return self.status == 'pending'
@@ -320,6 +333,16 @@ class EscrowPayment(models.Model):
             notification_type='payment_instructions',
             title=f"Invoice Generated: {self.pilot_bid.pilot.title}",
             message=f"Invoice for ${self.total_amount} has been generated for pilot '{self.pilot_bid.pilot.title}'. Reference: {self.reference_code}"
+        )
+    
+    def _notify_admins_payment_expected(self):
+        """Notify admins to watch for incoming wire transfer"""
+        from apps.notifications.services import create_admin_notification
+        create_admin_notification(
+            title=f"💳 Payment Expected: {self.pilot_bid.pilot.title}",
+            message=f"Wire transfer expected from {self.pilot_bid.pilot.organization.name} for ${self.total_amount}. Reference: {self.reference_code}. Watch for payment and verify when received.",
+            related_pilot=self.pilot_bid.pilot,
+            related_bid=self.pilot_bid
         )
     
     def _notify_payment_received_and_activated(self):

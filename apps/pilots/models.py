@@ -551,7 +551,7 @@ class PilotBid(models.Model):
             bid=self,
             notification_type='bid_approved',
             title=f"Bid Approved: {self.pilot.title}",
-            message=f"The bid for '${self.amount}' on pilot '{self.pilot.title}' has been approved. Fend will send payment instructions shortly."
+            message=f"Your ${self.amount} bid for '{self.pilot.title}' has been approved! Payment instructions will be sent shortly."
         )
         
         # Notify admin to generate invoice
@@ -566,9 +566,9 @@ class PilotBid(models.Model):
         from apps.notifications.services import create_bid_notification
         create_bid_notification(
             bid=self,
-            notification_type='work_can_begin',
-            title=f"Work Can Begin: {self.pilot.title}",
-            message=f"Payment has been verified for pilot '{self.pilot.title}'. Work can now begin."
+            notification_type='bid_live',
+            title=f"🚀 Ready to Start: {self.pilot.title}",
+            message=f"Payment confirmed! You can now begin work on '{self.pilot.title}'."
         )
     
     def _notify_completion_requested(self):
@@ -576,8 +576,8 @@ class PilotBid(models.Model):
         create_pilot_notification(
             pilot=self.pilot,
             notification_type='completion_requested',
-            title=f"Completion Review Requested: {self.pilot.title}",
-            message=f"The startup has completed work on pilot '{self.pilot.title}' and requests verification of completion."
+            title=f"✅ Review Requested: {self.pilot.title}",
+            message=f"{self.startup.name} has completed work on '{self.pilot.title}' and is requesting final review."
         )
     
     def _notify_completion_verified(self):
@@ -595,8 +595,8 @@ class PilotBid(models.Model):
         create_bid_notification(
             bid=self,
             notification_type='work_completed',
-            title=f"Work Completed: {self.pilot.title}",
-            message=f"Work for pilot '{self.pilot.title}' has been completed and verified. Payment will be released soon."
+            title=f"🎉 Work Completed: {self.pilot.title}",
+            message=f"Congratulations! Work on '{self.pilot.title}' has been approved and payment will be released shortly."
         )
     
     def _notify_bid_declined_with_reason(self, declined_by_enterprise, reason=None):

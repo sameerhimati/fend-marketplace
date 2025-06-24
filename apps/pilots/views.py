@@ -381,8 +381,8 @@ def update_bid_status(request, pk):
             create_bid_notification(
                 bid=bid,
                 notification_type='bid_under_review',
-                title=f"Bid under review: {bid.pilot.title}",
-                message=f"Your bid for '{bid.pilot.title}' is now under review by {bid.pilot.organization.name}."
+                title=f"👀 Under Review: {bid.pilot.title}",
+                message=f"Your bid for '{bid.pilot.title}' is now being reviewed by {bid.pilot.organization.name}."
             )
             
             messages.success(request, "Bid marked as under review.")
@@ -454,8 +454,8 @@ def create_bid(request, pilot_id):
             create_bid_notification(
                 bid=bid,
                 notification_type='bid_submitted',
-                title=f"{'Revised' if (is_resubmission or can_edit) else 'New'} bid received: {pilot.title}",
-                message=f"{user_org.name} has submitted a {action_text} bid of ${bid.amount} for your pilot '{pilot.title}'."
+                title=f"💼 {'Revised' if (is_resubmission or can_edit) else 'New'} Bid: {pilot.title}",
+                message=f"{user_org.name} submitted a {action_text} ${bid.amount} bid for '{pilot.title}'."
             )
 
             action_past = 'updated' if can_edit else ('resubmitted' if is_resubmission else 'submitted')
@@ -512,8 +512,8 @@ def delete_bid(request, pk):
     create_pilot_notification(
         pilot=bid.pilot,
         notification_type='bid_withdrawn',
-        title=f"Bid Withdrawn: {bid.pilot.title}",
-        message=f"{bid.startup.name} has withdrawn their bid of ${bid.amount} for '{bid.pilot.title}'."
+        title=f"🚫 Bid Withdrawn: {bid.pilot.title}",
+        message=f"{bid.startup.name} withdrew their ${bid.amount} bid for '{bid.pilot.title}'."
     )
     
     # Delete the bid

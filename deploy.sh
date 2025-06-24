@@ -54,9 +54,9 @@ docker-compose down
 echo "🧹 Cleaning up old Docker images..."
 docker image prune -f || echo "No images to clean"
 
-# Build the web container
-echo "🔨 Building web container..."
-docker-compose build web
+# Build all containers (including new cron service)
+echo "🔨 Building all containers..."
+docker-compose build
 
 # Start all services
 echo "▶️  Starting all services..."
@@ -128,6 +128,8 @@ echo "   - View logs: docker-compose logs -f"
 echo "   - Check specific service: docker-compose logs [service_name]"
 echo "   - Restart service: docker-compose restart [service_name]"
 echo "   - Access Django shell: docker-compose exec web python manage.py shell"
+echo "   - Check cron jobs: docker-compose logs cron"
+echo "   - Test notifications: docker-compose exec cron python manage.py send_subscription_expiry_notifications"
 echo ""
 
 # Optional: Show recent logs

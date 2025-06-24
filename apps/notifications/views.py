@@ -25,8 +25,10 @@ def notification_list(request):
 def notification_detail(request, notification_id):
     notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
     
-    # Don't automatically mark as read
-    # Only mark as read if explicitly requested
+    # Automatically mark as read when viewed
+    if not notification.read:
+        notification.read = True
+        notification.save(update_fields=['read'])
     
     context = {
         'notification': notification
