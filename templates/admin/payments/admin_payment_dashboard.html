@@ -1,588 +1,182 @@
 {% extends 'admin/base_admin.html' %}
 
-{% block title %}Payment Management Dashboard - Fend Admin{% endblock %}
+{% block title %}Payment Management - Fend Admin{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <!-- Header with Quick Stats -->
+<div class="space-y-6">
+    <!-- Simple Header -->
     <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Payment Management Dashboard</h1>
-        <p class="text-gray-600">Streamlined 4-stage workflow from bid approval to payment release</p>
-        
-        <!-- Enhanced Quick Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-lg bg-blue-100">
-                        <i class="fas fa-file-invoice text-blue-600 text-xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Need Invoicing</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ invoice_generation_count }}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-lg bg-yellow-100">
-                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Awaiting Payment</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ invoiced_awaiting_payment_count }}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-lg bg-green-100">
-                        <i class="fas fa-play-circle text-green-600 text-xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Confirm & Activate</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ confirm_and_activate_count }}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-lg bg-purple-100">
-                        <i class="fas fa-hand-holding-usd text-purple-600 text-xl"></i>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Ready for Release</p>
-                        <p class="text-3xl font-bold text-gray-900">{{ release_count }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Workflow Progress Indicator -->
-        <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">4-Stage Payment Workflow</h3>
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Generate Invoice</p>
-                        <p class="text-xs text-gray-500">{{ invoice_generation_count }} pending</p>
-                    </div>
-                </div>
-                <div class="flex-1 h-1 bg-gray-200 mx-4"></div>
-                
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white text-sm font-bold">2</div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Await Payment</p>
-                        <p class="text-xs text-gray-500">{{ invoiced_awaiting_payment_count }} pending</p>
-                    </div>
-                </div>
-                <div class="flex-1 h-1 bg-gray-200 mx-4"></div>
-                
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Confirm & Activate</p>
-                        <p class="text-xs text-gray-500">{{ confirm_and_activate_count }} ready</p>
-                    </div>
-                </div>
-                <div class="flex-1 h-1 bg-gray-200 mx-4"></div>
-                
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white text-sm font-bold">4</div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium text-gray-900">Release Payment</p>
-                        <p class="text-xs text-gray-500">{{ release_count }} ready</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <h1 class="text-2xl font-bold text-gray-900">Mercury Payment Management</h1>
+        <p class="text-gray-600">3-step manual workflow for wire transfers</p>
     </div>
 
-    <!-- Enhanced Workflow Sections -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- 3 Simple Lists -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- STAGE 1: Approved Bids Needing Invoice Generation -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+        <!-- STEP 1: Generate Mercury Invoices -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-yellow-50">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-file-invoice text-blue-500 mr-3"></i>
-                        Stage 1: Generate Invoices
-                    </h2>
-                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ approved_bids_needing_invoice|length }} pending
+                    <h2 class="text-lg font-semibold text-gray-900">📄 Generate Invoices</h2>
+                    {% if approved_bids_needing_invoice %}
+                    <span class="bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ approved_bids_needing_invoice|length }}
                     </span>
+                    {% endif %}
                 </div>
-                <p class="text-sm text-gray-600 mt-1">Approved bids ready for invoice generation</p>
+                <p class="text-sm text-gray-600 mt-1">Create Mercury invoices for approved bids</p>
             </div>
             
             <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                 {% for bid in approved_bids_needing_invoice %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
+                <div class="p-4">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="font-medium text-gray-900">{{ bid.pilot.title|truncatechars:40 }}</h3>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    ${{ bid.amount }}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ bid.pilot.organization.name }} → {{ bid.startup.name }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                <i class="fas fa-check-circle mr-1"></i>
-                                Approved {{ bid.updated_at|timesince }} ago
-                            </p>
-                            <p class="text-xs text-blue-600 font-medium">
-                                Escrow: ${{ bid.calculate_total_amount_for_enterprise }}
-                            </p>
+                            <h3 class="font-medium text-gray-900">{{ bid.pilot.title|truncatechars:35 }}</h3>
+                            <p class="text-sm text-gray-600">{{ bid.pilot.organization.name }}</p>
+                            <p class="text-sm font-medium text-green-600">${{ bid.calculate_total_amount_for_enterprise }}</p>
+                            <p class="text-xs text-gray-500">Approved {{ bid.updated_at|timesince }} ago</p>
                         </div>
-                        <div class="flex flex-col space-y-2 ml-4">
+                        <div class="ml-3 flex flex-col space-y-2">
                             <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <i class="fas fa-eye mr-1"></i>
-                                Review
+                               class="text-xs px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-center">
+                                View
                             </a>
                             <form method="post" action="{% url 'payments:admin_mark_invoice_sent' bid.id %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" 
-                                        data-confirm="Mark invoice as sent to {{ bid.pilot.organization.name }}?"
-                                        class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                                    <i class="fas fa-paper-plane mr-1"></i>
-                                    Send Invoice
+                                        data-confirm="Generate Mercury invoice for {{ bid.pilot.organization.name }}?"
+                                        class="w-full text-xs px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                                    Generate
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-check-circle text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No approved bids needing invoices</p>
+                <div class="p-6 text-center text-gray-500">
+                    <i class="fas fa-check-circle text-2xl mb-2"></i>
+                    <p class="text-sm">No invoices to generate</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- STAGE 2: Invoices Sent, Awaiting Payment -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-yellow-50 to-amber-50 px-6 py-4 border-b border-yellow-100">
+        <!-- STEP 2: Check Mercury for Wire Transfers -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-clock text-yellow-500 mr-3"></i>
-                        Stage 2: Awaiting Payment
-                    </h2>
-                    <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ invoices_sent_awaiting_payment|length }} sent
+                    <h2 class="text-lg font-semibold text-gray-900">💰 Check Mercury</h2>
+                    {% if invoices_sent_awaiting_payment %}
+                    <span class="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ invoices_sent_awaiting_payment|length }}
                     </span>
+                    {% endif %}
                 </div>
-                <p class="text-sm text-gray-600 mt-1">Invoices sent, waiting for enterprise payment</p>
+                <p class="text-sm text-gray-600 mt-1">Check Mercury for incoming wire transfers</p>
             </div>
             
             <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                 {% for payment in invoices_sent_awaiting_payment %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
+                <div class="p-4">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    ${{ payment.total_amount }}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:50 }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                {{ payment.pilot_bid.pilot.organization.name }}
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                <i class="fas fa-paper-plane mr-1"></i>
-                                Invoice sent {{ payment.instructions_sent_at|timesince }} ago
-                            </p>
+                            <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
+                            <p class="text-sm text-gray-600">{{ payment.pilot_bid.pilot.organization.name }}</p>
+                            <p class="text-sm font-medium text-blue-600">${{ payment.total_amount }}</p>
+                            <p class="text-xs text-gray-500">Invoice sent {{ payment.instructions_sent_at|timesince }} ago</p>
                         </div>
-                        <div class="flex flex-col space-y-2 ml-4">
+                        <div class="ml-3 flex flex-col space-y-2">
                             <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <i class="fas fa-eye mr-1"></i>
-                                Review
-                            </a>
-                            <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-yellow-700">
-                                <i class="fas fa-hourglass-half mr-1"></i>
-                                Waiting...
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-file-invoice text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No invoices awaiting payment</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- STAGE 3: Confirm Payment & Activate Work -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-play-circle text-green-500 mr-3"></i>
-                        Stage 3: Confirm & Activate
-                    </h2>
-                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ ready_to_confirm_and_activate|length }} ready
-                    </span>
-                </div>
-                <p class="text-sm text-gray-600 mt-1">Confirm payment received and activate pilot work</p>
-            </div>
-            
-            <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {% for payment in ready_to_confirm_and_activate %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    ${{ payment.total_amount }}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:50 }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                {{ payment.pilot_bid.pilot.organization.name }} → {{ payment.pilot_bid.startup.name }}
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                <i class="fas fa-paper-plane mr-1"></i>
-                                Invoice sent {{ payment.instructions_sent_at|timesince }} ago
-                            </p>
-                        </div>
-                        <div class="flex flex-col space-y-2 ml-4">
-                            <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <i class="fas fa-eye mr-1"></i>
-                                Review
+                               class="text-xs px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-center">
+                                View
                             </a>
                             <form method="post" action="{% url 'payments:admin_confirm_payment_and_activate' payment.id %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" 
-                                        data-confirm="Confirm payment received and activate work for this pilot?"
-                                        class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                                    <i class="fas fa-check-double mr-1"></i>
-                                    Confirm & Activate
+                                        data-confirm="Confirm wire transfer received in Mercury?"
+                                        class="w-full text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Received
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-play-circle text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No payments ready to confirm and activate</p>
+                <div class="p-6 text-center text-gray-500">
+                    <i class="fas fa-check-circle text-2xl mb-2"></i>
+                    <p class="text-sm">No payments to check</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
 
-        <!-- STAGE 4: Payment Confirmed - Ready to Start Work -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-cyan-50 to-blue-50 px-6 py-4 border-b border-cyan-100">
+        <!-- STEP 3: Release Funds to Startups -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-green-50">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-rocket text-cyan-500 mr-3"></i>
-                        Stage 4: Ready to Start Work
-                    </h2>
-                    <span class="bg-cyan-100 text-cyan-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ payment_confirmed_ready_to_start|length }} ready
+                    <h2 class="text-lg font-semibold text-gray-900">💸 Release Funds</h2>
+                    {% if completed_ready_for_release %}
+                    <span class="bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ completed_ready_for_release|length }}
                     </span>
+                    {% endif %}
                 </div>
-                <p class="text-sm text-gray-600 mt-1">Payment confirmed - activate pilot work</p>
-            </div>
-            
-            <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {% for payment in payment_confirmed_ready_to_start %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
-                                    ${{ payment.total_amount }}
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:50 }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                {{ payment.pilot_bid.startup.name }}
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                <i class="fas fa-check-circle mr-1"></i>
-                                Payment confirmed {{ payment.received_at|timesince }} ago
-                            </p>
-                        </div>
-                        <div class="flex flex-col space-y-2 ml-4">
-                            <a href="{% url 'pilots:bid_detail' payment.pilot_bid.pk %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <i class="fas fa-eye mr-1"></i>
-                                Review
-                            </a>
-                            <form method="post" action="{% url 'payments:admin_start_pilot_work' payment.pilot_bid.id %}" class="inline">
-                                {% csrf_token %}
-                                <button type="submit" 
-                                        data-confirm="Start work for this pilot? Both parties will be notified that work can begin."
-                                        class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700">
-                                    <i class="fas fa-rocket mr-1"></i>
-                                    Start Work
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-rocket text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No pilots ready to start work</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>    
-        
-        <!-- Active Work Summary Section -->
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-play-circle text-emerald-500 mr-3"></i>
-                        Active Work Overview
-                    </h2>
-                    <a href="{% url 'payments:admin_active_pilots_dashboard' %}" 
-                       class="text-sm text-emerald-600 hover:text-emerald-900 font-medium">
-                        View All Active Work
-                    </a>
-                </div>
-                <p class="text-sm text-gray-600 mt-1">Here are all the pilots in progress</p>
-            </div>
-            
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Ready to Start -->
-                    <div class="text-center">
-                        <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                            <i class="fas fa-rocket text-blue-600 text-xl"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900">{{ payment_confirmed_count|default:0 }}</div>
-                        <div class="text-sm text-gray-600">Ready to Start</div>
-                        <div class="text-xs text-gray-500 mt-1">Payment confirmed</div>
-                    </div>
-                    
-                    <!-- Work in Progress -->
-                    <div class="text-center">
-                        <div class="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                            <i class="fas fa-cogs text-green-600 text-xl"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900">{{ active_pilots_count|default:0 }}</div>
-                        <div class="text-sm text-gray-600">Work in Progress</div>
-                        <div class="text-xs text-gray-500 mt-1">Live pilots</div>
-                    </div>
-                    
-                    <!-- Total Value -->
-                    <div class="text-center">
-                        <div class="bg-purple-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                            <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-900">${{ total_escrow_amount|floatformat:0 }}</div>
-                        <div class="text-sm text-gray-600">Total Active Value</div>
-                        <div class="text-xs text-gray-500 mt-1">In escrow</div>
-                    </div>
-                </div>
-            <!-- Quick Active Pilots Preview -->
-            {% if active_pilots %}
-            <div class="mt-6 pt-6 border-t border-gray-200">
-                <h3 class="text-sm font-medium text-gray-900 mb-3">Recent Active Pilots</h3>
-                <div class="space-y-3">
-                    {% for bid in active_pilots|slice:":3" %}
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">{{ bid.pilot.title|truncatechars:40 }}</p>
-                            <p class="text-xs text-gray-500">
-                                {{ bid.startup.name }} • ${{ bid.amount }} • Started {{ bid.updated_at|timesince }} ago
-                            </p>
-                        </div>
-                        <a href="{% url 'pilots:bid_detail' bid.pk %}" 
-                           class="text-xs text-indigo-600 hover:text-indigo-900 font-medium">
-                            View
-                        </a>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-        <!-- STAGE 5: Work Completed, Ready for Payment Release -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-purple-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-hand-holding-usd text-purple-500 mr-3"></i>
-                        Stage 5: Release Payments
-                    </h2>
-                    <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ completed_ready_for_release|length }} completed
-                    </span>
-                </div>
-                <p class="text-sm text-gray-600 mt-1">Work completed - release funds to startups</p>
+                <p class="text-sm text-gray-600 mt-1">Send payments to startups via Mercury</p>
             </div>
             
             <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                 {% for payment in completed_ready_for_release %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
+                <div class="p-4">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
-                            <div class="flex items-center">
-                                <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
-                                <div class="ml-2 flex space-x-1">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Complete
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                        ${{ payment.startup_amount }}
-                                    </span>
-                                </div>
-                            </div>
-                            <p class="text-sm text-gray-600 mt-1">{{ payment.pilot_bid.pilot.title|truncatechars:50 }}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                Startup: {{ payment.pilot_bid.startup.name }}
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                <i class="fas fa-calendar-check mr-1"></i>
-                                Completed {{ payment.pilot_bid.completed_at|timesince }} ago
-                            </p>
+                            <h3 class="font-medium text-gray-900">{{ payment.reference_code }}</h3>
+                            <p class="text-sm text-gray-600">{{ payment.pilot_bid.startup.name }}</p>
+                            <p class="text-sm font-medium text-green-600">${{ payment.startup_amount }}</p>
+                            <p class="text-xs text-gray-500">Work completed {{ payment.pilot_bid.completed_at|timesince }} ago</p>
                         </div>
-                        <div class="flex flex-col space-y-2 ml-4">
+                        <div class="ml-3 flex flex-col space-y-2">
                             <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
-                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                <i class="fas fa-eye mr-1"></i>
-                                Review
+                               class="text-xs px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-center">
+                                View
                             </a>
                             <form method="post" action="{% url 'payments:admin_release_startup_payment' payment.id %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" 
-                                        data-confirm="Release ${{ payment.startup_amount }} to {{ payment.pilot_bid.startup.name }}?"
-                                        class="w-full inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
-                                    <i class="fas fa-paper-plane mr-1"></i>
-                                    Release Funds
+                                        data-confirm="Send ${{ payment.startup_amount }} to {{ payment.pilot_bid.startup.name }} via Mercury?"
+                                        class="w-full text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Send
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-hand-holding-usd text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No payments ready for release</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Recent Activity Log -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden lg:col-span-2">
-            <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-history text-gray-500 mr-3"></i>
-                        Recent Activity
-                    </h2>
-                    <a href="{% url 'payments:admin_escrow_payments' %}" 
-                       class="text-sm text-indigo-600 hover:text-indigo-900 font-medium">
-                        View All
-                    </a>
-                </div>
-                <p class="text-sm text-gray-600 mt-1">Latest payment status changes</p>
-            </div>
-            
-            <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {% for log in recent_logs %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            {% if log.new_status == 'instructions_sent' %}
-                                <div class="p-2 bg-blue-100 rounded-full">
-                                    <i class="fas fa-paper-plane text-blue-600 text-sm"></i>
-                                </div>
-                            {% elif log.new_status == 'received' %}
-                                <div class="p-2 bg-green-100 rounded-full">
-                                    <i class="fas fa-check-double text-green-600 text-sm"></i>
-                                </div>
-                            {% elif log.new_status == 'released' %}
-                                <div class="p-2 bg-purple-100 rounded-full">
-                                    <i class="fas fa-hand-holding-usd text-purple-600 text-sm"></i>
-                                </div>
-                            {% else %}
-                                <div class="p-2 bg-gray-100 rounded-full">
-                                    <i class="fas fa-clock text-gray-600 text-sm"></i>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="ml-4 flex-1">
-                            <p class="text-sm font-medium text-gray-900">
-                                <a href="{% url 'payments:admin_escrow_payment_detail' log.escrow_payment.id %}" 
-                                   class="text-indigo-600 hover:text-indigo-900">
-                                    {{ log.escrow_payment.reference_code }}
-                                </a>
-                            </p>
-                            <p class="text-sm text-gray-600">
-                                {% if log.previous_status %}
-                                    Status: {{ log.previous_status|title }} → {{ log.new_status|title }}
-                                {% else %}
-                                    Created as {{ log.new_status|title }}
-                                {% endif %}
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                {{ log.created_at|timesince }} ago
-                                {% if log.changed_by %}by {{ log.changed_by.get_full_name|default:log.changed_by.username }}{% endif %}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-history text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No recent activity</p>
+                <div class="p-6 text-center text-gray-500">
+                    <i class="fas fa-check-circle text-2xl mb-2"></i>
+                    <p class="text-sm">No funds to release</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions Bar -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <a href="{% url 'payments:admin_escrow_payments' %}" 
-               class="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                <i class="fas fa-list mr-2"></i>
-                All Payments
-            </a>
-            <a href="{% url 'payments:admin_export_payments_csv' %}" 
-               class="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                <i class="fas fa-download mr-2"></i>
-                Export CSV
-            </a>
-            <a href="{% url 'admin:payments_escrowpaymentlog_changelist' %}" 
-               class="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                <i class="fas fa-clipboard-list mr-2"></i>
-                Audit Logs
-            </a>
-            <a href="{% url 'admin:index' %}" 
-               class="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                <i class="fas fa-tachometer-alt mr-2"></i>
-                Main Dashboard
-            </a>
+    <!-- Quick Stats -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Summary</h3>
+        <div class="grid grid-cols-3 gap-6 text-center">
+            <div>
+                <div class="text-2xl font-bold text-yellow-600">{{ approved_bids_needing_invoice|length|default:0 }}</div>
+                <div class="text-sm text-gray-600">Invoices to generate</div>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-blue-600">{{ invoices_sent_awaiting_payment|length|default:0 }}</div>
+                <div class="text-sm text-gray-600">Payments to check</div>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-green-600">{{ completed_ready_for_release|length|default:0 }}</div>
+                <div class="text-sm text-gray-600">Funds to release</div>
+            </div>
         </div>
     </div>
 </div>

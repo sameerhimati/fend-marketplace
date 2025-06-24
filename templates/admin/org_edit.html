@@ -1,0 +1,183 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Edit {{ org.name }} - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'admin_org_detail' org.id %}" class="text-indigo-600 hover:text-indigo-900">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Organization Details
+                </a>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit {{ org.name }}</h1>
+        </div>
+    </div>
+
+    <!-- Edit Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Basic Information</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Organization Name *</label>
+                    <input type="text" id="name" name="name" value="{{ org.name }}" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="website" class="block text-sm font-medium text-gray-700 mb-1">Website *</label>
+                    <input type="url" id="website" name="website" value="{{ org.website }}" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="description" name="description" rows="4"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">{{ org.description|default:"" }}</textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="employee_count" class="block text-sm font-medium text-gray-700 mb-1">Company Size</label>
+                        <select id="employee_count" name="employee_count"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Select employee count</option>
+                            <option value="1-10" {% if org.employee_count == '1-10' %}selected{% endif %}>1-10 employees</option>
+                            <option value="11-50" {% if org.employee_count == '11-50' %}selected{% endif %}>11-50 employees</option>
+                            <option value="51-200" {% if org.employee_count == '51-200' %}selected{% endif %}>51-200 employees</option>
+                            <option value="201-1000" {% if org.employee_count == '201-1000' %}selected{% endif %}>201-1000 employees</option>
+                            <option value="1000+" {% if org.employee_count == '1000+' %}selected{% endif %}>1000+ employees</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="founding_year" class="block text-sm font-medium text-gray-700 mb-1">Founded Year</label>
+                        <input type="number" id="founding_year" name="founding_year" value="{{ org.founding_year|default:'' }}"
+                               min="1800" max="{% now 'Y' %}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="headquarters_location" class="block text-sm font-medium text-gray-700 mb-1">Headquarters Location</label>
+                    <input type="text" id="headquarters_location" name="headquarters_location" value="{{ org.headquarters_location|default:'' }}"
+                           placeholder="City, State/Country"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Contact Information</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="primary_contact_name" class="block text-sm font-medium text-gray-700 mb-1">Primary Contact Name</label>
+                    <input type="text" id="primary_contact_name" name="primary_contact_name" value="{{ org.primary_contact_name|default:'' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="primary_contact_phone" class="block text-sm font-medium text-gray-700 mb-1">Primary Contact Phone</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="country_code" name="country_code" value="{{ org.country_code|default:'+1' }}"
+                               class="w-20 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="tel" id="primary_contact_phone" name="primary_contact_phone" value="{{ org.primary_contact_phone|default:'' }}"
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legal Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Legal Information</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="business_type" class="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+                    <select id="business_type" name="business_type"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Select One</option>
+                        <option value="c_corp" {% if org.business_type == 'c_corp' %}selected{% endif %}>C-Corporation</option>
+                        <option value="s_corp" {% if org.business_type == 's_corp' %}selected{% endif %}>S-Corporation</option>
+                        <option value="llc" {% if org.business_type == 'llc' %}selected{% endif %}>LLC</option>
+                        <option value="international" {% if org.business_type == 'international' %}selected{% endif %}>International</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="business_registration_number" class="block text-sm font-medium text-gray-700 mb-1">Business Registration Number</label>
+                    <input type="text" id="business_registration_number" name="business_registration_number" 
+                           value="{{ org.business_registration_number|default:'' }}"
+                           placeholder="Format: country-code-number"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="tax_identification_number" class="block text-sm font-medium text-gray-700 mb-1">Tax ID / EIN</label>
+                    <input type="text" id="tax_identification_number" name="tax_identification_number" 
+                           value="{{ org.tax_identification_number|default:'' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Media -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Social Media</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="linkedin_url" class="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                    <input type="url" id="linkedin_url" name="linkedin_url" value="{{ org.linkedin_url|default:'' }}"
+                           placeholder="https://linkedin.com/company/..."
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="twitter_url" class="block text-sm font-medium text-gray-700 mb-1">Twitter/X URL</label>
+                    <input type="url" id="twitter_url" name="twitter_url" value="{{ org.twitter_url|default:'' }}"
+                           placeholder="https://twitter.com/..."
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between pt-4">
+            <a href="{% url 'admin_org_detail' org.id %}" 
+               class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                Cancel
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <i class="fas fa-save mr-2"></i>Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+{% if messages %}
+    <div class="fixed bottom-8 right-8 space-y-2">
+        {% for message in messages %}
+            <div class="bg-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% else %}blue{% endif %}-100 border border-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% else %}blue{% endif %}-400 text-{% if message.tags == 'success' %}green{% elif message.tags == 'error' %}red{% else %}blue{% endif %}-800 px-4 py-3 rounded-lg shadow-md flex items-center">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %} mr-2"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

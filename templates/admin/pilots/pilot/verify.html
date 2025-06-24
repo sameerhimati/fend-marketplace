@@ -60,6 +60,40 @@
     </div>
 
     {% if pending_pilots %}
+    <!-- Bulk Actions Bar -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <form method="post" action="{% url 'admin_export_csv' %}" onsubmit="return handleBulkAction(this)">
+            {% csrf_token %}
+            <input type="hidden" name="model_type" value="pilot">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" data-select-all="item_ids" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="ml-2 text-sm font-medium text-gray-700">Select All</span>
+                    </label>
+                    <select name="action" class="border border-gray-300 rounded-md text-sm">
+                        <option value="">Choose Action...</option>
+                        <option value="verify">Bulk Approve Selected</option>
+                        <option value="export">Export Selected</option>
+                    </select>
+                    <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+                        <i class="fas fa-play mr-2"></i>
+                        Apply Action
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="text-sm text-gray-500">
+                        <span id="selected-count">0</span> selected
+                    </div>
+                    <div class="text-sm text-gray-500">•</div>
+                    <div class="text-sm text-gray-500">
+                        {{ pending_pilots|length }} total
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <!-- Pilots List -->
     <div class="space-y-4">
         {% for pilot in pending_pilots %}
@@ -69,6 +103,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <div class="flex items-center">
+                            <input type="checkbox" name="item_ids" value="{{ pilot.id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3">
                             <h3 class="text-lg font-semibold text-gray-900">{{ pilot.title }}</h3>
                             <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                 <i class="fas fa-clock mr-1"></i>
@@ -309,6 +344,17 @@ document.querySelectorAll('.reject-pilot-btn').forEach(button => {
         const pilotName = this.dataset.pilotName;
         showRejectModal(pilotId, pilotName);
     });
+});
+
+// Update selected count
+function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('input[name="item_ids"]:checked');
+    document.getElementById('selected-count').textContent = checkedBoxes.length;
+}
+
+// Add event listeners to checkboxes
+document.querySelectorAll('input[name="item_ids"]').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
 });
 
 // Add line-clamp utility styles if not available in Tailwind

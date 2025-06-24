@@ -1,0 +1,306 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}{{ org.name }} - Organization Details - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'admin_org_dashboard' %}" class="text-indigo-600 hover:text-indigo-900">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Organizations
+                </a>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 mt-2">{{ org.name }}</h1>
+                    <div class="flex items-center space-x-4 mt-2">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {% if org.type == 'enterprise' %}bg-blue-100 text-blue-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {{ org.get_type_display }}
+                        </span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                            {% if org.approval_status == 'approved' %}bg-green-100 text-green-800
+                            {% elif org.approval_status == 'pending' %}bg-orange-100 text-orange-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ org.get_approval_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <a href="{% url 'admin_org_edit' org.id %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit Organization
+                </a>
+            </div>
+        </div>
+        {% if org.approval_status == 'pending' %}
+        <div class="flex space-x-3">
+            <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                <i class="fas fa-check mr-2"></i>Approve Organization
+            </button>
+            <button class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                <i class="fas fa-times mr-2"></i>Decline Organization
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Organization Info Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Basic Information</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Organization Name</label>
+                    <p class="text-gray-900">{{ org.name }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Website</label>
+                    <p class="text-gray-900">
+                        {% if org.website %}
+                            <a href="{{ org.website }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">{{ org.website }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Description</label>
+                    <p class="text-gray-900">{{ org.description|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Business Type</label>
+                    <p class="text-gray-900">{{ org.get_business_type_display|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Company Size</label>
+                    <p class="text-gray-900">{{ org.get_employee_count_display|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Founded</label>
+                    <p class="text-gray-900">{{ org.founding_year|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Headquarters</label>
+                    <p class="text-gray-900">{{ org.headquarters_location|default:"—" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Contact Information</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Primary Contact</label>
+                    <p class="text-gray-900">{{ org.primary_contact_name|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Organization Type</label>
+                    <p class="text-gray-900">{{ org.get_type_display }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Phone</label>
+                    <p class="text-gray-900">{% if org.primary_contact_phone %}{{ org.country_code }}{{ org.primary_contact_phone }}{% else %}—{% endif %}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">LinkedIn</label>
+                    <p class="text-gray-900">
+                        {% if org.linkedin_url %}
+                            <a href="{{ org.linkedin_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">{{ org.linkedin_url }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Twitter/X</label>
+                    <p class="text-gray-900">
+                        {% if org.twitter_url %}
+                            <a href="{{ org.twitter_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">{{ org.twitter_url }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legal & Registration Info -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Legal Information</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Business Registration Number</label>
+                    <p class="text-gray-900">{{ org.business_registration_number|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Tax ID / EIN</label>
+                    <p class="text-gray-900">{{ org.tax_identification_number|default:"—" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Registration Date</label>
+                    <p class="text-gray-900">{{ org.created_at|date:"F d, Y" }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Last Updated</label>
+                    <p class="text-gray-900">{{ org.updated_at|date:"F d, Y" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organization Users -->
+    {% if users %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-900">Team Members</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in users %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ user.get_full_name|default:user.username }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ user.email }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ user.date_joined|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ user.last_login|date:"M d, Y"|default:"Never" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Subscription Information -->
+    {% if subscription %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-semibold text-gray-900">Subscription Details</h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Plan</label>
+                    <p class="text-gray-900">{{ subscription.plan.name }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Price</label>
+                    <p class="text-gray-900">${{ subscription.plan.price }}/{{ subscription.plan.billing_frequency }}</p>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Status</label>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                        {% if subscription.status == 'active' %}bg-green-100 text-green-800
+                        {% elif subscription.status == 'past_due' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ subscription.get_status_display }}
+                    </span>
+                </div>
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Pilot Limit</label>
+                    <p class="text-gray-900">{{ subscription.display_limit }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Recent Pilots -->
+        {% if pilots %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Pilots</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for pilot in pilots %}
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900">{{ pilot.title }}</h4>
+                            <p class="text-sm text-gray-600">${{ pilot.price }}</p>
+                            <div class="flex items-center mt-1 space-x-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                    {% if pilot.status == 'published' %}bg-green-100 text-green-800
+                                    {% elif pilot.status == 'pending_approval' %}bg-orange-100 text-orange-800
+                                    {% elif pilot.status == 'in_progress' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ pilot.get_status_display }}
+                                </span>
+                                <span class="text-xs text-gray-500">{{ pilot.created_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'pilots:detail' pilot.pk %}" class="text-indigo-600 hover:text-indigo-900 text-sm">
+                            View
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Payments -->
+        {% if enterprise_payments or startup_payments %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Payments</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for payment in enterprise_payments|default:startup_payments %}
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900">{{ payment.reference_code }}</h4>
+                            <p class="text-sm text-gray-600">{{ payment.pilot_bid.pilot.title }}</p>
+                            <div class="flex items-center mt-1 space-x-2">
+                                <span class="text-sm font-medium text-gray-900">${{ payment.total_amount }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                    {% if payment.status == 'released' %}bg-green-100 text-green-800
+                                    {% elif payment.status == 'received' %}bg-blue-100 text-blue-800
+                                    {% elif payment.status == 'instructions_sent' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ payment.get_status_display }}
+                                </span>
+                                <span class="text-xs text-gray-500">{{ payment.created_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" class="text-indigo-600 hover:text-indigo-900 text-sm">
+                            View
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -18,11 +18,19 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from . import views
 from .views import LandingPageView
 from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
     path('admin/logout/', LogoutView.as_view(next_page='landing'), name='admin_logout'),
+    path('admin/dashboard/', views.enhanced_admin_dashboard, name='admin_dashboard'),
+    path('admin/orgs/', views.admin_org_dashboard, name='admin_org_dashboard'),
+    path('admin/orgs/<int:org_id>/', views.admin_org_detail, name='admin_org_detail'),
+    path('admin/orgs/<int:org_id>/edit/', views.admin_org_edit, name='admin_org_edit'),
+    path('admin/pilots/', views.admin_pilot_dashboard, name='admin_pilot_dashboard'),
+    path('admin/search/', views.admin_global_search, name='admin_global_search'),
+    path('admin/export/', views.admin_export_csv, name='admin_export_csv'),
     path('admin/', admin.site.urls),
     path('', LandingPageView.as_view(), name='landing'),
     path('pilots/', include('apps.pilots.urls')),

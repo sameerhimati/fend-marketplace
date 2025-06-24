@@ -21,44 +21,66 @@
                     <div class="hidden sm:ml-8 sm:flex sm:space-x-8">
                         <a href="{% url 'admin:index' %}" 
                            class="{% if request.resolver_match.url_name == 'index' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            <i class="fas fa-tachometer-alt mr-2"></i>
-                            Dashboard
+                            <i class="fas fa-home mr-2"></i>
+                            Home
                         </a>
-                        <a href="{% url 'admin:pending_approvals' %}" 
-                           class="{% if 'approval' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            <i class="fas fa-user-check mr-2"></i>
-                            Organizations
-                            {% if pending_approvals_count > 0 %}
-                                <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ pending_approvals_count }}</span>
-                            {% endif %}
+                        <a href="{% url 'admin_org_dashboard' %}" 
+                           class="{% if 'org' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-building mr-2"></i>
+                            Orgs
                         </a>
-                        <a href="{% url 'pilots:admin_verify_pilots' %}" 
-                           class="{% if 'pilot' in request.resolver_match.url_name and 'verify' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            <i class="fas fa-clipboard-check mr-2"></i>
+                        <a href="{% url 'admin_pilot_dashboard' %}" 
+                           class="{% if 'pilot' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-clipboard-list mr-2"></i>
                             Pilots
-                            {% if pilot_count_pending > 0 %}
-                                <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ pilot_count_pending }}</span>
-                            {% endif %}
                         </a>
                         <a href="{% url 'payments:admin_payment_dashboard' %}" 
-                           class="{% if 'payment' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                           class="{% if 'payment' in request.resolver_match.url_name and 'active' not in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             <i class="fas fa-credit-card mr-2"></i>
                             Payments
-                            {% if payment_stats.pending_count > 0 %}
-                                <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ payment_stats.pending_count }}</span>
-                            {% endif %}
                         </a>
                         <a href="{% url 'payments:admin_active_pilots_dashboard' %}" 
-                           class="{% if 'active_pilots' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            <i class="fas fa-cogs mr-2"></i>
+                           class="{% if 'active' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-rocket mr-2"></i>
                             Active Work
-                            {% if active_pilots_count > 0 %}
-                                <span class="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ active_pilots_count }}</span>
-                            {% endif %}
                         </a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <!-- Global Search -->
+                    <div class="relative hidden sm:block">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" 
+                               id="global-search" 
+                               class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm" 
+                               placeholder="Search organizations, pilots, payments..."
+                               autocomplete="off">
+                        <div id="search-results" class="absolute z-50 mt-1 w-96 bg-white rounded-md shadow-lg border border-gray-200 hidden max-h-80 overflow-y-auto"></div>
+                    </div>
+                    
+                    <!-- Export Menu -->
+                    <div class="relative">
+                        <button type="button" 
+                                class="text-gray-400 hover:text-gray-500" 
+                                onclick="toggleDropdown('export-menu')"
+                                title="Export Data">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div id="export-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="{% url 'admin_export_csv' %}?type=payments" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-credit-card mr-2"></i>Export Payments
+                            </a>
+                            <a href="{% url 'admin_export_csv' %}?type=organizations" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-building mr-2"></i>Export Organizations
+                            </a>
+                            <a href="{% url 'admin_export_csv' %}?type=pilots" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-rocket mr-2"></i>Export Pilots
+                            </a>
+                        </div>
+                    </div>
+                    
                     <div class="flex items-center text-sm text-gray-500">
                         <i class="fas fa-user-circle mr-2"></i>
                         {{ user.get_full_name|default:user.username }}
@@ -155,8 +177,102 @@
             }
         }
 
-        // Initialize button original text
+        // Global search functionality
+        let searchTimeout;
+        function setupGlobalSearch() {
+            const searchInput = document.getElementById('global-search');
+            const searchResults = document.getElementById('search-results');
+            
+            if (!searchInput) return;
+            
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    searchResults.classList.add('hidden');
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    fetch(`{% url 'admin_global_search' %}?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            displaySearchResults(data.results);
+                        })
+                        .catch(error => console.error('Search error:', error));
+                }, 300);
+            });
+            
+            // Hide results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.classList.add('hidden');
+                }
+            });
+        }
+        
+        function displaySearchResults(results) {
+            const searchResults = document.getElementById('search-results');
+            
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="p-4 text-gray-500 text-sm">No results found</div>';
+            } else {
+                searchResults.innerHTML = results.map(result => `
+                    <a href="${result.url}" class="flex items-center px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+                        <div class="flex-shrink-0 mr-3">
+                            <i class="${result.icon} text-gray-400"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-900">${result.title}</div>
+                            <div class="text-xs text-gray-500">${result.subtitle}</div>
+                        </div>
+                        <div class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">${result.type}</div>
+                    </a>
+                `).join('');
+            }
+            
+            searchResults.classList.remove('hidden');
+        }
+        
+        // Dropdown functionality
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            dropdown.classList.toggle('hidden');
+            
+            // Close when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 0);
+        }
+        
+        // Bulk actions functionality
+        function handleBulkAction(form) {
+            const checkedItems = form.querySelectorAll('input[name="item_ids"]:checked');
+            if (checkedItems.length === 0) {
+                alert('Please select at least one item');
+                return false;
+            }
+            
+            const action = form.querySelector('select[name="action"]').value;
+            if (!action) {
+                alert('Please select an action');
+                return false;
+            }
+            
+            return confirm(`Are you sure you want to ${action} ${checkedItems.length} item(s)?`);
+        }
+        
+        // Initialize everything
         document.addEventListener('DOMContentLoaded', function() {
+            setupGlobalSearch();
+            
+            // Initialize button original text for loading states
             document.querySelectorAll('button[data-confirm]').forEach(button => {
                 button.dataset.originalText = button.innerHTML;
                 button.addEventListener('click', function(e) {
@@ -166,6 +282,15 @@
                         setLoading(this);
                         this.form.submit();
                     });
+                });
+            });
+            
+            // Select all checkbox functionality
+            document.querySelectorAll('input[data-select-all]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const target = this.dataset.selectAll;
+                    const checkboxes = document.querySelectorAll(`input[name="${target}"]`);
+                    checkboxes.forEach(cb => cb.checked = this.checked);
                 });
             });
         });

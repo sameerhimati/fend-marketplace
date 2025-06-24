@@ -1,49 +1,142 @@
 {% extends 'admin/base_admin.html' %}
 
-{% block title %}Admin Dashboard - Fend{% endblock %}
+{% block title %}Operations Dashboard - Fend{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
-    <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg text-white p-8">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-3xl font-bold mb-2">Welcome to Fend Admin</h1>
-                <p class="text-indigo-100">Monitor and manage the marketplace operations</p>
+<div class="space-y-6">
+    <!-- Simple Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Operations Dashboard</h1>
+        <p class="text-gray-600">Process pending items efficiently</p>
+    </div>
+
+    <!-- SLA Alert Banner -->
+    {% if overdue_items > 0 %}
+    <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-400"></i>
             </div>
-            <div class="hidden sm:block">
-                <div class="flex items-center space-x-6 text-indigo-100">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold">{{ total_users|default:0 }}</div>
-                        <div class="text-sm">Total Users</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold">{{ total_organizations|default:0 }}</div>
-                        <div class="text-sm">Organizations</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold">{{ total_pilots|default:0 }}</div>
-                        <div class="text-sm">Pilots</div>
-                    </div>
-                </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-800">
+                    <strong>{{ overdue_items }} item{{ overdue_items|pluralize }}</strong> overdue (>24hrs) - immediate attention required
+                </p>
             </div>
         </div>
     </div>
+    {% endif %}
     
-    <!-- Priority Actions -->
+    <!-- Manual Tasks for Operations -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- STEP 1: Generate Mercury Invoices -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 {% if invoices_to_generate > 0 %}bg-yellow-50{% else %}bg-gray-50{% endif %}">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">📄 Generate Invoices</h2>
+                    {% if invoices_to_generate > 0 %}
+                    <span class="bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ invoices_to_generate }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="p-6">
+                {% if invoices_to_generate > 0 %}
+                    <div class="space-y-3">
+                        <div class="text-2xl font-bold text-yellow-600">{{ invoices_to_generate }}</div>
+                        <p class="text-sm text-gray-600">Approved bids need Mercury invoices</p>
+                        <a href="{% url 'payments:admin_payment_dashboard' %}" 
+                           class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700">
+                            Generate Invoices
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-gray-400">
+                        <i class="fas fa-check-circle text-2xl mb-2"></i>
+                        <p class="text-sm">No invoices needed</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- STEP 2: Check Mercury Account -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 {% if check_mercury_payments > 0 %}bg-blue-50{% else %}bg-gray-50{% endif %}">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">💰 Check Mercury</h2>
+                    {% if check_mercury_payments > 0 %}
+                    <span class="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ check_mercury_payments }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="p-6">
+                {% if check_mercury_payments > 0 %}
+                    <div class="space-y-3">
+                        <div class="text-2xl font-bold text-blue-600">{{ check_mercury_payments }}</div>
+                        <p class="text-sm text-gray-600">Invoices sent - check for wire transfers</p>
+                        <a href="{% url 'payments:admin_payment_dashboard' %}" 
+                           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+                            Check Payments
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-gray-400">
+                        <i class="fas fa-check-circle text-2xl mb-2"></i>
+                        <p class="text-sm">No payments to verify</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Tasks -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Organization Approvals -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-4 border-b border-yellow-100">
+        <!-- STEP 3: Release Funds to Startups -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 {% if release_funds > 0 %}bg-green-50{% else %}bg-gray-50{% endif %}">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-yellow-800">
-                        <i class="fas fa-user-check mr-2"></i>
-                        Organization Approvals
-                    </h2>
+                    <h2 class="text-lg font-semibold text-gray-900">💸 Release Funds</h2>
+                    {% if release_funds > 0 %}
+                    <span class="bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ release_funds }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="p-6">
+                {% if release_funds > 0 %}
+                    <div class="space-y-3">
+                        <div class="text-2xl font-bold text-green-600">{{ release_funds }}</div>
+                        <p class="text-sm text-gray-600">Completed work - send money to startups</p>
+                        <a href="{% url 'payments:admin_payment_dashboard' %}" 
+                           class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                            Release Funds
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-gray-400">
+                        <i class="fas fa-check-circle text-2xl mb-2"></i>
+                        <p class="text-sm">No funds to release</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Secondary: Organization Approvals -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 {% if pending_approvals_count > 0 %}bg-orange-50{% else %}bg-gray-50{% endif %}">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Organization Approvals</h2>
                     {% if pending_approvals_count > 0 %}
-                    <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ pending_approvals_count }} pending
+                    <span class="bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ pending_approvals_count }}
                     </span>
                     {% endif %}
                 </div>
@@ -51,35 +144,55 @@
             
             <div class="p-6">
                 {% if pending_approvals_count > 0 %}
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-yellow-600 mb-2">{{ pending_approvals_count }}</div>
-                        <p class="text-sm text-gray-600 mb-4">Organizations awaiting approval</p>
+                    <div class="space-y-3">
+                        <div class="text-2xl font-bold text-orange-600">{{ pending_approvals_count }}</div>
+                        <p class="text-sm text-gray-600">Organizations awaiting approval</p>
                         <a href="{% url 'admin:pending_approvals' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700">
-                            <i class="fas fa-eye mr-2"></i>
-                            Review Applications
+                           class="inline-flex items-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700">
+                            Review
                         </a>
                     </div>
                 {% else %}
-                    <div class="text-center text-gray-500">
-                        <i class="fas fa-check-circle text-3xl text-green-400 mb-2"></i>
-                        <p class="text-sm">All organizations reviewed</p>
+                    <div class="text-center text-gray-400">
+                        <i class="fas fa-check-circle text-2xl mb-2"></i>
+                        <p class="text-sm">All approved</p>
                     </div>
                 {% endif %}
             </div>
         </div>
         
-        <!-- Pilot Verifications -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+        <!-- Current Active Work Summary -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-blue-800">
-                        <i class="fas fa-clipboard-check mr-2"></i>
-                        Pilot Verifications
-                    </h2>
+                    <h2 class="text-lg font-semibold text-gray-900">Active Work Status</h2>
+                    <a href="{% url 'payments:admin_active_pilots_dashboard' %}" class="text-sm text-blue-600 hover:text-blue-700">View All</a>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">Current work in progress</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <div class="text-xl font-bold text-green-600">{{ active_pilots_count|default:0 }}</div>
+                        <div class="text-sm text-gray-600">Live pilots</div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-bold text-purple-600">{{ completion_pending_count|default:0 }}</div>
+                        <div class="text-sm text-gray-600">Awaiting completion</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary: Pilot Verifications -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 {% if pilot_count_pending > 0 %}bg-purple-50{% else %}bg-gray-50{% endif %}">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Pilot Verifications</h2>
                     {% if pilot_count_pending > 0 %}
-                    <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ pilot_count_pending }} pending
+                    <span class="bg-purple-500 text-white text-sm font-bold px-3 py-1 rounded-full">
+                        {{ pilot_count_pending }}
                     </span>
                     {% endif %}
                 </div>
@@ -87,276 +200,44 @@
             
             <div class="p-6">
                 {% if pilot_count_pending > 0 %}
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-blue-600 mb-2">{{ pilot_count_pending }}</div>
-                        <p class="text-sm text-gray-600 mb-4">Pilots awaiting verification</p>
+                    <div class="space-y-3">
+                        <div class="text-2xl font-bold text-purple-600">{{ pilot_count_pending }}</div>
+                        <p class="text-sm text-gray-600">Pilots need verification</p>
                         <a href="{% url 'pilots:admin_verify_pilots' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                            <i class="fas fa-eye mr-2"></i>
-                            Review Pilots
+                           class="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700">
+                            Verify
                         </a>
                     </div>
                 {% else %}
-                    <div class="text-center text-gray-500">
-                        <i class="fas fa-check-circle text-3xl text-green-400 mb-2"></i>
-                        <p class="text-sm">All pilots reviewed</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- Payment Management -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-green-800">
-                        <i class="fas fa-credit-card mr-2"></i>
-                        Payment Management
-                    </h2>
-                    {% if payment_stats.pending_count > 0 %}
-                    <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        {{ payment_stats.pending_count }} active
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="p-6">
-                {% if payment_stats.pending_count > 0 %}
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-green-600 mb-2">{{ payment_stats.pending_count }}</div>
-                        <p class="text-sm text-gray-600 mb-4">Payments requiring action</p>
-                        <a href="{% url 'payments:admin_payment_dashboard' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                            <i class="fas fa-eye mr-2"></i>
-                            Manage Payments
-                        </a>
-                    </div>
-                {% else %}
-                    <div class="text-center text-gray-500">
-                        <i class="fas fa-check-circle text-3xl text-green-400 mb-2"></i>
-                        <p class="text-sm">No pending payments</p>
-                        <a href="{% url 'payments:admin_payment_dashboard' %}" 
-                           class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-600 bg-white hover:bg-gray-50 mt-2">
-                            View Dashboard
-                        </a>
+                    <div class="text-center text-gray-400">
+                        <i class="fas fa-check-circle text-2xl mb-2"></i>
+                        <p class="text-sm">All verified</p>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
-    
-    <!-- Platform Statistics -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">Platform Overview</h2>
-        </div>
-        
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Total Organizations -->
-                <div class="text-center">
-                    <div class="bg-blue-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                        <i class="fas fa-building text-blue-600 text-xl"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-gray-900">{{ total_organizations|default:0 }}</div>
-                    <div class="text-sm text-gray-600">Total Organizations</div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        {{ enterprise_count|default:0 }} Enterprises, {{ startup_count|default:0 }} Startups
-                    </div>
-                </div>
-                
-                <!-- Active Pilots -->
-                <div class="text-center">
-                    <div class="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                        <i class="fas fa-rocket text-green-600 text-xl"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-gray-900">{{ active_pilots_count|default:0 }}</div>
-                    <div class="text-sm text-gray-600">Active Pilots</div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        {{ published_pilots_count|default:0 }} Published
-                    </div>
-                </div>
-                
-                <!-- Total Revenue -->
-                <div class="text-center">
-                    <div class="bg-purple-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                        <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-gray-900">${{ total_escrow_value|default:0|floatformat:0 }}</div>
-                    <div class="text-sm text-gray-600">Total in Escrow</div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        ${{ monthly_revenue|default:0|floatformat:0 }} This Month
-                    </div>
-                </div>
-                
-                <!-- Platform Activity -->
-                <div class="text-center">
-                    <div class="bg-yellow-100 rounded-full p-4 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                        <i class="fas fa-chart-line text-yellow-600 text-xl"></i>
-                    </div>
-                    <div class="text-2xl font-bold text-gray-900">{{ total_bids|default:0 }}</div>
-                    <div class="text-sm text-gray-600">Total Bids</div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        {{ active_bids|default:0 }} Active
-                    </div>
-                </div>
+
+    <!-- Current Status Overview -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Current Status</h3>
+        <div class="grid grid-cols-4 gap-6 text-center">
+            <div>
+                <div class="text-2xl font-bold text-yellow-600">{{ invoices_to_generate|default:0 }}</div>
+                <div class="text-sm text-gray-600">Invoices needed</div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Quick Actions Grid -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-900">Quick Actions</h2>
-        </div>
-        
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- User Management -->
-                <a href="{% url 'admin:users_user_changelist' %}" 
-                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div class="bg-indigo-100 rounded-lg p-3 mr-4">
-                        <i class="fas fa-users text-indigo-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Manage Users</h3>
-                        <p class="text-sm text-gray-600">View and edit user accounts</p>
-                    </div>
-                </a>
-                
-                <!-- Organization Management -->
-                <a href="{% url 'admin:organizations_organization_changelist' %}" 
-                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div class="bg-blue-100 rounded-lg p-3 mr-4">
-                        <i class="fas fa-building text-blue-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Organizations</h3>
-                        <p class="text-sm text-gray-600">Manage organization accounts</p>
-                    </div>
-                </a>
-                
-                <!-- Pilot Management -->
-                <a href="{% url 'admin:pilots_pilot_changelist' %}" 
-                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div class="bg-green-100 rounded-lg p-3 mr-4">
-                        <i class="fas fa-rocket text-green-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">All Pilots</h3>
-                        <p class="text-sm text-gray-600">View and manage pilots</p>
-                    </div>
-                </a>
-                
-                <!-- Subscription Management -->
-                <a href="{% url 'admin:payments_subscription_changelist' %}" 
-                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div class="bg-purple-100 rounded-lg p-3 mr-4">
-                        <i class="fas fa-credit-card text-purple-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Subscriptions</h3>
-                        <p class="text-sm text-gray-600">Manage billing and plans</p>
-                    </div>
-                </a>
-                
-                <!-- Payment Logs -->
-                <a href="{% url 'admin:payments_escrowpaymentlog_changelist' %}" 
-                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div class="bg-yellow-100 rounded-lg p-3 mr-4">
-                        <i class="fas fa-clipboard-list text-yellow-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Audit Logs</h3>
-                        <p class="text-sm text-gray-600">View payment audit trail</p>
-                    </div>
-                </a>
-                
-                <!-- Export Data -->
-                <a href="{% url 'payments:admin_export_payments_csv' %}" 
-                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all">
-                    <div class="bg-gray-100 rounded-lg p-3 mr-4">
-                        <i class="fas fa-download text-gray-600"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Export Data</h3>
-                        <p class="text-sm text-gray-600">Download payment reports</p>
-                    </div>
-                </a>
+            <div>
+                <div class="text-2xl font-bold text-blue-600">{{ check_mercury_payments|default:0 }}</div>
+                <div class="text-sm text-gray-600">Check Mercury</div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Recent Activity -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold text-gray-900">Recent Activity</h2>
-                <a href="{% url 'admin:index' %}">
-                   class="text-sm text-indigo-600 hover:text-indigo-900 font-medium">
-                    View All
-                </a>
+            <div>
+                <div class="text-2xl font-bold text-green-600">{{ release_funds|default:0 }}</div>
+                <div class="text-sm text-gray-600">Funds to release</div>
             </div>
-        </div>
-        
-        <div class="divide-y divide-gray-200">
-            {% load log %}
-            {% get_admin_log 10 as admin_log for_user user %}
-            {% if admin_log %}
-                {% for entry in admin_log %}
-                <div class="p-6 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            {% if entry.is_addition %}
-                                <div class="p-2 bg-green-100 rounded-full">
-                                    <i class="fas fa-plus text-green-600 text-sm"></i>
-                                </div>
-                            {% elif entry.is_change %}
-                                <div class="p-2 bg-blue-100 rounded-full">
-                                    <i class="fas fa-edit text-blue-600 text-sm"></i>
-                                </div>
-                            {% elif entry.is_deletion %}
-                                <div class="p-2 bg-red-100 rounded-full">
-                                    <i class="fas fa-trash text-red-600 text-sm"></i>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <div class="ml-4 flex-1">
-                            <p class="text-sm font-medium text-gray-900">
-                                {% if entry.is_addition %}
-                                    Added
-                                {% elif entry.is_change %}
-                                    Changed
-                                {% elif entry.is_deletion %}
-                                    Deleted
-                                {% endif %}
-                                
-                                {% if entry.is_deletion or not entry.get_admin_url %}
-                                    "{{ entry.object_repr }}"
-                                {% else %}
-                                    <a href="{{ entry.get_admin_url }}" class="text-indigo-600 hover:text-indigo-900">
-                                        "{{ entry.object_repr }}"
-                                    </a>
-                                {% endif %}
-                                
-                                {% if entry.content_type %}
-                                    in {{ entry.content_type|capfirst }}
-                                {% endif %}
-                            </p>
-                            <p class="text-sm text-gray-500">
-                                {{ entry.action_time|timesince }} ago
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="p-8 text-center text-gray-500">
-                    <i class="fas fa-history text-4xl text-gray-300 mb-4"></i>
-                    <p class="text-sm">No recent activity</p>
-                </div>
-            {% endif %}
+            <div>
+                <div class="text-2xl font-bold text-gray-600">{{ total_queue_depth|default:0 }}</div>
+                <div class="text-sm text-gray-600">Total pending</div>
+            </div>
         </div>
     </div>
 </div>

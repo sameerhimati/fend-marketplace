@@ -53,10 +53,20 @@
                     </button>
                 </div>
 
-                <div class="text-sm text-center">
-                    <a href="{% url 'organizations:register' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                <div class="text-sm text-center space-y-2">
+                    <a href="{% url 'organizations:register' %}" class="font-medium text-indigo-600 hover:text-indigo-500 block">
                         Don't have an account? Register here
                     </a>
+                    
+                    <!-- Admin Login Button -->
+                    <div class="pt-4 border-t border-gray-200">
+                        <div class="text-xs text-gray-500 mb-2">Operations Team?</div>
+                        <a href="{% url 'admin:index' %}" 
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <i class="fas fa-cogs mr-2"></i>
+                            Admin Login
+                        </a>
+                    </div>
                 </div>
             </form>
         </div>

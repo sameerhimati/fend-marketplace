@@ -220,7 +220,14 @@ class Pilot(models.Model):
         Determine the relationship between a user and this pilot.
         Returns dict with relationship info and actions.
         """
-        if not user.is_authenticated or not hasattr(user, 'organization'):
+        if not user.is_authenticated:
+            return {'type': 'none'}
+        
+        # Handle admin/staff users who don't have organizations
+        if user.is_staff or user.is_superuser:
+            return {'type': 'admin', 'can_view_all': True}
+        
+        if not hasattr(user, 'organization') or user.organization is None:
             return {'type': 'none'}
         
         user_org = user.organization
@@ -544,7 +551,7 @@ class PilotBid(models.Model):
         from apps.payments.models import EscrowPayment
         
         total_amount = self.calculate_total_amount_for_enterprise()
-        startup_amount = self.amount  # Full bid amount before fees
+        startup_amount = self.calculate_startup_net_amount()  # Net amount after startup fee
         platform_fee = self.calculate_platform_fee()
         
         EscrowPayment.objects.create(
