@@ -85,7 +85,7 @@ class PilotForm(forms.ModelForm):
 class PilotBidForm(forms.ModelForm):
     class Meta:
         model = PilotBid
-        fields = ['amount', 'proposal']
+        fields = ['amount', 'proposal', 'proposal_doc']
         widgets = {
             'proposal': forms.Textarea(attrs={
                 'rows': 6,
@@ -97,6 +97,10 @@ class PilotBidForm(forms.ModelForm):
                 'placeholder': 'Enter bid amount in USD',
                 'min': '1000',
                 'step': '100',
+            }),
+            'proposal_doc': forms.FileInput(attrs={
+                'class': 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
+                'accept': '.pdf,.doc,.docx,.txt,.xls,.xlsx'
             })
         }
     
@@ -106,3 +110,21 @@ class PilotBidForm(forms.ModelForm):
             raise forms.ValidationError("Bid amount must be greater than zero.")
         
         return amount
+    
+    def clean_proposal_doc(self):
+        """Validate uploaded proposal document"""
+        file = self.cleaned_data.get('proposal_doc')
+        if file:
+            # Check file extension
+            ext = os.path.splitext(file.name)[1].lower()
+            valid_extensions = ['.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx']
+            if ext not in valid_extensions:
+                raise forms.ValidationError(
+                    f'File type not supported. Allowed types: {", ".join(valid_extensions)}'
+                )
+            
+            # Check file size (10MB limit)
+            if file.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('File too large. Size should not exceed 10MB.')
+        
+        return file

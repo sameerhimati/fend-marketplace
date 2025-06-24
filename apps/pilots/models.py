@@ -34,6 +34,15 @@ def pilot_compliance_doc_path(instance, filename):
     safe_filename = f"compliance_{slugify(instance.title[:30])}{ext}"
     return f'pilot_specs/{org_slug}/{pilot_id}/compliance/{safe_filename}'
 
+def pilot_bid_doc_path(instance, filename):
+    """Generate path for pilot bid documents"""
+    org_slug = slugify(instance.startup.name)
+    pilot_slug = slugify(instance.pilot.title)
+    bid_id = instance.pk or 'temp'
+    ext = os.path.splitext(filename)[1]
+    safe_filename = f"proposal_{bid_id}{ext}"
+    return f'pilot_bids/{org_slug}/{pilot_slug}/{safe_filename}'
+
 class Pilot(models.Model):
     STATUS_CHOICES = (
         ('draft', 'Draft'),
@@ -131,7 +140,7 @@ class Pilot(models.Model):
         if self.pk is None and self.status == 'published':
             is_new_publication = True
         elif self.pk:
-            # Check if status is changing from draft to published
+            # Check if status is changing from any status to published
             original = Pilot.objects.get(pk=self.pk)
             if original.status != 'published' and self.status == 'published':
                 is_new_publication = True
@@ -381,6 +390,12 @@ class PilotBid(models.Model):
     startup = models.ForeignKey('organizations.Organization', on_delete=models.CASCADE, related_name='submitted_bids')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     proposal = models.TextField()
+    proposal_doc = models.FileField(
+        upload_to=pilot_bid_doc_path,
+        null=True,
+        blank=True,
+        help_text="Optional: Upload a document to supplement your proposal"
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Fee structure - CRITICAL for financial calculations

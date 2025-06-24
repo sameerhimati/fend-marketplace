@@ -60,7 +60,6 @@
                 {% endif %}
                 
                 <form method="post" enctype="multipart/form-data" class="space-y-6">
-                    <input type="hidden" name="proposal_type" id="proposal_type" value="text">
                     {% csrf_token %}
 
                     <!-- Amount -->
@@ -85,9 +84,34 @@
                                 <span class="text-gray-500 sm:text-sm">USD</span>
                             </div>
                         </div>
-                        <div class="mt-2 flex justify-between text-sm text-gray-500">
+                        <div class="mt-2 flex justify-between items-center text-sm text-gray-500">
                             <span>Your bid: <span id="amount-display" class="font-medium text-gray-900">$0</span></span>
-                            <span>Platform fee (5%): <span id="fee-amount" class="font-medium text-gray-900">$0</span></span>
+                            <button type="button" 
+                                    id="fee-breakdown-toggle"
+                                    class="text-indigo-600 hover:text-indigo-800 text-xs flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                See total cost
+                            </button>
+                        </div>
+                        
+                        <!-- Expandable fee breakdown -->
+                        <div id="fee-breakdown" class="hidden mt-3 p-3 bg-gray-50 rounded-md border">
+                            <div class="text-sm space-y-1">
+                                <div class="flex justify-between">
+                                    <span>Your bid amount:</span>
+                                    <span id="breakdown-bid-amount" class="font-medium">$0</span>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Platform fee (5%):</span>
+                                    <span id="breakdown-fee-amount">$0</span>
+                                </div>
+                                <div class="flex justify-between border-t pt-1 font-medium">
+                                    <span>Total you pay:</span>
+                                    <span id="breakdown-total-amount">$0</span>
+                                </div>
+                            </div>
                         </div>
                         {% if form.amount.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.amount.errors.0 }}</p>
@@ -96,57 +120,48 @@
 
                     <!-- Proposal Section -->
                     <div class="form-section">
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                        <label for="{{ form.proposal.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-3">
                             Your Proposal <span class="text-red-500">*</span>
                         </label>
                         
-                        <div class="tab-toggle mb-4">
-                            <button type="button" id="proposal_text_btn" class="active">
-                                Enter Text
-                            </button>
-                            <button type="button" id="proposal_file_btn">
-                                Upload Document
-                            </button>
-                        </div>
-                        
-                        <!-- Text input option -->
-                        <div id="proposal_text">
+                        <!-- Text input -->
+                        <div class="mb-4">
                             <textarea name="{{ form.proposal.name }}" 
                                       id="{{ form.proposal.id_for_label }}"
                                       rows="6"
                                       class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border border-gray-300 rounded-md"
-                                      placeholder="Describe your implementation approach, timeline, and why your startup is the best fit...">{{ form.proposal.value|default:'' }}</textarea>
+                                      placeholder="Describe your implementation approach, timeline, and why your startup is the best fit..."
+                                      required>{{ form.proposal.value|default:'' }}</textarea>
                         </div>
                         
-                        <!-- File upload option -->
-                        <div id="proposal_file" style="display:none;">
+                        <!-- Optional file upload -->
+                        <div class="mt-4">
+                            <label for="id_proposal_doc" class="block text-sm font-medium text-gray-700 mb-2">
+                                Supporting Document (Optional)
+                            </label>
                             {% if form.instance.proposal_doc %}
-                            <div class="current-file">
-                                <div class="flex items-center gap-2">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <a href="{{ form.instance.proposal_doc.url }}" target="_blank">{{ form.instance.proposal_doc.name|default:"Proposal Document" }}</a>
+                            <div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <svg class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <a href="{{ form.instance.proposal_doc.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                                            {{ form.instance.proposal_doc.name|default:"Current Document" }}
+                                        </a>
+                                    </div>
+                                    <button type="button" onclick="clearProposalFile()" class="text-red-600 hover:text-red-800 text-sm">
+                                        Remove
+                                    </button>
                                 </div>
-                                <button type="button" onclick="clearProposalFile()" class="text-red-600 hover:text-red-800 text-sm">
-                                    Remove
-                                </button>
                             </div>
                             {% endif %}
-                            
-                            <div class="file-input-wrapper">
-                                <input type="file" 
-                                       name="proposal_doc" 
-                                       id="id_proposal_doc"
-                                       accept=".pdf,.doc,.docx,.txt">
-                                <div class="file-input-button">
-                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                    </svg>
-                                    <span>Choose File or Drag & Drop</span>
-                                </div>
-                                <div id="proposal_file_selected" class="file-input-selected">No file selected</div>
-                            </div>
+                            <input type="file" 
+                                   name="proposal_doc" 
+                                   id="id_proposal_doc"
+                                   accept=".pdf,.doc,.docx,.txt"
+                                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <p class="mt-1 text-xs text-gray-500">Upload a PDF, DOC, or TXT file to supplement your proposal</p>
                         </div>
                         
                         {% if form.proposal.errors %}
@@ -179,139 +194,14 @@
     </div>
 </div>
 
-<style>
-    /* Tab toggle styles */
-    .tab-toggle {
-        display: flex;
-        background-color: #f3f4f6;
-        border-radius: 0.5rem;
-        padding: 0.25rem;
-    }
-    
-    .tab-toggle button {
-        flex: 1;
-        padding: 0.5rem 1rem;
-        border: none;
-        background: transparent;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #6b7280;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .tab-toggle button.active {
-        background-color: white;
-        color: #1f2937;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-    }
-    
-    .tab-toggle button:hover:not(.active) {
-        color: #374151;
-    }
-    
-    /* File input styles */
-    .file-input-wrapper {
-        position: relative;
-    }
-    
-    .file-input-wrapper input[type="file"] {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        cursor: pointer;
-    }
-    
-    .file-input-button {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem 1rem;
-        border: 2px dashed #d1d5db;
-        border-radius: 0.5rem;
-        background-color: #f9fafb;
-        color: #6b7280;
-        transition: all 0.2s;
-    }
-    
-    .file-input-button:hover {
-        border-color: #9ca3af;
-        background-color: #f3f4f6;
-    }
-    
-    .file-input-selected {
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-    
-    .current-file {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        background-color: #f0f9ff;
-        border: 1px solid #e0f2fe;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-    }
-</style>
 
 <script>
-    // Toggle functionality
-    function toggleProposalType(type) {
-        const textDiv = document.getElementById('proposal_text');
-        const fileDiv = document.getElementById('proposal_file');
-        const textBtn = document.getElementById('proposal_text_btn');
-        const fileBtn = document.getElementById('proposal_file_btn');
-        const typeInput = document.getElementById('proposal_type');
-        
-        if (type === 'text') {
-            textDiv.style.display = 'block';
-            fileDiv.style.display = 'none';
-            textBtn.classList.add('active');
-            fileBtn.classList.remove('active');
-        } else {
-            textDiv.style.display = 'none';
-            fileDiv.style.display = 'block';
-            textBtn.classList.remove('active');
-            fileBtn.classList.add('active');
-        }
-        
-        if (typeInput) {
-            typeInput.value = type;
-        }
-    }
-    
-    function updateFileName() {
-        const input = document.getElementById('id_proposal_doc');
-        const selectedDiv = document.getElementById('proposal_file_selected');
-        
-        if (input.files && input.files.length > 0) {
-            selectedDiv.textContent = input.files[0].name;
-            selectedDiv.style.color = '#059669';
-        } else {
-            selectedDiv.textContent = 'No file selected';
-            selectedDiv.style.color = '#6B7280';
-        }
-    }
-    
     function clearProposalFile() {
         const input = document.getElementById('id_proposal_doc');
-        const selectedDiv = document.getElementById('proposal_file_selected');
         const currentFileDiv = document.querySelector('.current-file');
         
         if (input) {
             input.value = '';
-        }
-        
-        if (selectedDiv) {
-            selectedDiv.textContent = 'No file selected';
-            selectedDiv.style.color = '#6B7280';
         }
         
         if (currentFileDiv) {
@@ -324,29 +214,22 @@
         const amount = parseFloat(bidAmount) || 0;
         const feePercentage = 5.0; 
         const fee = (amount * feePercentage / 100);
+        const total = amount + fee;
         
-        // Update displays with proper formatting
+        // Update main display
         document.getElementById('amount-display').textContent = `$${amount.toLocaleString()}`;
-        document.getElementById('fee-amount').textContent = `$${fee.toLocaleString()}`;
+        
+        // Update breakdown displays
+        document.getElementById('breakdown-bid-amount').textContent = `$${amount.toLocaleString()}`;
+        document.getElementById('breakdown-fee-amount').textContent = `$${fee.toLocaleString()}`;
+        document.getElementById('breakdown-total-amount').textContent = `$${total.toLocaleString()}`;
     }
     
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
-        const textBtn = document.getElementById('proposal_text_btn');
-        const fileBtn = document.getElementById('proposal_file_btn');
-        const fileInput = document.getElementById('id_proposal_doc');
         const bidInput = document.getElementById('{{ form.amount.id_for_label }}');
-        
-        // Set up toggle buttons
-        if (textBtn && fileBtn) {
-            textBtn.onclick = function() { toggleProposalType('text'); };
-            fileBtn.onclick = function() { toggleProposalType('file'); };
-        }
-        
-        // Set up file input change handler
-        if (fileInput) {
-            fileInput.addEventListener('change', updateFileName);
-        }
+        const feeToggle = document.getElementById('fee-breakdown-toggle');
+        const feeBreakdown = document.getElementById('fee-breakdown');
         
         // Set up bid amount calculation
         if (bidInput) {
@@ -356,8 +239,18 @@
             updateFeeCalculation(bidInput.value);
         }
         
-        // Default to text input
-        toggleProposalType('text');
+        // Set up fee breakdown toggle
+        if (feeToggle && feeBreakdown) {
+            feeToggle.addEventListener('click', function() {
+                if (feeBreakdown.classList.contains('hidden')) {
+                    feeBreakdown.classList.remove('hidden');
+                    this.innerHTML = '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>Hide breakdown';
+                } else {
+                    feeBreakdown.classList.add('hidden');
+                    this.innerHTML = '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>See total cost';
+                }
+            });
+        }
     });
 </script>
 {% endblock %}
