@@ -46,6 +46,7 @@
             animation: message-fade-out 0.5s ease-out forwards;
         }
       </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="min-h-screen bg-gray-50 flex flex-col">
     {% include "components/messages.html" %}
