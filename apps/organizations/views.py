@@ -59,6 +59,29 @@ class OrganizationRegistrationView(CreateView):
             organization.approval_status = 'pending'
             organization.save()
             
+            # Handle legal document acceptances
+            current_time = timezone.now()
+            
+            # Accept required legal documents based on form checkboxes
+            if self.request.POST.get('accept_terms'):
+                organization.terms_of_service_accepted = True
+                organization.terms_of_service_accepted_at = current_time
+            
+            if self.request.POST.get('accept_privacy'):
+                organization.privacy_policy_accepted = True
+                organization.privacy_policy_accepted_at = current_time
+                
+            if self.request.POST.get('accept_user_agreement'):
+                organization.user_agreement_accepted = True
+                organization.user_agreement_accepted_at = current_time
+            
+            # Auto-accept Data Processing Agreement for EU users
+            if organization.is_eu_based():
+                organization.data_processing_agreement_accepted = True
+                organization.data_processing_agreement_accepted_at = current_time
+            
+            organization.save()
+            
             # Create user with default verification (now True)
             user = User.objects.create_user(
                 username=form.cleaned_data['email'],

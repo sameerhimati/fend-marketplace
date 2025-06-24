@@ -47,7 +47,7 @@
         }
       </style>
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="min-h-screen bg-gray-50">
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="min-h-screen bg-gray-50 flex flex-col">
     {% include "components/messages.html" %}
     
     {% if request.ui_state == 'minimal' %}
@@ -333,7 +333,7 @@
         </nav>
     {% endif %}
 
-    <main>
+    <main class="flex-1">
         {% block content %}{% endblock %}
     </main>
 
@@ -373,5 +373,20 @@
             }
         });
     </script>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-center space-x-6">
+                <a href="{% url 'organizations:terms_of_service' %}" class="text-gray-300 hover:text-white text-sm">Terms of Service</a>
+                <a href="{% url 'organizations:privacy_policy' %}" class="text-gray-300 hover:text-white text-sm">Privacy Policy</a>
+                <a href="{% url 'organizations:user_agreement' %}" class="text-gray-300 hover:text-white text-sm">User Agreement</a>
+                <a href="{% url 'organizations:payment_terms' %}" class="text-gray-300 hover:text-white text-sm">Payment Terms</a>
+            </div>
+            <div class="mt-2 text-center">
+                <p class="text-gray-400 text-xs">© 2024 FEND AI, Inc. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

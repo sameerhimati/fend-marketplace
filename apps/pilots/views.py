@@ -436,6 +436,35 @@ def create_bid(request, pilot_id):
                     'is_edit': can_edit
                 })
             
+            # Check legal document acceptances for startups
+            organization = request.user.organization
+            if not organization.has_required_legal_acceptances():
+                missing_docs = []
+                if not organization.terms_of_service_accepted:
+                    missing_docs.append("Terms of Service")
+                if not organization.privacy_policy_accepted:
+                    missing_docs.append("Privacy Policy")
+                if not organization.user_agreement_accepted:
+                    missing_docs.append("User Agreement")
+                
+                messages.error(request, f"You must accept the following legal documents before submitting bids: {', '.join(missing_docs)}")
+                return render(request, 'pilots/bid_form.html', {
+                    'form': form,
+                    'pilot': pilot,
+                    'is_resubmission': is_resubmission,
+                    'is_edit': can_edit
+                })
+            
+            # Validate current legal agreement acceptance (checkbox on form)
+            if not request.POST.get('accept_legal_terms'):
+                messages.error(request, "You must accept the legal agreement to submit this bid.")
+                return render(request, 'pilots/bid_form.html', {
+                    'form': form,
+                    'pilot': pilot,
+                    'is_resubmission': is_resubmission,
+                    'is_edit': can_edit
+                })
+            
             bid = form.save(commit=False)
             bid.pilot = pilot
             bid.startup = user_org
@@ -587,7 +616,21 @@ def publish_pilot(request, pk):
         messages.error(request, "Only draft pilots can be published.")
         return redirect('pilots:detail', pk=pk)
     
-    # Validate legal agreement acceptance
+    # Validate legal document acceptances
+    organization = pilot.organization
+    
+    # Check if organization has accepted required payment legal documents
+    if not organization.has_payment_legal_acceptances():
+        missing_docs = []
+        if not organization.payment_terms_accepted:
+            missing_docs.append("Payment Terms")
+        if not organization.payment_holding_agreement_accepted:
+            missing_docs.append("Payment Holding Service Agreement")
+        
+        messages.error(request, f"You must accept the following legal documents before publishing pilots: {', '.join(missing_docs)}")
+        return redirect('pilots:detail', pk=pk)
+    
+    # Validate current legal agreement acceptance (checkbox on form)
     legal_agreement_accepted = request.POST.get('legal_agreement_accepted') == 'on'
     if not legal_agreement_accepted:
         messages.error(request, "You must accept the legal agreement to publish this pilot.")
