@@ -2,7 +2,6 @@
 from django.db import models
 from apps.organizations.models import Organization, PilotDefinition
 from django.core.exceptions import ValidationError
-from apps.payments.models import PilotTransaction
 from django.utils import timezone as timezone
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
@@ -118,15 +117,6 @@ class Pilot(models.Model):
     )
 
     legal_agreement_accepted = models.BooleanField(default=False)
-    verified = models.BooleanField(default=False)
-    admin_verified_at = models.DateTimeField(null=True, blank=True)
-    admin_verified_by = models.ForeignKey(
-        'users.User',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='verified_pilots'
-    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -440,8 +430,8 @@ class PilotBid(models.Model):
         self.pilot.status = 'in_progress'
         self.pilot.save(update_fields=['status'])
         
-        # Create escrow payment
-        self._create_escrow_payment()
+        # Create payment holding service
+        self._create_payment_holding_service()
         
         # Send notifications
         self._notify_bid_approved()
@@ -546,8 +536,8 @@ class PilotBid(models.Model):
         for bid in competing_bids:
             bid.decline_bid_with_reason(declined_by_enterprise=False)
     
-    def _create_escrow_payment(self):
-        """Create escrow payment record with calculated amounts"""
+    def _create_payment_holding_service(self):
+        """Create payment holding service record with calculated amounts"""
         from apps.payments.models import EscrowPayment
         
         total_amount = self.calculate_total_amount_for_enterprise()

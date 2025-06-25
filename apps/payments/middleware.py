@@ -20,6 +20,7 @@ class SubscriptionRequiredMiddleware:
             reverse('organizations:register'),
             reverse('organizations:registration_complete'),
             '/notifications/count/', # Exempt notification count API
+            '/legal/', # Exempt legal documents for public access
         ]
         # Clean up potential None values from settings
         self.exempt_paths_prefixes = [p for p in self.exempt_paths_prefixes if p is not None]

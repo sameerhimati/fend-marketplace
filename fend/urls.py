@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 from . import views
 from .views import LandingPageView
 from django.contrib.auth.views import LogoutView
+from apps.organizations import legal_views
 
 urlpatterns = [
     path('admin/logout/', LogoutView.as_view(next_page='landing'), name='admin_logout'),
@@ -33,6 +34,11 @@ urlpatterns = [
     path('admin/export/', views.admin_export_csv, name='admin_export_csv'),
     path('admin/', admin.site.urls),
     path('', LandingPageView.as_view(), name='landing'),
+    
+    # Legal portal at root level
+    path('legal/', legal_views.legal_portal_homepage, name='legal_portal'),
+    path('legal/<str:document_type>/', legal_views.legal_document_full, name='legal_document'),
+    
     path('pilots/', include('apps.pilots.urls')),
     path('organizations/', include('apps.organizations.urls')),
     path('notifications/', include('apps.notifications.urls')),

@@ -1,12 +1,11 @@
 from django.views.generic import CreateView, UpdateView, TemplateView, ListView, DetailView, DeleteView
 from django.shortcuts import redirect, get_object_or_404, render
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse_lazy
 from django.contrib import messages
-from django.contrib.auth import login as auth_login, get_user_model
+from django.contrib.auth import login as auth_login
 from django.db import transaction
-from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -15,7 +14,6 @@ from .forms import (
     OrganizationBasicForm, PilotDefinitionForm, EnhancedOrganizationProfileForm, 
     PartnerPromotionForm
 )
-from django.views.generic import TemplateView
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from apps.pilots.models import Pilot, PilotBid

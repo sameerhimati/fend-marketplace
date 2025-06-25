@@ -3,13 +3,13 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Fend Marketplace is a Django-based B2B platform connecting enterprises seeking innovative solutions with startups offering cutting-edge technology. The platform facilitates the entire pilot program lifecycle from discovery to completion, with an integrated escrow payment system and subscription model.
+Fend Marketplace is a Django-based B2B platform connecting enterprises seeking innovative solutions with startups offering cutting-edge technology. The platform facilitates the entire pilot program lifecycle from discovery to completion, with an integrated Payment Holding Service and subscription model.
 
 ## Business Model & Pricing
 - **Enterprise Plans**: $100/month (5 pilots) or $1000/year (unlimited pilots)  
 - **Startup Plans**: $10/month or $100/year (unlimited bids)
 - **Transaction Fees**: 10% total (5% from enterprise, 5% from startup) on completed pilots
-- **Payment Method**: Wire transfers with escrow protection
+- **Payment Method**: Wire transfers with Payment Holding Service protection
 
 ## Development Commands
 
@@ -84,7 +84,7 @@ docker-compose exec -T db psql -U postgres fend_db < backup_file.sql
   - Custom middleware for HTTPS redirect and authentication flow
 - **apps/organizations/**: Organization management (enterprises & startups)
 - **apps/pilots/**: Pilot project management and bidding system
-- **apps/payments/**: Subscription management and escrow payments
+- **apps/payments/**: Subscription management and Payment Holding Service
 - **apps/users/**: Custom user model and authentication
 - **apps/notifications/**: System notifications and messaging
 
@@ -99,13 +99,13 @@ docker-compose exec -T db psql -U postgres fend_db < backup_file.sql
   - Document attachments for technical specs, performance metrics, compliance
 - **PilotBid**: Startup proposals for pilots
   - Manages entire bid lifecycle with status tracking
-  - Calculates fees and payment splits automatically (2.5% each party)
+  - Calculates fees and payment splits automatically (5% each party)
   - Workflow: pending → approved → live → completion_pending → completed
-- **EscrowPayment**: Handles secure wire transfer processing
+- **Payment Holding Service**: Handles secure wire transfer processing
 - **Subscription**: Manages organization payment plans and pilot limits
 
 ### Payment Flow Architecture
-1. Enterprise approves startup bid → EscrowPayment created
+1. Enterprise approves startup bid → Payment Holding Service created
 2. Enterprise receives wire transfer instructions
 3. Enterprise initiates payment → Admin verifies receipt
 4. Payment verified → Bid status moves to 'live'
@@ -121,7 +121,7 @@ docker-compose exec -T db psql -U postgres fend_db < backup_file.sql
 ### Business Logic Patterns
 - **Pilot Publishing**: Validates organization subscription and pilot limits
 - **Bid Workflow**: Complex state machine with automatic notification triggers
-- **Fee Calculations**: Centralized in PilotBid model (2.5% from each party)
+- **Fee Calculations**: Centralized in PilotBid model (5% from each party)
 - **Subscription Validation**: Middleware enforces active subscriptions for platform access
 
 ### Frontend Architecture
@@ -167,7 +167,7 @@ docker-compose exec -T db psql -U postgres fend_db < backup_file.sql
 - `/admin/`: Django admin interface with payment management
 - `/organizations/`: Organization dashboards and management
 - `/pilots/`: Pilot creation, listing, and bidding
-- `/payments/`: Subscription and escrow payment management  
+- `/payments/`: Subscription and Payment Holding Service management  
 - `/notifications/`: User notifications and status updates
 
 ### Known Areas for Enhancement

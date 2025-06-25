@@ -887,11 +887,8 @@ def admin_reject_pilot(request, pk):
 def _approve_pilot(request, pilot):
     """Helper function to approve a pilot with all necessary steps"""
     try:
-        # Update pilot status and verification fields
+        # Update pilot status (verification is handled by status = 'published')
         pilot.status = 'published'
-        pilot.verified = True
-        pilot.admin_verified_at = timezone.now()
-        pilot.admin_verified_by = request.user
         pilot.published_at = timezone.now()
         pilot.save()
         

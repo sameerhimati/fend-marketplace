@@ -1,0 +1,98 @@
+{% extends 'legal/base_legal.html' %}
+
+{% block title %}{{ page_title }} - FEND AI{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">FEND AI Legal Portal</h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            {{ page_description }}. All documents are publicly accessible and available for download.
+        </p>
+    </div>
+
+    <!-- Legal Documents Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12 justify-center">
+        {% for doc in documents %}
+        <a href="{% url 'legal_document' doc.slug %}" class="block h-full">
+            <div class="bg-white rounded-lg shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 h-full flex flex-col hover:scale-105 cursor-pointer">
+                <!-- Document Header -->
+                <div class="p-6 border-b border-gray-100 flex-grow">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if doc.color == 'blue' %}bg-blue-100 text-blue-800
+                            {% elif doc.color == 'green' %}bg-green-100 text-green-800
+                            {% elif doc.color == 'purple' %}bg-purple-100 text-purple-800
+                            {% elif doc.color == 'yellow' %}bg-yellow-100 text-yellow-800
+                            {% elif doc.color == 'orange' %}bg-orange-100 text-orange-800
+                            {% elif doc.color == 'indigo' %}bg-indigo-100 text-indigo-800
+                            {% elif doc.color == 'teal' %}bg-teal-100 text-teal-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            v{{ doc.version }}
+                        </span>
+                        <span class="text-sm text-gray-500">{{ doc.effective_date }}</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ doc.title }}</h3>
+                    <p class="text-gray-600 text-sm leading-relaxed">{{ doc.description }}</p>
+                </div>
+
+                <!-- Document Actions -->
+                <div class="p-6 mt-auto">
+                    <div class="flex items-center justify-center">
+                        <span class="text-gray-900 font-medium flex items-center">
+                            📄 <span class="ml-2">View Full Document</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Contact Section -->
+    <div class="bg-gray-50 rounded-lg p-8 text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Questions About Our Legal Documents?</h2>
+        <p class="text-gray-600 mb-6 max-w-2xl mx-auto">
+            Our legal team is available to answer any questions about these agreements and how they apply to your use of the FEND AI Platform.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8">
+            <!-- Legal Contact -->
+            <div class="text-center">
+                <h3 class="font-semibold text-gray-900 mb-2">Legal Department</h3>
+                <p class="text-gray-600">
+                    📧 <a href="mailto:legal@thefend.com" class="text-blue-600 hover:text-blue-800">legal@thefend.com</a><br>
+                    📞 <a href="tel:+16507352255" class="text-blue-600 hover:text-blue-800">(650) 735-2255</a>
+                </p>
+            </div>
+            
+            <!-- Privacy Contact -->
+            <div class="text-center">
+                <h3 class="font-semibold text-gray-900 mb-2">Privacy & Data Protection</h3>
+                <p class="text-gray-600">
+                    📧 <a href="mailto:privacy@thefend.com" class="text-blue-600 hover:text-blue-800">privacy@thefend.com</a><br>
+                    <span class="text-sm text-gray-500">EU Data Protection Officer</span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Company Address -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <p class="text-gray-600 text-sm">
+                <strong>FEND AI, Inc.</strong><br>
+                131 Continental Dr Suite 305<br>
+                Newark, DE 19713, USA
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="text-center mt-8">
+        <p class="text-sm text-gray-500">
+            All legal documents are effective as of their respective dates shown above.
+            <br>We recommend reviewing these documents periodically as they may be updated to reflect changes in our practices or applicable law.
+        </p>
+    </div>
+</div>
+{% endblock %}

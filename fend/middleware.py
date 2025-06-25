@@ -30,6 +30,7 @@ class AuthenticationFlowMiddleware:
                 '/organizations/logout/',
                 '/static/',
                 '/media/',
+                '/legal/',  # Legal documents should be publicly accessible
             ]
             
             # Check if current path is in always accessible paths
@@ -106,6 +107,22 @@ class AuthenticationFlowMiddleware:
         else:
             # Unauthenticated - landing UI
             request.ui_state = 'landing'
+            
+            # Allow unauthenticated access to legal documents
+            legal_paths = [
+                '/legal/',
+                '/static/',
+                '/media/',
+            ]
+            
+            # Check if this is a legal document request
+            is_legal_accessible = any(
+                request.path.startswith(path) for path in legal_paths
+            )
+            
+            # If it's a legal document, allow access without redirecting to login
+            if is_legal_accessible:
+                pass  # Continue to serve the request
                 
         response = self.get_response(request)
         return response

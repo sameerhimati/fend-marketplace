@@ -157,26 +157,6 @@ class Payment(models.Model):
         return f"{self.organization.name} - ${self.amount} ({self.payment_type})"
 
 
-class PilotTransaction(models.Model):
-    """Track completed pilot transactions and fees"""
-    pilot_bid = models.OneToOneField(
-        'pilots.PilotBid', 
-        on_delete=models.CASCADE,
-        related_name='transaction'
-    )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    fee_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    fee_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=5.00)
-    stripe_payment_intent_id = models.CharField(max_length=100)
-    status = models.CharField(max_length=20, default='pending')
-    completed_at = models.DateTimeField(null=True, blank=True)
-    
-    def __str__(self):
-        return f"Transaction for Bid #{self.pilot_bid.id} - ${self.amount}"
-    
-    def calculate_fee(self):
-        """Calculate the fee for this transaction"""
-        return (self.amount * self.fee_percentage) / 100
 
 class EscrowPayment(models.Model):
     # Updated 4-stage workflow status choices
@@ -192,7 +172,7 @@ class EscrowPayment(models.Model):
     pilot_bid = models.OneToOneField(
         'pilots.PilotBid',
         on_delete=models.CASCADE,
-        related_name='escrow_payment'
+        related_name='payment_holding_service'
     )
     reference_code = models.CharField(max_length=50, unique=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -217,7 +197,7 @@ class EscrowPayment(models.Model):
     admin_notes = models.TextField(blank=True, null=True)
     
     def __str__(self):
-        return f"Escrow Payment {self.reference_code} - ${self.total_amount}"
+        return f"Payment Holding Service {self.reference_code} - ${self.total_amount}"
     
     def generate_reference_code(self):
         """Generate unique reference code for payment tracking"""
@@ -412,12 +392,12 @@ class EscrowPaymentLog(models.Model):
         return f"Payment {self.escrow_payment.reference_code}: {self.previous_status} → {self.new_status}"
     
     @classmethod
-    def log_status_change(cls, escrow_payment, previous_status, changed_by=None, notes=None):
+    def log_status_change(cls, payment_holding_service, previous_status, changed_by=None, notes=None):
         """Create audit log entry for status changes"""
         return cls.objects.create(
-            escrow_payment=escrow_payment,
+            escrow_payment=payment_holding_service,  # Keep field name for DB compatibility
             previous_status=previous_status,
-            new_status=escrow_payment.status,
+            new_status=payment_holding_service.status,
             changed_by=changed_by,
             notes=notes
         )

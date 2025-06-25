@@ -21,13 +21,13 @@ urlpatterns = [
     path('subscription/upgrade/', views.upgrade_subscription, name='upgrade_subscription'),
     path('subscription/complete-payment/', views.complete_payment, name='complete_payment'),
     
-    # Escrow Payment User Views (Enterprise-facing)
-    path('escrow-payment/<int:payment_id>/', 
-         views.escrow_payment_instructions, 
-         name='escrow_payment_instructions'),
-    path('escrow-payment/<int:payment_id>/confirm/', 
-         views.escrow_payment_confirmation, 
-         name='escrow_payment_confirmation'),
+    # Payment Holding Service User Views (Enterprise-facing)
+    path('payment-holding/<int:payment_id>/', 
+         views.payment_holding_instructions, 
+         name='payment_holding_instructions'),
+    path('payment-holding/<int:payment_id>/confirm/', 
+         views.payment_holding_confirmation, 
+         name='payment_holding_confirmation'),
     
     # =============================================================================
     # ADMIN URLS - 4-Stage Payment Management Workflow
@@ -39,14 +39,14 @@ urlpatterns = [
          name='admin_payment_dashboard'),
     
     # Payment List & Management
-    path('admin/escrow-payments/', 
-         views.admin_escrow_payments, 
-         name='admin_escrow_payments'),
+    path('admin/payment-holding-services/', 
+         views.admin_payment_holding_services, 
+         name='admin_payment_holding_services'),
     
     # Individual Payment Management
-    path('admin/escrow-payment/<int:payment_id>/', 
-         views.admin_escrow_payment_detail, 
-         name='admin_escrow_payment_detail'),
+    path('admin/payment-holding/<int:payment_id>/', 
+         views.admin_payment_holding_detail, 
+         name='admin_payment_holding_detail'),
     
     # =============================================================================
     # 4-STAGE WORKFLOW ACTIONS
@@ -68,7 +68,7 @@ urlpatterns = [
          name='admin_release_startup_payment'),
     
     # Admin Utilities
-    path('admin/escrow-payments/export-csv/', 
+    path('admin/payment-holding-services/export-csv/', 
          views.admin_export_payments_csv, 
          name='admin_export_payments_csv'),
 

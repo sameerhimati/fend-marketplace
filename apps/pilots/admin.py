@@ -54,8 +54,8 @@ class PilotAdminForm(forms.ModelForm):
 @admin.register(Pilot)
 class PilotAdmin(admin.ModelAdmin):
     form = PilotAdminForm
-    list_display = ('title', 'organization', 'status', 'price', 'verified', 'created_at')
-    list_filter = ('status', 'organization', 'verified', 'legal_agreement_accepted')
+    list_display = ('title', 'organization', 'status', 'price', 'created_at')
+    list_filter = ('status', 'organization', 'legal_agreement_accepted')
     search_fields = ('title', 'description')
     
     fieldsets = (
@@ -75,11 +75,11 @@ class PilotAdmin(admin.ModelAdmin):
             'fields': ('is_private',)
         }),
         ('Verification', {
-            'fields': ('legal_agreement_accepted', 'verified', 'admin_verified_at', 'admin_verified_by'),
+            'fields': ('legal_agreement_accepted',),
         }),
     )
     
-    readonly_fields = ('created_at', 'admin_verified_at',)
+    readonly_fields = ('created_at',)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -147,13 +147,13 @@ class PilotAdmin(admin.ModelAdmin):
         
         # Add pilot verification stats
         extra_context['pilot_count_pending'] = Pilot.objects.filter(
-            status='pending_approval', verified=False
+            status='pending_approval'
         ).count()
         extra_context['verified_today'] = Pilot.objects.filter(
-            verified=True, 
-            admin_verified_at__date=timezone.now().date()
+            status='published', 
+            created_at__date=timezone.now().date()
         ).count()
-        extra_context['total_verified'] = Pilot.objects.filter(verified=True).count()
+        extra_context['total_verified'] = Pilot.objects.filter(status='published').count()
         extra_context['active_pilots_count'] = Pilot.objects.filter(
             status__in=['published', 'in_progress']
         ).count()

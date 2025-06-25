@@ -76,7 +76,7 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
     status_badge.short_description = 'Status'
     
     def actions_column(self, obj):
-        detail_url = reverse('payments:admin_escrow_payment_detail', args=[obj.id])
+        detail_url = reverse('payments:payment_holding_detail', args=[obj.id])
         return format_html(
             '<a href="{}" class="button" style="padding: 3px 8px;">View Details</a>',
             detail_url
@@ -157,14 +157,14 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
                  name='payment_dashboard'),
             
             # Payment list and management
-            path('escrow-payments/', 
-                 self.admin_site.admin_view(payment_views.admin_escrow_payments), 
-                 name='escrow_payments'),
+            path('payment-holding-services/', 
+                 self.admin_site.admin_view(payment_views.admin_payment_holding_services), 
+                 name='payment_holding_services'),
             
             # Individual payment management
-            path('escrow-payment/<int:payment_id>/', 
-                 self.admin_site.admin_view(payment_views.admin_escrow_payment_detail), 
-                 name='escrow_payment_detail'),
+            path('payment-holding/<int:payment_id>/', 
+                 self.admin_site.admin_view(payment_views.admin_payment_holding_detail), 
+                 name='payment_holding_detail'),
             
             # 4-Stage Workflow Actions
             # Stage 1→2: Mark invoice as sent

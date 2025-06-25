@@ -1,0 +1,67 @@
+<!-- Reusable file upload toggle component -->
+<!-- Usage: {% include "components/forms/file_upload_toggle.html" with field_name="technical_specs" label="Technical Specifications" required=True text_value=pilot.technical_specs_text placeholder="Enter technical specifications..." %} -->
+
+<div class="form-section">
+    <label class="block text-sm font-medium text-gray-700 mb-3">
+        {{ label }}
+        {% if required %}
+            <span class="text-red-500">*</span>
+        {% endif %}
+    </label>
+    
+    <div class="tab-toggle mb-4">
+        <button type="button" id="{{ field_name }}_file_btn" class="active">Upload Document</button>
+        <button type="button" id="{{ field_name }}_text_btn">Enter Text</button>
+    </div>
+    
+    <div id="{{ field_name }}_file">
+        <div class="file-input-wrapper">
+            <input type="file" name="{{ field_name }}_doc" id="{{ field_name }}_doc" accept=".pdf,.doc,.docx">
+            <div class="file-input-placeholder">
+                <svg class="file-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <span>Click to upload or drag and drop</span>
+                <span class="file-types">PDF, DOC, DOCX (max 10MB)</span>
+            </div>
+            {% if current_file %}
+                <div class="current-file">
+                    <span>Current file: {{ current_file.name }}</span>
+                    <a href="{{ current_file.url }}" target="_blank" class="view-file">View</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div id="{{ field_name }}_text" style="display:none;">
+        <textarea 
+            name="{{ field_name }}_text" 
+            rows="6" 
+            class="form-textarea w-full"
+            placeholder="{{ placeholder }}"
+        >{{ text_value|default:'' }}</textarea>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileBtn = document.getElementById('{{ field_name }}_file_btn');
+    const textBtn = document.getElementById('{{ field_name }}_text_btn');
+    const fileDiv = document.getElementById('{{ field_name }}_file');
+    const textDiv = document.getElementById('{{ field_name }}_text');
+    
+    fileBtn?.addEventListener('click', function() {
+        fileBtn.classList.add('active');
+        textBtn.classList.remove('active');
+        fileDiv.style.display = 'block';
+        textDiv.style.display = 'none';
+    });
+    
+    textBtn?.addEventListener('click', function() {
+        textBtn.classList.add('active');
+        fileBtn.classList.remove('active');
+        fileDiv.style.display = 'none';
+        textDiv.style.display = 'block';
+    });
+});
+</script>

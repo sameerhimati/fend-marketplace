@@ -641,7 +641,7 @@ def complete_payment(request):
         return redirect('payments:subscription_detail')
     
 @login_required
-def escrow_payment_instructions(request, payment_id):
+def payment_holding_instructions(request, payment_id):
     """Show payment instructions for enterprise"""
     payment = get_object_or_404(EscrowPayment, id=payment_id)
     
@@ -650,12 +650,12 @@ def escrow_payment_instructions(request, payment_id):
         messages.error(request, "You don't have permission to view these payment instructions")
         return redirect('organizations:dashboard')
     
-    return render(request, 'payments/escrow_payment_instructions.html', {
+    return render(request, 'payments/payment_holding_instructions.html', {
         'payment': payment
     })
 
 @login_required
-def escrow_payment_confirmation(request, payment_id):
+def payment_holding_confirmation(request, payment_id):
     """Enterprise confirms payment has been sent"""
     payment = get_object_or_404(EscrowPayment, id=payment_id)
     
@@ -673,7 +673,7 @@ def escrow_payment_confirmation(request, payment_id):
             wire_date = datetime.strptime(wire_date, '%Y-%m-%d').date()
         except ValueError:
             messages.error(request, "Invalid date format")
-            return render(request, 'payments/escrow_payment_confirmation.html', {'payment': payment})
+            return render(request, 'payments/payment_holding_confirmation.html', {'payment': payment})
         
         # Mark payment as initiated (legacy support - no longer used in 4-stage workflow)
         payment.mark_as_payment_initiated(wire_date=wire_date, confirmation=confirmation)
@@ -681,7 +681,7 @@ def escrow_payment_confirmation(request, payment_id):
         messages.success(request, "Payment confirmation received. Thank you!")
         return redirect('pilots:bid_detail', pk=payment.pilot_bid.id)
     
-    return render(request, 'payments/escrow_payment_confirmation.html', {
+    return render(request, 'payments/payment_holding_confirmation.html', {
         'payment': payment
     })
 
@@ -804,9 +804,9 @@ def admin_mark_invoice_sent(request, bid_id):
     
     # Get or create escrow payment
     try:
-        escrow_payment = bid.escrow_payment
-        if escrow_payment.status != 'pending':
-            messages.error(request, f"Payment must be in 'pending' status. Current status: {escrow_payment.get_status_display()}")
+        payment_holding_service = bid.payment_holding_service
+        if payment_holding_service.status != 'pending':
+            messages.error(request, f"Payment must be in 'pending' status. Current status: {payment_holding_service.get_status_display()}")
             return redirect('payments:admin_payment_dashboard')
     except EscrowPayment.DoesNotExist:
         messages.error(request, "No escrow payment found for this bid")
@@ -817,17 +817,17 @@ def admin_mark_invoice_sent(request, bid_id):
     
     # Create log entry
     EscrowPaymentLog.objects.create(
-        escrow_payment=escrow_payment,
-        previous_status=escrow_payment.status,
+        escrow_payment=payment_holding_service,
+        previous_status=payment_holding_service.status,
         new_status='instructions_sent',
         changed_by=request.user,
         notes=f"Invoice sent to enterprise. {notes}".strip()
     )
     
     # Mark invoice as sent
-    escrow_payment.status = 'instructions_sent'
-    escrow_payment.instructions_sent_at = timezone.now()
-    escrow_payment.save()
+    payment_holding_service.status = 'instructions_sent'
+    payment_holding_service.instructions_sent_at = timezone.now()
+    payment_holding_service.save()
     
     # Create notifications for enterprise
     for user in bid.pilot.organization.users.all():
@@ -848,14 +848,14 @@ def admin_mark_invoice_sent(request, bid_id):
 def admin_confirm_payment_and_activate(request, payment_id):
     """Admin confirms payment received AND activates work in one step"""
     if request.method != 'POST':
-        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+        return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
     payment = get_object_or_404(EscrowPayment, id=payment_id)
     
     # Verify that payment is in 'instructions_sent' status
     if payment.status != 'instructions_sent':
         messages.error(request, f"Payment must be in 'instructions_sent' status. Current status: {payment.get_status_display()}")
-        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+        return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
     # Get admin notes
     notes = request.POST.get('notes', '')
@@ -866,7 +866,7 @@ def admin_confirm_payment_and_activate(request, payment_id):
         messages.success(request, f"Payment confirmed and work activated for '{payment.pilot_bid.pilot.title}'")
     except Exception as e:
         messages.error(request, f"Error confirming payment and activating work: {str(e)}")
-        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+        return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
     return redirect('payments:admin_payment_dashboard')
 
@@ -875,18 +875,18 @@ def admin_confirm_payment_and_activate(request, payment_id):
 def admin_release_startup_payment(request, payment_id):
     """Admin releases payment to startup after work completion"""
     if request.method != 'POST':
-        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+        return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
     payment = get_object_or_404(EscrowPayment, id=payment_id)
     
     # Enhanced validation
     if payment.status != 'received':
         messages.error(request, f"Payment must be in 'received' status. Current status: {payment.get_status_display()}")
-        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+        return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
     if payment.pilot_bid.status != 'completed':
         messages.error(request, "The pilot must be marked as completed by the enterprise before releasing payment")
-        return redirect('payments:admin_escrow_payment_detail', payment_id=payment_id)
+        return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
     # Get admin notes
     notes = request.POST.get('notes', '')
@@ -926,7 +926,7 @@ def admin_release_startup_payment(request, payment_id):
 
 @login_required
 @staff_member_required
-def admin_escrow_payments(request):
+def admin_payment_holding_services(request):
     """Enhanced admin view for all escrow payments with 4-stage workflow filtering"""
     tab = request.GET.get('tab', 'all')
     search = request.GET.get('search', '')
@@ -1000,7 +1000,7 @@ def admin_escrow_payments(request):
 
 @login_required
 @staff_member_required
-def admin_escrow_payment_detail(request, payment_id):
+def admin_payment_holding_detail(request, payment_id):
     """Enhanced admin view for individual payment details"""
     payment = get_object_or_404(
         EscrowPayment.objects.select_related(
@@ -1020,7 +1020,7 @@ def admin_escrow_payment_detail(request, payment_id):
         'payment_logs': payment_logs,
     }
     
-    return render(request, 'admin/payments/admin_escrow_payment_detail.html', context)
+    return render(request, 'admin/payments/admin_payment_holding_detail.html', context)
 
 @login_required
 @staff_member_required

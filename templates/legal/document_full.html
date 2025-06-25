@@ -1,0 +1,171 @@
+{% extends 'legal/base_legal.html' %}
+
+{% block title %}{{ document_title }} - FEND AI Legal Portal{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    
+    <!-- Navigation Bar -->
+    <div class="mb-8">
+        <nav class="flex items-center space-x-2 text-sm text-gray-500">
+            <a href="{% url 'legal_portal' %}" class="text-blue-600 hover:text-blue-800">Legal Portal</a>
+            <span>›</span>
+            <span class="text-gray-900">{{ document_title }}</span>
+        </nav>
+    </div>
+
+    {% if error %}
+        <!-- Error State -->
+        <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h1 class="text-2xl font-bold text-red-800 mb-2">Document Not Found</h1>
+            <p class="text-red-600 mb-4">{{ error_message }}</p>
+            <a href="{% url 'legal_portal' %}" 
+               class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                ← Back to Legal Portal
+            </a>
+        </div>
+    
+    {% elif show_full_content %}
+        <!-- Document Header -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200 mb-8">
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h1 class="text-3xl font-bold text-gray-900">{{ document_title }}</h1>
+                    <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if summary_color == 'blue' %}bg-blue-100 text-blue-800
+                            {% elif summary_color == 'green' %}bg-green-100 text-green-800
+                            {% elif summary_color == 'purple' %}bg-purple-100 text-purple-800
+                            {% elif summary_color == 'yellow' %}bg-yellow-100 text-yellow-800
+                            {% elif summary_color == 'orange' %}bg-orange-100 text-orange-800
+                            {% elif summary_color == 'indigo' %}bg-indigo-100 text-indigo-800
+                            {% elif summary_color == 'teal' %}bg-teal-100 text-teal-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            Version {{ version }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-gray-600 mb-2 sm:mb-0">
+                        <span class="font-medium">Effective Date:</span> {{ effective_date }}
+                    </p>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center space-x-3">
+                        <button onclick="window.print()" 
+                                class="inline-flex items-center px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                            🖨️ Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back Navigation -->
+            <div class="px-6 py-3 bg-gray-50">
+                <a href="{% url 'legal_portal' %}" 
+                   class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+                    ← Back to Legal Portal
+                </a>
+            </div>
+        </div>
+
+        <!-- Full Document Content -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+            <div class="p-8">
+                <div class="prose prose-gray max-w-none">
+                    <!-- Format the legal document content -->
+                    <div class="legal-document-content">
+                        {{ full_content|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="mt-8 text-center">
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Need Help with This Document?</h3>
+                <p class="text-gray-600 mb-4">
+                    Our legal team is available to answer questions about this agreement.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                    <a href="mailto:legal@thefend.com" 
+                       class="text-blue-600 hover:text-blue-800 font-medium">
+                        📧 legal@thefend.com
+                    </a>
+                    <a href="tel:+16507352255" 
+                       class="text-blue-600 hover:text-blue-800 font-medium">
+                        📞 (650) 735-2255
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Custom CSS for legal document formatting -->
+<style>
+.legal-document-content {
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.6;
+    color: #374151;
+}
+
+.legal-document-content h1,
+.legal-document-content h2,
+.legal-document-content h3 {
+    color: #111827;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.legal-document-content h1 {
+    font-size: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.legal-document-content p {
+    margin-bottom: 1rem;
+}
+
+.legal-document-content ul,
+.legal-document-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.legal-document-content li {
+    margin-bottom: 0.5rem;
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .legal-document-content {
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+    
+    body {
+        background: white !important;
+    }
+    
+    .bg-white,
+    .bg-gray-50 {
+        background: white !important;
+    }
+    
+    .shadow-lg,
+    .border {
+        box-shadow: none !important;
+        border: none !important;
+    }
+}
+</style>
+{% endblock %}
