@@ -292,7 +292,7 @@
                                 <span class="text-xs text-gray-500">{{ payment.created_at|date:"M d, Y" }}</span>
                             </div>
                         </div>
-                        <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" class="text-indigo-600 hover:text-indigo-900 text-sm">
+                        <a href="{% url 'payments:admin_payment_holding_detail' payment.id %}" class="text-indigo-600 hover:text-indigo-900 text-sm">
                             View
                         </a>
                     </div>

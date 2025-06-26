@@ -353,7 +353,7 @@
         
         <!-- Payment Link -->
         {% if original.escrow_payment %}
-        <a href="{% url 'payments:admin_escrow_payment_detail' original.escrow_payment.id %}" 
+        <a href="{% url 'payments:admin_payment_holding_detail' original.escrow_payment.id %}" 
            class="action-button info">
             💳 View Payment Details ({{ original.escrow_payment.reference_code }})
         </a>

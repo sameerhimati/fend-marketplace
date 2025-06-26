@@ -175,7 +175,7 @@
                 <!-- Admin Payment Link -->
                 {% if is_admin %}
                 <div class="mt-4">
-                    <a href="{% url 'payments:admin_escrow_payment_detail' escrow_payment.id %}" 
+                    <a href="{% url 'payments:admin_payment_holding_detail' escrow_payment.id %}" 
                        class="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
                         <i class="fas fa-credit-card mr-2"></i>
                         Manage Payment
@@ -229,7 +229,7 @@
                        class="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                         ← Back to Payment Dashboard
                     </a>
-                    <a href="{% url 'payments:admin_escrow_payments' %}" 
+                    <a href="{% url 'payments:admin_payment_holding_services' %}" 
                        class="text-sm font-medium text-gray-600 hover:text-gray-900">
                         All Payments
                     </a>
@@ -238,7 +238,7 @@
                 <!-- Admin Actions -->
                 <div class="flex space-x-3">
                     {% if escrow_payment %}
-                    <a href="{% url 'payments:admin_escrow_payment_detail' escrow_payment.id %}" 
+                    <a href="{% url 'payments:admin_payment_holding_detail' escrow_payment.id %}" 
                        class="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
                         Manage Payment
                     </a>

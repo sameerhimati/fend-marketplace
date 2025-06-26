@@ -87,7 +87,7 @@
                             <p class="text-xs text-gray-500">Invoice sent {{ payment.instructions_sent_at|timesince }} ago</p>
                         </div>
                         <div class="ml-3 flex flex-col space-y-2">
-                            <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
+                            <a href="{% url 'payments:admin_payment_holding_detail' payment.id %}" 
                                class="text-xs px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-center">
                                 View
                             </a>
@@ -136,7 +136,7 @@
                             <p class="text-xs text-gray-500">Work completed {{ payment.pilot_bid.completed_at|timesince }} ago</p>
                         </div>
                         <div class="ml-3 flex flex-col space-y-2">
-                            <a href="{% url 'payments:admin_escrow_payment_detail' payment.id %}" 
+                            <a href="{% url 'payments:admin_payment_holding_detail' payment.id %}" 
                                class="text-xs px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-center">
                                 View
                             </a>

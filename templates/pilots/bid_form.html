@@ -181,8 +181,8 @@
                             </div>
                             <div class="ml-3 text-sm">
                                 <label for="legal_agreement" class="font-medium text-gray-700">
-                                    I accept the <a href="{% url 'organizations:user_agreement' %}" target="_blank" class="text-indigo-600 hover:text-indigo-800">User Agreement</a> and 
-                                    <a href="{% url 'organizations:payment_terms' %}" target="_blank" class="text-indigo-600 hover:text-indigo-800">Payment Terms</a> for this bid submission.
+                                    I accept the <a href="{% url 'legal_document' 'user-agreement' %}" target="_blank" class="text-indigo-600 hover:text-indigo-800">User Agreement</a> and 
+                                    <a href="{% url 'legal_document' 'payment-terms' %}" target="_blank" class="text-indigo-600 hover:text-indigo-800">Payment Terms</a> for this bid submission.
                                 </label>
                             </div>
                         </div>

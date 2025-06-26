@@ -43,11 +43,6 @@ urlpatterns = [
     path('legal/accept/', legal_views.accept_legal_document, name='accept_legal_document'),
     path('legal/status/', legal_views.legal_status, name='legal_status'),
     
-    # Public legal document pages (for registration form links)
-    path('legal/terms-of-service/', legal_views.legal_document_full, {'document_type': 'terms-of-service'}, name='terms_of_service'),
-    path('legal/privacy-policy/', legal_views.legal_document_full, {'document_type': 'privacy-policy'}, name='privacy_policy'),
-    path('legal/user-agreement/', legal_views.legal_document_full, {'document_type': 'user-agreement'}, name='user_agreement'),
-    
     
     # =============================================================================
     # PARTNER PROMOTION MANAGEMENT
