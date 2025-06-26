@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
+import uuid
 
 import stripe
 
@@ -82,12 +84,25 @@ class Subscription(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # For free accounts
+    free_account_code = models.ForeignKey('FreeAccountCode', on_delete=models.SET_NULL, null=True, blank=True)
+    
     def __str__(self):
         return f"{self.organization.name} - {self.plan.name}"
     
     def is_active(self):
         """Check if subscription is active"""
-        return self.status == 'active' and self.current_period_end > timezone.now()
+        # Regular paid subscription
+        if self.status == 'active' and self.current_period_end and self.current_period_end > timezone.now():
+            return True
+        
+        # Free account code subscription
+        if (self.free_account_code and 
+            self.current_period_end and 
+            self.current_period_end > timezone.now()):
+            return True
+            
+        return False
     
     def remaining_pilots(self):
         """Get number of pilots that can still be published"""
@@ -156,6 +171,76 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.organization.name} - ${self.amount} ({self.payment_type})"
 
+
+class FreeAccountCode(models.Model):
+    """Model for managing free account access codes"""
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    description = models.TextField(blank=True, help_text="Internal description of this code")
+    
+    # Plan settings - which plan this code grants
+    plan = models.ForeignKey(PricingPlan, on_delete=models.CASCADE, help_text="Which plan this code grants access to")
+    free_months = models.PositiveIntegerField(default=12, help_text="Number of months of free access (default: 12)")
+    
+    # Validity settings
+    is_active = models.BooleanField(default=True)
+    valid_from = models.DateTimeField(default=timezone.now)
+    valid_until = models.DateTimeField(help_text="When this code expires (redemption deadline)")
+    max_uses = models.PositiveIntegerField(default=1, help_text="Maximum number of organizations that can use this code")
+    
+    # Usage tracking
+    times_used = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        db_table = 'payments_free_account_code'
+        ordering = ['-created_at']
+        verbose_name = 'Free Account Code'
+        verbose_name_plural = 'Free Account Codes'
+    
+    def __str__(self):
+        return f"Code: {self.code} - {self.plan.name} ({self.times_used}/{self.max_uses} uses)"
+    
+    def is_valid(self):
+        """Check if code is currently valid for use"""
+        now = timezone.now()
+        return (
+            self.is_active and 
+            self.valid_from <= now <= self.valid_until and
+            self.times_used < self.max_uses
+        )
+    
+    def can_be_used(self):
+        """Check if code can be used by a new organization"""
+        return self.is_valid()
+    
+    def use_code(self):
+        """Mark the code as used (increment usage counter)"""
+        if self.can_be_used():
+            self.times_used += 1
+            self.save()
+            return True
+        return False
+    
+    def get_subscription_end_date(self):
+        """Calculate when the free subscription should end"""
+        return timezone.now() + timedelta(days=self.free_months * 30)  # Approximate month = 30 days
+    
+    @classmethod
+    def generate_code(cls, plan, description="", valid_days=365, max_uses=1, free_months=12, created_by=None):
+        """Generate a new free account code for a specific plan"""
+        code = f"FREE{uuid.uuid4().hex[:8].upper()}"
+        valid_until = timezone.now() + timedelta(days=valid_days)
+        
+        return cls.objects.create(
+            code=code,
+            plan=plan,
+            description=description,
+            valid_until=valid_until,
+            max_uses=max_uses,
+            free_months=free_months,
+            created_by=created_by
+        )
 
 
 class EscrowPayment(models.Model):

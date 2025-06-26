@@ -88,7 +88,7 @@ def enhanced_admin_dashboard(request):
     overdue_approvals = pending_approvals.filter(created_at__lt=sla_cutoff).count()
     
     # Secondary: Pilot verifications
-    pending_pilots = Pilot.objects.filter(status='pending_approval', verified=False)
+    pending_pilots = Pilot.objects.filter(status='pending_approval')
     pilot_count_pending = pending_pilots.count()
     overdue_pilots = pending_pilots.filter(created_at__lt=sla_cutoff).count()
     
@@ -181,8 +181,7 @@ def admin_pilot_dashboard(request):
     """
     # Pending approvals (top priority)
     pending_pilots = Pilot.objects.filter(
-        status='pending_approval',
-        verified=False
+        status='pending_approval'
     ).select_related('organization').order_by('-created_at')
     
     # All pilots with search functionality
@@ -462,7 +461,7 @@ def _export_pilots_csv():
     
     writer = csv.writer(response)
     writer.writerow([
-        'Title', 'Organization', 'Status', 'Price', 'Verified', 'Created'
+        'Title', 'Organization', 'Status', 'Price', 'Created'
     ])
     
     pilots = Pilot.objects.select_related('organization').order_by('-created_at')
@@ -473,7 +472,6 @@ def _export_pilots_csv():
             pilot.organization.name,
             pilot.get_status_display(),
             pilot.price,
-            'Yes' if pilot.verified else 'No',
             pilot.created_at.strftime('%Y-%m-%d'),
         ])
     

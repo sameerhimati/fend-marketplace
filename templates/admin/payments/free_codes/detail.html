@@ -1,0 +1,305 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Free Code: {{ code.code }} - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="flex justify-between items-center">
+        <div>
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+                <a href="{% url 'payments:admin_free_codes_dashboard' %}" class="hover:text-gray-700">Free Account Codes</a>
+                <i class="fas fa-chevron-right text-xs"></i>
+                <span class="text-gray-900">{{ code.code }}</span>
+            </nav>
+            <h1 class="text-2xl font-bold text-gray-900">Code: {{ code.code }}</h1>
+            <p class="text-gray-600">
+                {% if code.description %}
+                    {{ code.description }}
+                {% else %}
+                    No description provided
+                {% endif %}
+            </p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'payments:admin_free_codes_dashboard' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                <i class="fas fa-arrow-left mr-2"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        {% if is_valid %}
+                            <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                        {% else %}
+                            <i class="fas fa-times-circle text-2xl text-red-600"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Status</dt>
+                            <dd class="text-lg font-medium text-gray-900">
+                                {% if is_valid %}Valid{% else %}Invalid{% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-users text-2xl text-blue-600"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Usage</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ code.times_used }} / {{ code.max_uses }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-calendar-alt text-2xl text-purple-600"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Free Duration</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ code.free_months }} months</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock text-2xl text-yellow-600"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Valid Until</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ code.valid_until|date:"M j, Y" }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Details -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Code Information -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Code Information</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Code</label>
+                    <div class="mt-1 flex items-center space-x-2">
+                        <span class="text-lg font-mono bg-gray-100 px-3 py-2 rounded border">{{ code.code }}</span>
+                        <button onclick="copyToClipboard('{{ code.code }}')" 
+                                class="text-gray-500 hover:text-gray-700" 
+                                title="Copy to clipboard">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Plan</label>
+                    <div class="mt-1 text-sm text-gray-900">
+                        <div class="font-medium">{{ code.plan.name }}</div>
+                        <div class="text-gray-500">${{ code.plan.price }}/{{ code.plan.billing_frequency }} - {{ code.plan.get_plan_type_display }}</div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Created</label>
+                    <div class="mt-1 text-sm text-gray-900">
+                        {{ code.created_at|date:"F j, Y \a\t g:i A" }}
+                        {% if code.created_by %}
+                            by {{ code.created_by.get_full_name|default:code.created_by.username }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Validity Period</label>
+                    <div class="mt-1 text-sm text-gray-900">
+                        From {{ code.valid_from|date:"M j, Y" }} to {{ code.valid_until|date:"M j, Y" }}
+                        {% if code.valid_until < now %}
+                            <span class="text-red-600 font-medium">(Expired)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Code Form -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">Edit Code</h2>
+            </div>
+            <div class="p-6">
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update">
+                    
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <input type="text" 
+                               id="description" 
+                               name="description" 
+                               value="{{ code.description }}"
+                               placeholder="Internal description for tracking"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div>
+                        <label for="max_uses" class="block text-sm font-medium text-gray-700">Max Uses</label>
+                        <input type="number" 
+                               id="max_uses" 
+                               name="max_uses" 
+                               value="{{ code.max_uses }}"
+                               min="{{ code.times_used }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Cannot be less than current usage ({{ code.times_used }})</p>
+                    </div>
+
+                    <div>
+                        <label for="valid_until" class="block text-sm font-medium text-gray-700">Valid Until</label>
+                        <input type="date" 
+                               id="valid_until" 
+                               name="valid_until" 
+                               value="{{ code.valid_until|date:'Y-m-d' }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button type="submit" 
+                                class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Update Code
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Toggle Active Status -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <form method="post" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_active">
+                        <button type="submit" 
+                                class="w-full {% if code.is_active %}bg-red-600 hover:bg-red-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white px-4 py-2 rounded-md text-sm font-medium"
+                                onclick="return confirm('Are you sure you want to {% if code.is_active %}deactivate{% else %}activate{% endif %} this code?')">
+                            {% if code.is_active %}
+                                <i class="fas fa-ban mr-2"></i>Deactivate Code
+                            {% else %}
+                                <i class="fas fa-check mr-2"></i>Activate Code
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage History -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">
+                Usage History 
+                {% if subscriptions %}
+                    <span class="text-sm text-gray-500">({{ subscriptions|length }} organization{{ subscriptions|length|pluralize }})</span>
+                {% endif %}
+            </h2>
+        </div>
+        
+        {% if subscriptions %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Used Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid Until</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for subscription in subscriptions %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ subscription.organization.name }}</div>
+                            <div class="text-xs text-gray-500">{{ subscription.organization.contact_email }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {% if subscription.organization.type == 'enterprise' %}bg-blue-100 text-blue-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                {{ subscription.organization.get_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ subscription.created_at|date:"M j, Y g:i A" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if subscription.is_active %}
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                    {{ subscription.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {% if subscription.current_period_end %}
+                                {{ subscription.current_period_end|date:"M j, Y" }}
+                                {% if subscription.current_period_end < now %}
+                                    <div class="text-xs text-red-600">Expired</div>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-gray-400">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-user-slash text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Usage Yet</h3>
+            <p class="text-gray-500">This code has not been used by any organizations.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Could add a toast notification here
+        console.log('Code copied to clipboard');
+    });
+}
+</script>
+{% endblock %}

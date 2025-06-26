@@ -9,7 +9,8 @@ from .models import (
     Subscription, 
     Payment,
     EscrowPayment,
-    EscrowPaymentLog
+    EscrowPaymentLog,
+    FreeAccountCode
 )
 
 # Import the new admin views
@@ -215,9 +216,9 @@ class PricingPlanAdmin(CustomAdminMixin, admin.ModelAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(CustomAdminMixin, admin.ModelAdmin):
-    list_display = ('organization', 'plan', 'status', 'current_period_end')
-    list_filter = ('status', 'plan')
-    raw_id_fields = ('organization',)
+    list_display = ('organization', 'plan', 'status', 'free_account_code', 'current_period_end')
+    list_filter = ('status', 'plan', 'free_account_code__is_active')
+    raw_id_fields = ('organization', 'free_account_code')
     
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -234,3 +235,143 @@ class PaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
         extra_context = extra_context or {}
         extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
         return super().changelist_view(request, extra_context=extra_context)
+
+@admin.register(FreeAccountCode)
+class FreeAccountCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'plan', 'description', 'free_months', 'times_used', 'max_uses', 'is_active', 'valid_until', 'created_at')
+    list_filter = ('is_active', 'plan', 'free_months', 'valid_from', 'valid_until', 'created_at')
+    search_fields = ('code', 'description', 'plan__name')
+    readonly_fields = ('times_used', 'created_at', 'created_by')
+    raw_id_fields = ('plan',)
+    
+    fieldsets = (
+        ('Code Information', {
+            'fields': ('code', 'description')
+        }),
+        ('Plan Settings', {
+            'fields': ('plan', 'free_months')
+        }),
+        ('Validity Settings', {
+            'fields': ('is_active', 'valid_from', 'valid_until', 'max_uses')
+        }),
+        ('Usage Tracking', {
+            'fields': ('times_used', 'created_at', 'created_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Only set created_by for new objects
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['deactivate_codes']
+    
+    def deactivate_codes(self, request, queryset):
+        """Deactivate selected codes"""
+        count = queryset.update(is_active=False)
+        self.message_user(request, f"Deactivated {count} free account codes.")
+    deactivate_codes.short_description = "Deactivate selected codes"
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('generate-codes/', 
+                 self.admin_site.admin_view(self.generate_codes_view), 
+                 name='generate_free_codes'),
+        ]
+        return custom_urls + urls
+    
+    def generate_codes_view(self, request):
+        """Custom view for generating multiple free account codes"""
+        from django.shortcuts import render, redirect
+        from django.contrib import messages
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        if request.method == 'POST':
+            try:
+                count = int(request.POST.get('count', 1))
+                plan_id = request.POST.get('plan_id')
+                description = request.POST.get('description', '')
+                valid_days = int(request.POST.get('valid_days', 365))
+                free_months = int(request.POST.get('free_months', 12))
+                max_uses = int(request.POST.get('max_uses', 1))
+                
+                # Validate inputs
+                if count < 1 or count > 100:
+                    messages.error(request, "Count must be between 1 and 100")
+                    return render(request, 'admin/payments/generate_codes.html', {'plans': PricingPlan.objects.filter(is_active=True)})
+                
+                if not plan_id:
+                    messages.error(request, "Please select a plan")
+                    return render(request, 'admin/payments/generate_codes.html', {'plans': PricingPlan.objects.filter(is_active=True)})
+                
+                if valid_days < 1 or valid_days > 3650:  # Max 10 years
+                    messages.error(request, "Valid days must be between 1 and 3650")
+                    return render(request, 'admin/payments/generate_codes.html', {'plans': PricingPlan.objects.filter(is_active=True)})
+                
+                if free_months < 1 or free_months > 120:  # Max 10 years
+                    messages.error(request, "Free months must be between 1 and 120")
+                    return render(request, 'admin/payments/generate_codes.html', {'plans': PricingPlan.objects.filter(is_active=True)})
+                
+                if max_uses < 1 or max_uses > 1000:
+                    messages.error(request, "Max uses must be between 1 and 1000")
+                    return render(request, 'admin/payments/generate_codes.html', {'plans': PricingPlan.objects.filter(is_active=True)})
+                
+                # Get the selected plan
+                try:
+                    plan = PricingPlan.objects.get(id=plan_id)
+                except PricingPlan.DoesNotExist:
+                    messages.error(request, "Invalid plan selected")
+                    return render(request, 'admin/payments/generate_codes.html', {'plans': PricingPlan.objects.filter(is_active=True)})
+                
+                # Generate codes
+                generated_codes = []
+                for i in range(count):
+                    code_description = f"{description} ({i+1}/{count})" if count > 1 and description else description
+                    code = FreeAccountCode.generate_code(
+                        plan=plan,
+                        description=code_description or f"Generated {timezone.now().strftime('%Y-%m-%d')}",
+                        valid_days=valid_days,
+                        max_uses=max_uses,
+                        free_months=free_months,
+                        created_by=request.user
+                    )
+                    generated_codes.append(code)
+                
+                messages.success(request, f"Successfully generated {count} free account codes!")
+                
+                # Store codes in session for display
+                request.session['generated_codes'] = [
+                    {
+                        'code': code.code,
+                        'plan_name': code.plan.name,
+                        'description': code.description,
+                        'valid_until': code.valid_until.strftime('%Y-%m-%d %H:%M'),
+                        'free_months': code.free_months,
+                        'max_uses': code.max_uses
+                    }
+                    for code in generated_codes
+                ]
+                
+                return redirect('admin:payments_freeaccountcode_changelist')
+                
+            except ValueError as e:
+                messages.error(request, f"Invalid input: {str(e)}")
+            except Exception as e:
+                messages.error(request, f"Error generating codes: {str(e)}")
+        
+        # GET request - show form with available plans
+        plans = PricingPlan.objects.filter(is_active=True).order_by('plan_type', 'name')
+        return render(request, 'admin/payments/generate_codes.html', {'plans': plans})
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        
+        # Check if we have generated codes to display
+        generated_codes = request.session.pop('generated_codes', None)
+        if generated_codes:
+            extra_context['generated_codes'] = generated_codes
+        
+        return super().changelist_view(request, extra_context)

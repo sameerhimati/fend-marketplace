@@ -1,0 +1,272 @@
+{% extends 'admin/base_admin.html' %}
+
+{% block title %}Generate Free Account Codes - Fend Admin{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="flex justify-between items-center">
+        <div>
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+                <a href="{% url 'payments:admin_free_codes_dashboard' %}" class="hover:text-gray-700">Free Account Codes</a>
+                <i class="fas fa-chevron-right text-xs"></i>
+                <span class="text-gray-900">Generate Codes</span>
+            </nav>
+            <h1 class="text-2xl font-bold text-gray-900">Generate Free Account Codes</h1>
+            <p class="text-gray-600">Create promotional codes for partnerships and special offers</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'payments:admin_free_codes_dashboard' %}" 
+               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                <i class="fas fa-arrow-left mr-2"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    <!-- Generation Form -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-medium text-gray-900">Code Generation Settings</h2>
+                </div>
+                <div class="p-6">
+                    <form method="post" class="space-y-6">
+                        {% csrf_token %}
+                        
+                        <!-- Plan Selection -->
+                        <div>
+                            <label for="plan_id" class="block text-sm font-medium text-gray-700">
+                                Plan to Grant Access To <span class="text-red-500">*</span>
+                            </label>
+                            <select id="plan_id" 
+                                    name="plan_id" 
+                                    required
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                <option value="">Choose a plan...</option>
+                                {% for plan in plans %}
+                                <option value="{{ plan.id }}">
+                                    {{ plan.name }} - ${{ plan.price }}/{{ plan.billing_frequency }}
+                                    {% if plan.pilot_limit %}({{ plan.pilot_limit }} pilots){% else %}(Unlimited pilots){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Organizations using this code will get access to the selected plan</p>
+                        </div>
+
+                        <!-- Number of Codes -->
+                        <div>
+                            <label for="count" class="block text-sm font-medium text-gray-700">
+                                Number of Codes <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   id="count" 
+                                   name="count" 
+                                   value="1" 
+                                   min="1" 
+                                   max="100" 
+                                   required
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Generate between 1 and 100 codes at once</p>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                            <input type="text" 
+                                   id="description" 
+                                   name="description" 
+                                   maxlength="200" 
+                                   placeholder="e.g., Launch Partner Program, Conference 2024"
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">Internal description for tracking purposes (optional)</p>
+                        </div>
+
+                        <!-- Free Access Duration -->
+                        <div>
+                            <label for="free_months" class="block text-sm font-medium text-gray-700">
+                                Free Access Duration (months) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   id="free_months" 
+                                   name="free_months" 
+                                   value="12" 
+                                   min="1" 
+                                   max="120" 
+                                   required
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">How many months of free access to grant (default: 12 months)</p>
+                        </div>
+
+                        <!-- Code Validity Period -->
+                        <div>
+                            <label for="valid_days" class="block text-sm font-medium text-gray-700">
+                                Code Validity Period (days) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   id="valid_days" 
+                                   name="valid_days" 
+                                   value="365" 
+                                   min="1" 
+                                   max="3650" 
+                                   required
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">How many days the codes will be valid for redemption (default: 365 days)</p>
+                        </div>
+
+                        <!-- Maximum Uses -->
+                        <div>
+                            <label for="max_uses" class="block text-sm font-medium text-gray-700">
+                                Maximum Uses per Code <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" 
+                                   id="max_uses" 
+                                   name="max_uses" 
+                                   value="1" 
+                                   min="1" 
+                                   max="1000" 
+                                   required
+                                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500">How many organizations can use each code (default: 1 for single-use codes)</p>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="flex justify-end space-x-3">
+                            <a href="{% url 'payments:admin_free_codes_dashboard' %}" 
+                               class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+                                Cancel
+                            </a>
+                            <button type="submit" 
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                <i class="fas fa-magic mr-2"></i>Generate Codes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help & Examples -->
+        <div class="space-y-6">
+            <!-- Usage Examples -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Usage Examples</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="font-medium text-gray-900">Launch Partners</h4>
+                        <p class="text-sm text-gray-600">Generate 20 codes, each valid for 1 year, single-use</p>
+                        <div class="mt-2 text-xs text-gray-500">
+                            <div>Count: 20</div>
+                            <div>Valid Days: 365</div>
+                            <div>Max Uses: 1</div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h4 class="font-medium text-gray-900">Conference Distribution</h4>
+                        <p class="text-sm text-gray-600">Generate 50 codes, valid for 6 months, single-use</p>
+                        <div class="mt-2 text-xs text-gray-500">
+                            <div>Count: 50</div>
+                            <div>Valid Days: 180</div>
+                            <div>Max Uses: 1</div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h4 class="font-medium text-gray-900">Bulk Demo Accounts</h4>
+                        <p class="text-sm text-gray-600">Generate 10 codes, valid for 30 days, multiple-use (5)</p>
+                        <div class="mt-2 text-xs text-gray-500">
+                            <div>Count: 10</div>
+                            <div>Valid Days: 30</div>
+                            <div>Max Uses: 5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Information -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Code Information</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Code Format</h4>
+                        <p class="text-sm text-gray-600">Generated codes follow the format:</p>
+                        <code class="inline-block mt-1 bg-gray-100 px-2 py-1 rounded text-sm font-mono">FREE########</code>
+                        <p class="text-xs text-gray-500 mt-1">Where # represents random alphanumeric characters</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Security Features</h4>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 text-xs mt-1 mr-2"></i>
+                                Codes are randomly generated and cannot be predicted
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 text-xs mt-1 mr-2"></i>
+                                Each code tracks usage and can be deactivated if needed
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 text-xs mt-1 mr-2"></i>
+                                Expired codes are automatically rejected
+                            </li>
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-green-500 text-xs mt-1 mr-2"></i>
+                                All code usage is logged with timestamps and user information
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Tips -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-lightbulb text-blue-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">Quick Tips</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Use descriptive names to track different campaigns</li>
+                                <li>Set appropriate validity periods based on your campaign timeline</li>
+                                <li>Single-use codes (max uses = 1) are most secure for partnerships</li>
+                                <li>Multi-use codes are useful for demo accounts or broader distribution</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-calculate and show preview
+document.addEventListener('DOMContentLoaded', function() {
+    const countInput = document.getElementById('count');
+    const validDaysInput = document.getElementById('valid_days');
+    const freeMonthsInput = document.getElementById('free_months');
+    const planSelect = document.getElementById('plan_id');
+
+    function updatePreview() {
+        const count = countInput.value || 0;
+        const validDays = validDaysInput.value || 0;
+        const freeMonths = freeMonthsInput.value || 0;
+        
+        // Could add a preview section showing calculated values
+        console.log(`Generating ${count} codes valid for ${validDays} days granting ${freeMonths} months free access`);
+    }
+
+    [countInput, validDaysInput, freeMonthsInput, planSelect].forEach(input => {
+        input.addEventListener('change', updatePreview);
+    });
+});
+</script>
+{% endblock %}

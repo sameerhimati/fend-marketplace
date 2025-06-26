@@ -10,6 +10,7 @@ urlpatterns = [
     
     # Subscription Selection & Checkout
     path('select-plan/', views.payment_selection, name='payment_selection'),
+    path('validate-free-code/', views.validate_free_code, name='validate_free_code'),
     path('checkout/success/', views.checkout_success, name='checkout_success'),
     path('checkout/cancel/', views.checkout_cancel, name='checkout_cancel'),
     path('webhook/', views.stripe_webhook, name='stripe_webhook'),
@@ -95,4 +96,33 @@ urlpatterns = [
     path('admin/pilot/<int:bid_id>/contact-parties/', 
          views.admin_contact_pilot_parties, 
          name='admin_contact_pilot_parties'),
+
+    # =============================================================================
+    # FREE ACCOUNT CODES MANAGEMENT
+    # =============================================================================
+    
+    # Free codes dashboard
+    path('admin/free-codes/', 
+         views.admin_free_codes_dashboard, 
+         name='admin_free_codes_dashboard'),
+    
+    # Individual code management
+    path('admin/free-codes/<int:code_id>/', 
+         views.admin_free_code_detail, 
+         name='admin_free_code_detail'),
+    
+    # Generate new codes
+    path('admin/free-codes/generate/', 
+         views.admin_generate_free_codes, 
+         name='admin_generate_free_codes'),
+    
+    # Export codes as CSV
+    path('admin/free-codes/export-csv/', 
+         views.admin_export_free_codes_csv, 
+         name='admin_export_free_codes_csv'),
+    
+    # Bulk delete codes
+    path('admin/free-codes/bulk-delete/', 
+         views.admin_bulk_delete_free_codes, 
+         name='admin_bulk_delete_free_codes'),
 ]

@@ -1,0 +1,101 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Generate Free Account Codes{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label='payments' %}">Payments</a>
+    &rsaquo; <a href="{% url 'admin:payments_freeaccountcode_changelist' %}">Free account codes</a>
+    &rsaquo; {% trans 'Generate codes' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Generate Free Account Codes</h1>
+
+<div class="module aligned">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_plan_id">Plan to grant access to:</label>
+                <select name="plan_id" id="id_plan_id" required>
+                    <option value="">Choose a plan...</option>
+                    {% for plan in plans %}
+                    <option value="{{ plan.id }}">{{ plan.name }} - ${{ plan.price }}/{{ plan.billing_frequency }}</option>
+                    {% endfor %}
+                </select>
+                <p class="help">Which plan the codes will grant access to</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_count">Number of codes to generate:</label>
+                <input type="number" name="count" id="id_count" value="1" min="1" max="100" required>
+                <p class="help">Generate between 1 and 100 codes at once</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_description">Description:</label>
+                <input type="text" name="description" id="id_description" maxlength="200" placeholder="e.g., Launch Partner Program">
+                <p class="help">Internal description for tracking purposes (optional)</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_free_months">Free access duration (months):</label>
+                <input type="number" name="free_months" id="id_free_months" value="12" min="1" max="120" required>
+                <p class="help">How many months of free access to grant (default: 12 months)</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_valid_days">Valid for (days):</label>
+                <input type="number" name="valid_days" id="id_valid_days" value="365" min="1" max="3650" required>
+                <p class="help">How many days the codes will be valid (default: 365 days)</p>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="field-box">
+                <label for="id_max_uses">Maximum uses per code:</label>
+                <input type="number" name="max_uses" id="id_max_uses" value="1" min="1" max="1000" required>
+                <p class="help">How many organizations can use each code (default: 1)</p>
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="Generate Codes" class="default">
+            <a href="{% url 'admin:payments_freeaccountcode_changelist' %}" class="button cancel-link">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="module">
+    <h2>Usage Examples</h2>
+    <ul>
+        <li><strong>Launch Partners:</strong> Generate 20 codes, each valid for 1 year, single-use</li>
+        <li><strong>Conference Distribution:</strong> Generate 50 codes, valid for 6 months, single-use</li>
+        <li><strong>Bulk Demo Accounts:</strong> Generate 10 codes, valid for 30 days, multiple-use (5)</li>
+    </ul>
+    
+    <h3>Code Format</h3>
+    <p>Generated codes follow the format: <code>FREE########</code> where # represents random characters.</p>
+    
+    <h3>Security Notes</h3>
+    <ul>
+        <li>Codes are randomly generated and cannot be predicted</li>
+        <li>Each code tracks usage and can be deactivated if needed</li>
+        <li>Expired codes are automatically rejected</li>
+        <li>All code usage is logged with timestamps and user information</li>
+    </ul>
+</div>
+{% endblock %}

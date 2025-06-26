@@ -8,12 +8,12 @@ from django.conf import settings
 from django.urls import reverse
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, F
 from django.core.paginator import Paginator
 import csv
-from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
+from apps.notifications.services import create_notification
 
-from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog
+from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog, FreeAccountCode
 from apps.pilots.models import PilotBid
 from apps.organizations.models import Organization
 
@@ -52,38 +52,89 @@ def payment_selection(request):
     
     if request.method == 'POST':
         plan_id = request.POST.get('plan_id')
+        free_account_code = request.POST.get('free_account_code')
         
-        if not plan_id:
-            messages.error(request, "Please select a plan")
-            return render(request, 'payments/plan_selection.html', {
-                'plans': sorted_plans,
-                'organization': organization
-            })
+        # Handle free account code
+        if plan_id == 'free_account' and free_account_code:
+            try:
+                code = FreeAccountCode.objects.get(code=free_account_code)
+                if code.can_be_used():
+                    # Use the plan specified by the code
+                    plan = code.plan
+                    
+                    # Create or update subscription with free account code
+                    subscription, created = Subscription.objects.get_or_create(
+                        organization=organization,
+                        defaults={
+                            'plan': plan,
+                            'status': 'active',
+                            'free_account_code': code,
+                            'current_period_start': timezone.now(),
+                            'current_period_end': code.get_subscription_end_date(),
+                            'stripe_customer_id': '',
+                            'stripe_subscription_id': '',
+                        }
+                    )
+                    
+                    if not created:
+                        subscription.plan = plan
+                        subscription.status = 'active'
+                        subscription.free_account_code = code
+                        subscription.current_period_start = timezone.now()
+                        subscription.current_period_end = code.get_subscription_end_date()
+                        subscription.stripe_customer_id = ''
+                        subscription.stripe_subscription_id = ''
+                        subscription.save()
+                    
+                    # Mark code as used
+                    code.use_code()
+                    
+                    messages.success(request, f"Free {plan.name} account activated for {code.free_months} months!")
+                    return redirect('organizations:dashboard')
+                else:
+                    messages.error(request, "Invalid or expired free account code")
+            except FreeAccountCode.DoesNotExist:
+                messages.error(request, "Invalid free account code")
         
-        # Get the selected plan
-        plan = get_object_or_404(PricingPlan, id=plan_id)
-        
-        # Create or get the subscription
-        subscription, created = Subscription.objects.get_or_create(
-            organization=organization,
-            defaults={
-                'plan': plan,
-                'stripe_customer_id': organization.stripe_customer_id or '',
-                'status': 'incomplete'
-            }
-        )
-        
-        if not created:
-            # Update existing subscription with new plan
-            subscription.plan = plan
-            subscription.save()
-        
-        # Create Stripe Checkout Session
-        try:
-            checkout_session = create_checkout_session(request, organization, plan, subscription)
-            return redirect(checkout_session.url)
-        except Exception as e:
-            messages.error(request, f"Error creating checkout session: {str(e)}")
+        # Handle regular plan selection
+        elif plan_id and plan_id != 'free_account':
+            if not plan_id:
+                messages.error(request, "Please select a plan")
+                return render(request, 'payments/plan_selection.html', {
+                    'plans': sorted_plans,
+                    'organization': organization
+                })
+            
+            # Get the selected plan
+            plan = get_object_or_404(PricingPlan, id=plan_id)
+            
+            # Create or get the subscription
+            subscription, created = Subscription.objects.get_or_create(
+                organization=organization,
+                defaults={
+                    'plan': plan,
+                    'stripe_customer_id': organization.stripe_customer_id or '',
+                    'status': 'incomplete'
+                }
+            )
+            
+            if not created:
+                # Update existing subscription with new plan
+                subscription.plan = plan
+                subscription.save()
+            
+            # Create Stripe Checkout Session
+            try:
+                checkout_session = create_checkout_session(request, organization, plan, subscription)
+                return redirect(checkout_session.url)
+            except Exception as e:
+                messages.error(request, f"Error creating checkout session: {str(e)}")
+                return render(request, 'payments/plan_selection.html', {
+                    'plans': sorted_plans,
+                    'organization': organization
+                })
+        else:
+            messages.error(request, "Please select a plan or enter a valid free account code")
             return render(request, 'payments/plan_selection.html', {
                 'plans': sorted_plans,
                 'organization': organization
@@ -93,6 +144,39 @@ def payment_selection(request):
         'plans': sorted_plans,
         'organization': organization
     })
+
+@login_required
+@csrf_exempt
+def validate_free_code(request):
+    """AJAX endpoint to validate free account codes"""
+    if request.method != 'POST':
+        return JsonResponse({'valid': False, 'message': 'Invalid request method'})
+    
+    try:
+        data = json.loads(request.body)
+        code = data.get('code', '').strip()
+        
+        if not code:
+            return JsonResponse({'valid': False, 'message': 'Please enter a code'})
+        
+        try:
+            free_code = FreeAccountCode.objects.get(code=code)
+            if free_code.can_be_used():
+                # Store the code in session for later use
+                request.session['validated_free_code'] = code
+                return JsonResponse({
+                    'valid': True, 
+                    'message': f'Valid code! Expires on {free_code.valid_until.strftime("%B %d, %Y")}'
+                })
+            else:
+                return JsonResponse({'valid': False, 'message': 'Code is expired or has reached usage limit'})
+        except FreeAccountCode.DoesNotExist:
+            return JsonResponse({'valid': False, 'message': 'Invalid code'})
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'valid': False, 'message': 'Invalid request data'})
+    except Exception as e:
+        return JsonResponse({'valid': False, 'message': 'Error validating code'})
 
 def create_checkout_session(request, organization, plan, subscription):
     """Create a Stripe Checkout Session for the selected plan"""
@@ -698,12 +782,12 @@ def admin_payment_dashboard(request):
     approved_bids_needing_invoice = PilotBid.objects.filter(
         status='approved'
     ).exclude(
-        escrow_payment__status='instructions_sent'  # Exclude bids with invoices already sent
+        payment_holding_service__status='instructions_sent'  # Exclude bids with invoices already sent
     ).select_related(
         'pilot__organization',
         'startup'
     ).prefetch_related(
-        'escrow_payment'
+        'payment_holding_service'
     ).order_by('-updated_at')
     
     # STAGE 2: Invoices sent, awaiting payment
@@ -737,7 +821,7 @@ def admin_payment_dashboard(request):
     ).select_related(
         'pilot__organization',
         'startup',
-        'escrow_payment'
+        'payment_holding_service'
     ).prefetch_related(
         'pilot'
     ).order_by('-updated_at')
@@ -762,6 +846,16 @@ def admin_payment_dashboard(request):
         status__in=['received', 'instructions_sent']
     ).aggregate(total=Sum('total_amount'))['total'] or 0
     
+    # Free Account Codes stats
+    from .models import FreeAccountCode
+    active_codes = FreeAccountCode.objects.filter(is_active=True, valid_until__gt=timezone.now())
+    total_codes_count = FreeAccountCode.objects.count()
+    active_codes_count = active_codes.count()
+    codes_used_today = FreeAccountCode.objects.filter(
+        subscription__created_at__date=timezone.now().date()
+    ).count()
+    recent_codes = FreeAccountCode.objects.order_by('-created_at')[:5]
+    
     context = {
         # 4-stage workflow
         'approved_bids_needing_invoice': approved_bids_needing_invoice[:5],
@@ -784,6 +878,12 @@ def admin_payment_dashboard(request):
         # NEW: Active work stats
         'active_pilots_count': active_pilots.count(),
         'payment_confirmed_count': payment_confirmed_ready_to_start.count(),
+        
+        # Free Account Codes stats
+        'total_codes_count': total_codes_count,
+        'active_codes_count': active_codes_count,
+        'codes_used_today': codes_used_today,
+        'recent_codes': recent_codes,
     }
     
     return render(request, 'admin/payments/admin_payment_dashboard.html', context)
@@ -1107,7 +1207,7 @@ def admin_active_pilots_dashboard(request):
     base_query = PilotBid.objects.select_related(
         'pilot__organization',
         'startup',
-        'escrow_payment'
+        'payment_holding_service'
     ).prefetch_related('pilot')
     
     # Active pilots (work in progress)
@@ -1116,7 +1216,7 @@ def admin_active_pilots_dashboard(request):
     # Payment confirmed, ready to start work
     ready_to_start = base_query.filter(
         status='approved',
-        escrow_payment__status='received'
+        payment_holding_service__status='received'
     )
     
     # Completion pending (work done, awaiting verification)
@@ -1160,8 +1260,6 @@ def admin_active_pilots_dashboard(request):
     )['total'] or 0
     
     # Average pilot duration (days since went live)
-    from django.utils import timezone
-    from datetime import timedelta
     
     avg_duration = None
     if active_pilots.exists():
@@ -1211,7 +1309,7 @@ def admin_start_pilot_work(request, bid_id):
         return redirect('payments:admin_active_pilots_dashboard')
     
     # Check that payment is confirmed
-    if not hasattr(bid, 'escrow_payment') or bid.escrow_payment.status != 'received':
+    if not hasattr(bid, 'payment_holding_service') or bid.payment_holding_service.status != 'received':
         messages.error(request, "Cannot start work. Payment must be received and confirmed first.")
         return redirect('payments:admin_active_pilots_dashboard')
     
@@ -1307,3 +1405,311 @@ def admin_contact_pilot_parties(request, bid_id):
     }
     
     return render(request, 'admin/payments/admin_contact_pilot_parties.html', context)
+
+# =============================================================================
+# FREE ACCOUNT CODES MANAGEMENT
+# =============================================================================
+
+@login_required
+@staff_member_required
+def admin_free_codes_dashboard(request):
+    """Main dashboard for Free Account Codes management"""
+    # Get filter parameters
+    search = request.GET.get('search', '')
+    status_filter = request.GET.get('status', 'all')
+    plan_filter = request.GET.get('plan', '')
+    
+    # Base queryset
+    codes = FreeAccountCode.objects.select_related('plan', 'created_by').prefetch_related('subscription_set')
+    
+    # Apply filters
+    if search:
+        codes = codes.filter(
+            Q(code__icontains=search) |
+            Q(description__icontains=search) |
+            Q(plan__name__icontains=search)
+        )
+    
+    if status_filter == 'active':
+        codes = codes.filter(is_active=True, valid_until__gt=timezone.now())
+    elif status_filter == 'expired':
+        codes = codes.filter(Q(is_active=False) | Q(valid_until__lte=timezone.now()))
+    elif status_filter == 'fully_used':
+        codes = codes.filter(times_used__gte=F('max_uses'))
+    
+    if plan_filter:
+        codes = codes.filter(plan_id=plan_filter)
+    
+    # Order by most recent
+    codes = codes.order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(codes, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get statistics
+    total_codes = FreeAccountCode.objects.count()
+    active_codes = FreeAccountCode.objects.filter(is_active=True, valid_until__gt=timezone.now()).count()
+    codes_used_today = FreeAccountCode.objects.filter(
+        subscription__created_at__date=timezone.now().date()
+    ).distinct().count()
+    total_uses = FreeAccountCode.objects.aggregate(total=Sum('times_used'))['total'] or 0
+    
+    # Get available plans for filter
+    available_plans = PricingPlan.objects.filter(is_active=True).order_by('plan_type', 'name')
+    
+    context = {
+        'codes': page_obj,
+        'search': search,
+        'status_filter': status_filter,
+        'plan_filter': plan_filter,
+        'available_plans': available_plans,
+        'total_codes': total_codes,
+        'active_codes': active_codes,
+        'codes_used_today': codes_used_today,
+        'total_uses': total_uses,
+    }
+    
+    return render(request, 'admin/payments/free_codes/dashboard.html', context)
+
+@login_required
+@staff_member_required
+def admin_free_code_detail(request, code_id):
+    """Detail view for a specific free account code"""
+    code = get_object_or_404(
+        FreeAccountCode.objects.select_related('plan', 'created_by'),
+        id=code_id
+    )
+    
+    # Get all subscriptions using this code
+    subscriptions = Subscription.objects.filter(
+        free_account_code=code
+    ).select_related('organization', 'plan').order_by('-created_at')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'toggle_active':
+            code.is_active = not code.is_active
+            code.save()
+            messages.success(request, f"Code {'activated' if code.is_active else 'deactivated'} successfully")
+        
+        elif action == 'update':
+            # Update code details
+            description = request.POST.get('description', '')
+            max_uses = request.POST.get('max_uses')
+            valid_until = request.POST.get('valid_until')
+            
+            if description:
+                code.description = description
+            
+            if max_uses:
+                try:
+                    max_uses = int(max_uses)
+                    if max_uses >= code.times_used:
+                        code.max_uses = max_uses
+                    else:
+                        messages.error(request, "Max uses cannot be less than current usage")
+                        return redirect('payments:admin_free_code_detail', code_id=code_id)
+                except ValueError:
+                    messages.error(request, "Invalid max uses value")
+                    return redirect('payments:admin_free_code_detail', code_id=code_id)
+            
+            if valid_until:
+                try:
+                    valid_until = datetime.strptime(valid_until, '%Y-%m-%d').replace(tzinfo=timezone.get_current_timezone())
+                    if valid_until > timezone.now():
+                        code.valid_until = valid_until
+                    else:
+                        messages.error(request, "Valid until date must be in the future")
+                        return redirect('payments:admin_free_code_detail', code_id=code_id)
+                except ValueError:
+                    messages.error(request, "Invalid date format")
+                    return redirect('payments:admin_free_code_detail', code_id=code_id)
+            
+            code.save()
+            messages.success(request, "Code updated successfully")
+        
+        return redirect('payments:admin_free_code_detail', code_id=code_id)
+    
+    context = {
+        'code': code,
+        'subscriptions': subscriptions,
+        'is_valid': code.is_valid(),
+        'can_be_used': code.can_be_used(),
+    }
+    
+    return render(request, 'admin/payments/free_codes/detail.html', context)
+
+@login_required
+@staff_member_required
+def admin_generate_free_codes(request):
+    """Generate new free account codes"""
+    if request.method == 'POST':
+        try:
+            # Get form data
+            count = int(request.POST.get('count', 1))
+            plan_id = request.POST.get('plan_id')
+            description = request.POST.get('description', '')
+            valid_days = int(request.POST.get('valid_days', 365))
+            free_months = int(request.POST.get('free_months', 12))
+            max_uses = int(request.POST.get('max_uses', 1))
+            
+            # Validate inputs
+            if count < 1 or count > 100:
+                messages.error(request, "Count must be between 1 and 100")
+                return redirect('payments:admin_generate_free_codes')
+            
+            if not plan_id:
+                messages.error(request, "Please select a plan")
+                return redirect('payments:admin_generate_free_codes')
+            
+            if valid_days < 1 or valid_days > 3650:
+                messages.error(request, "Valid days must be between 1 and 3650")
+                return redirect('payments:admin_generate_free_codes')
+            
+            if free_months < 1 or free_months > 120:
+                messages.error(request, "Free months must be between 1 and 120")
+                return redirect('payments:admin_generate_free_codes')
+            
+            if max_uses < 1 or max_uses > 1000:
+                messages.error(request, "Max uses must be between 1 and 1000")
+                return redirect('payments:admin_generate_free_codes')
+            
+            # Get the selected plan
+            plan = get_object_or_404(PricingPlan, id=plan_id)
+            
+            # Generate codes
+            generated_codes = []
+            for i in range(count):
+                code_description = f"{description} ({i+1}/{count})" if count > 1 and description else description
+                code = FreeAccountCode.generate_code(
+                    plan=plan,
+                    description=code_description or f"Generated {timezone.now().strftime('%Y-%m-%d')}",
+                    valid_days=valid_days,
+                    max_uses=max_uses,
+                    free_months=free_months,
+                    created_by=request.user
+                )
+                generated_codes.append(code)
+            
+            # Store codes in session for display
+            request.session['generated_codes'] = [code.code for code in generated_codes]
+            
+            messages.success(request, f"Successfully generated {count} free account codes!")
+            return redirect('payments:admin_free_codes_dashboard')
+            
+        except ValueError as e:
+            messages.error(request, f"Invalid input: {str(e)}")
+        except Exception as e:
+            messages.error(request, f"Error generating codes: {str(e)}")
+    
+    # GET request - show form
+    plans = PricingPlan.objects.filter(is_active=True).order_by('plan_type', 'name')
+    
+    context = {
+        'plans': plans,
+    }
+    
+    return render(request, 'admin/payments/free_codes/generate.html', context)
+
+@login_required
+@staff_member_required
+def admin_export_free_codes_csv(request):
+    """Export free account codes as CSV"""
+    # Apply same filters as dashboard
+    search = request.GET.get('search', '')
+    status_filter = request.GET.get('status', 'all')
+    plan_filter = request.GET.get('plan', '')
+    
+    # Base queryset
+    codes = FreeAccountCode.objects.select_related('plan', 'created_by')
+    
+    # Apply filters
+    if search:
+        codes = codes.filter(
+            Q(code__icontains=search) |
+            Q(description__icontains=search) |
+            Q(plan__name__icontains=search)
+        )
+    
+    if status_filter == 'active':
+        codes = codes.filter(is_active=True, valid_until__gt=timezone.now())
+    elif status_filter == 'expired':
+        codes = codes.filter(Q(is_active=False) | Q(valid_until__lte=timezone.now()))
+    elif status_filter == 'fully_used':
+        codes = codes.filter(times_used__gte=F('max_uses'))
+    
+    if plan_filter:
+        codes = codes.filter(plan_id=plan_filter)
+    
+    # Order by most recent
+    codes = codes.order_by('-created_at')
+    
+    # Create the HttpResponse with CSV header
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="free_account_codes_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'Code', 'Plan', 'Description', 'Free Months', 'Times Used', 'Max Uses',
+        'Is Active', 'Valid From', 'Valid Until', 'Created At', 'Created By'
+    ])
+    
+    for code in codes:
+        writer.writerow([
+            code.code,
+            code.plan.name,
+            code.description,
+            code.free_months,
+            code.times_used,
+            code.max_uses,
+            'Yes' if code.is_active else 'No',
+            code.valid_from.strftime('%Y-%m-%d %H:%M'),
+            code.valid_until.strftime('%Y-%m-%d %H:%M'),
+            code.created_at.strftime('%Y-%m-%d %H:%M'),
+            code.created_by.get_full_name() if code.created_by else 'System'
+        ])
+    
+    return response
+
+
+@staff_member_required
+def admin_bulk_delete_free_codes(request):
+    """Handle bulk deletion of free account codes"""
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method")
+        return redirect('payments:admin_free_codes_dashboard')
+    
+    selected_codes = request.POST.getlist('selected_codes')
+    
+    if not selected_codes:
+        messages.error(request, "No codes were selected for deletion")
+        return redirect('payments:admin_free_codes_dashboard')
+    
+    try:
+        # Get the codes to be deleted
+        codes_to_delete = FreeAccountCode.objects.filter(id__in=selected_codes)
+        deleted_count = codes_to_delete.count()
+        
+        # Get some info for the success message
+        deleted_info = []
+        for code in codes_to_delete[:5]:  # Show first 5 codes in message
+            deleted_info.append(f"{code.code} ({code.plan.name})")
+        
+        # Delete the codes
+        codes_to_delete.delete()
+        
+        # Create success message
+        if deleted_count <= 5:
+            codes_list = ", ".join(deleted_info)
+            messages.success(request, f"Successfully deleted {deleted_count} code{'s' if deleted_count != 1 else ''}: {codes_list}")
+        else:
+            first_five = ", ".join(deleted_info)
+            messages.success(request, f"Successfully deleted {deleted_count} codes including: {first_five} and {deleted_count - 5} more")
+        
+    except Exception as e:
+        messages.error(request, f"Error deleting codes: {str(e)}")
+    
+    return redirect('payments:admin_free_codes_dashboard')

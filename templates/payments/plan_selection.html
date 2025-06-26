@@ -128,6 +128,27 @@
                     {% endfor %}
                 </div>
                 
+                <!-- Free Account Code Section -->
+                <div class="mt-12 border-t border-gray-200 pt-8">
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium text-gray-900">Have a Free Account Code?</h3>
+                        <p class="mt-2 text-sm text-gray-500">Enter your code below for complimentary access</p>
+                    </div>
+                    
+                    <div class="mt-6 max-w-md mx-auto">
+                        <div class="flex space-x-4">
+                            <input type="text" name="free_account_code" id="free-account-code" 
+                                   placeholder="Enter your free account code"
+                                   class="flex-1 block border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <button type="button" id="apply-code-button"
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                Apply Code
+                            </button>
+                        </div>
+                        <div id="code-message" class="mt-2 text-sm hidden"></div>
+                    </div>
+                </div>
+                
                 <div class="text-center mt-8">
                     <button type="submit" id="continue-button" disabled
                             class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
@@ -144,9 +165,16 @@
         const planCards = document.querySelectorAll('.plan-card');
         const selectedPlanInput = document.getElementById('selected-plan-id');
         const continueButton = document.getElementById('continue-button');
+        const applyCodeButton = document.getElementById('apply-code-button');
+        const freeAccountCodeInput = document.getElementById('free-account-code');
+        const codeMessage = document.getElementById('code-message');
+        
+        let codeApplied = false;
         
         planCards.forEach(card => {
             card.addEventListener('click', function() {
+                if (codeApplied) return; // Don't allow plan selection if code is applied
+                
                 // Remove selected class from all cards
                 planCards.forEach(c => c.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500'));
                 
@@ -160,6 +188,58 @@
                 continueButton.disabled = false;
             });
         });
+        
+        // Handle free account code application
+        applyCodeButton.addEventListener('click', function() {
+            const code = freeAccountCodeInput.value.trim();
+            if (!code) {
+                showCodeMessage('Please enter a code', 'error');
+                return;
+            }
+            
+            // Send AJAX request to validate code
+            fetch('/payments/validate-free-code/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    showCodeMessage('Free account code applied successfully! You can now continue.', 'success');
+                    codeApplied = true;
+                    
+                    // Disable plan selection
+                    planCards.forEach(card => {
+                        card.style.opacity = '0.5';
+                        card.style.pointerEvents = 'none';
+                    });
+                    
+                    // Update continue button text and enable it
+                    continueButton.textContent = 'Continue with Free Account';
+                    continueButton.disabled = false;
+                    selectedPlanInput.value = 'free_account';
+                    
+                    // Disable code input and button
+                    freeAccountCodeInput.disabled = true;
+                    applyCodeButton.disabled = true;
+                } else {
+                    showCodeMessage(data.message || 'Invalid or expired code', 'error');
+                }
+            })
+            .catch(error => {
+                showCodeMessage('Error validating code. Please try again.', 'error');
+            });
+        });
+        
+        function showCodeMessage(message, type) {
+            codeMessage.textContent = message;
+            codeMessage.className = `mt-2 text-sm ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
+            codeMessage.classList.remove('hidden');
+        }
     });
 </script>
 {% endblock %}

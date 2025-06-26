@@ -4,9 +4,16 @@
 {% block content_title %}
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>{{ cl.opts.verbose_name_plural|capfirst }}</h1>
-        <a href="{{ custom_dashboard_url }}" class="button" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-            Open Payment Dashboard
-        </a>
+        <div style="display: flex; gap: 10px;">
+            {% if cl.opts.model_name == 'freeaccountcode' %}
+            <a href="{% url 'admin:generate_free_codes' %}" class="button" style="background-color: #10B981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                🎟️ Generate Codes
+            </a>
+            {% endif %}
+            <a href="{{ custom_dashboard_url }}" class="button" style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                📊 Payment Dashboard
+            </a>
+        </div>
     </div>
 {% endblock %}
 

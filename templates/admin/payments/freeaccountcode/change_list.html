@@ -1,0 +1,152 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+<li>
+    <a href="{% url 'payments:admin_free_codes_dashboard' %}" class="addlink" style="background-color: #4F46E5; color: white;">
+        📊 Manage Free Codes
+    </a>
+</li>
+<li>
+    <a href="{% url 'payments:admin_generate_free_codes' %}" class="addlink">
+        {% trans 'Generate codes' %}
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block result_list %}
+<!-- Custom Interface Notice -->
+<div class="module" style="margin-bottom: 20px; background-color: #e8f2ff; border: 1px solid #4F46E5;">
+    <h2 style="background-color: #4F46E5; color: white; margin: 0; padding: 10px;">
+        🎯 Enhanced Free Account Codes Management Available
+    </h2>
+    <div style="padding: 15px;">
+        <p><strong>New!</strong> We've created a comprehensive Free Account Codes management interface with advanced features:</p>
+        <ul style="margin: 10px 0 10px 20px;">
+            <li>📊 Visual dashboard with statistics and charts</li>
+            <li>🔍 Advanced search and filtering options</li>
+            <li>✏️ Individual code editing and management</li>
+            <li>📤 Enhanced CSV export with filtering</li>
+            <li>🎨 Modern, responsive design</li>
+        </ul>
+        <a href="{% url 'payments:admin_free_codes_dashboard' %}" 
+           class="button" 
+           style="background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">
+            🚀 Use Enhanced Interface
+        </a>
+    </div>
+</div>
+
+{% if generated_codes %}
+<div class="module" style="margin-bottom: 20px; background-color: #e8f5e8; border: 1px solid #4caf50;">
+    <h2 style="background-color: #4caf50; color: white; margin: 0; padding: 10px;">
+        🎉 Successfully Generated {{ generated_codes|length }} Free Account Code{{ generated_codes|length|pluralize }}
+    </h2>
+    
+    <div style="padding: 15px;">
+        <p><strong>Important:</strong> Please copy these codes now - they will not be displayed again for security reasons.</p>
+        
+        <div style="margin: 15px 0;">
+            <button onclick="copyAllCodes()" class="button" style="background-color: #2196f3; color: white;">
+                📋 Copy All Codes
+            </button>
+            <button onclick="downloadCodes()" class="button" style="background-color: #ff9800; color: white; margin-left: 10px;">
+                💾 Download CSV
+            </button>
+        </div>
+        
+        <table class="table" style="background-color: white; border: 1px solid #ddd;">
+            <thead style="background-color: #f5f5f5;">
+                <tr>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Code</th>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Plan</th>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Description</th>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Free Months</th>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Valid Until</th>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Max Uses</th>
+                    <th style="padding: 8px; border: 1px solid #ddd;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for code in generated_codes %}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; font-weight: bold; background-color: #fff3cd;">
+                        {{ code.code }}
+                    </td>
+                    <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: #2563eb;">{{ code.plan_name }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ code.description }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{{ code.free_months }} months</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ code.valid_until }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{{ code.max_uses }}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">
+                        <button onclick="copyCode('{{ code.code }}')" class="button" style="font-size: 11px;">
+                            Copy
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px;">
+            <strong>🔒 Security Reminder:</strong> 
+            <ul style="margin: 5px 0 0 20px;">
+                <li>Distribute these codes securely to intended recipients only</li>
+                <li>Each code can be used {{ generated_codes.0.max_uses }} time{{ generated_codes.0.max_uses|pluralize }}</li>
+                <li>Codes expire on the date shown above</li>
+                <li>You can deactivate codes anytime from the admin interface</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(function() {
+        alert('Code ' + code + ' copied to clipboard!');
+    });
+}
+
+function copyAllCodes() {
+    const codes = [
+        {% for code in generated_codes %}'{{ code.code }}'{% if not forloop.last %},{% endif %}{% endfor %}
+    ];
+    const codeText = codes.join('\n');
+    navigator.clipboard.writeText(codeText).then(function() {
+        alert('All ' + codes.length + ' codes copied to clipboard!');
+    });
+}
+
+function downloadCodes() {
+    const codes = [
+        {% for code in generated_codes %}
+        {
+            code: '{{ code.code }}',
+            plan: '{{ code.plan_name|escapejs }}',
+            description: '{{ code.description|escapejs }}',
+            freeMonths: {{ code.free_months }},
+            validUntil: '{{ code.valid_until }}',
+            maxUses: {{ code.max_uses }}
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    let csv = 'Code,Plan,Description,Free Months,Valid Until,Max Uses\n';
+    codes.forEach(function(codeObj) {
+        csv += `"${codeObj.code}","${codeObj.plan}","${codeObj.description}",${codeObj.freeMonths},"${codeObj.validUntil}",${codeObj.maxUses}\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'free_account_codes_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}
