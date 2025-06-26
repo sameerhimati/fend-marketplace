@@ -431,14 +431,20 @@ function bulkDelete() {
 <script>
 // Function to close modal and clear session
 function closeGeneratedCodesModal() {
-    document.getElementById('generated-codes-modal').style.display = 'none';
-    // Clear the session variable
-    fetch('{% url "payments:admin_free_codes_dashboard" %}?clear_generated_codes=1', {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    });
+    const modal = document.getElementById('generated-codes-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        // Clear the session variable in the background (non-blocking)
+        fetch('{% url "payments:admin_free_codes_dashboard" %}?clear_generated_codes=1', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).catch(function(error) {
+            console.log('Error clearing session:', error);
+            // Modal is already closed, so this is not critical
+        });
+    }
 }
 
 // Add event listeners to close buttons
