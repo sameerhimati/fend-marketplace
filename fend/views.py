@@ -57,7 +57,7 @@ def enhanced_admin_dashboard(request):
     # STEP 1: Generate Mercury Invoices (approved bids without escrow payment)
     approved_bids = PilotBid.objects.filter(
         status='approved',
-        escrow_payment__isnull=True
+        payment_holding_service__isnull=True
     ).select_related('pilot', 'startup')
     invoices_to_generate = approved_bids.count()
     overdue_invoices = approved_bids.filter(updated_at__lt=sla_cutoff).count()
@@ -91,6 +91,7 @@ def enhanced_admin_dashboard(request):
     pending_pilots = Pilot.objects.filter(status='pending_approval')
     pilot_count_pending = pending_pilots.count()
     overdue_pilots = pending_pilots.filter(created_at__lt=sla_cutoff).count()
+    
     
     # Calculate overdue items total
     overdue_items = overdue_invoices + overdue_mercury + overdue_releases + overdue_approvals + overdue_pilots

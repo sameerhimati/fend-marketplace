@@ -54,6 +54,9 @@ def payment_selection(request):
         plan_id = request.POST.get('plan_id')
         free_account_code = request.POST.get('free_account_code')
         
+        # Debug logging
+        print(f"POST data - plan_id: {plan_id}, free_account_code: {free_account_code}")
+        
         # Handle free account code
         if plan_id == 'free_account' and free_account_code:
             try:
@@ -98,13 +101,6 @@ def payment_selection(request):
         
         # Handle regular plan selection
         elif plan_id and plan_id != 'free_account':
-            if not plan_id:
-                messages.error(request, "Please select a plan")
-                return render(request, 'payments/plan_selection.html', {
-                    'plans': sorted_plans,
-                    'organization': organization
-                })
-            
             # Get the selected plan
             plan = get_object_or_404(PricingPlan, id=plan_id)
             
@@ -133,7 +129,15 @@ def payment_selection(request):
                     'plans': sorted_plans,
                     'organization': organization
                 })
+        elif plan_id == 'free_account' and not free_account_code:
+            # User selected free account but didn't provide a code
+            messages.error(request, "Please enter your free account code")
+            return render(request, 'payments/plan_selection.html', {
+                'plans': sorted_plans,
+                'organization': organization
+            })
         else:
+            # No plan selected at all
             messages.error(request, "Please select a plan or enter a valid free account code")
             return render(request, 'payments/plan_selection.html', {
                 'plans': sorted_plans,
@@ -160,13 +164,17 @@ def validate_free_code(request):
             return JsonResponse({'valid': False, 'message': 'Please enter a code'})
         
         try:
-            free_code = FreeAccountCode.objects.get(code=code)
+            free_code = FreeAccountCode.objects.select_related('plan').get(code=code)
             if free_code.can_be_used():
                 # Store the code in session for later use
                 request.session['validated_free_code'] = code
                 return JsonResponse({
                     'valid': True, 
-                    'message': f'Valid code! Expires on {free_code.valid_until.strftime("%B %d, %Y")}'
+                    'message': f'Valid code! This gives you {free_code.free_months} months of {free_code.plan.name} (${free_code.plan.price}/{free_code.plan.billing_frequency})',
+                    'plan_name': free_code.plan.name,
+                    'plan_price': str(free_code.plan.price),
+                    'plan_billing': free_code.plan.billing_frequency,
+                    'free_months': free_code.free_months
                 })
             else:
                 return JsonResponse({'valid': False, 'message': 'Code is expired or has reached usage limit'})
@@ -1414,6 +1422,12 @@ def admin_contact_pilot_parties(request, bid_id):
 @staff_member_required
 def admin_free_codes_dashboard(request):
     """Main dashboard for Free Account Codes management"""
+    # Check if we need to clear generated codes from session
+    if request.GET.get('clear_generated_codes') and request.is_ajax():
+        if 'generated_codes' in request.session:
+            del request.session['generated_codes']
+        return JsonResponse({'success': True})
+    
     # Get filter parameters
     search = request.GET.get('search', '')
     status_filter = request.GET.get('status', 'all')

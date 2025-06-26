@@ -429,8 +429,33 @@ function bulkDelete() {
     </div>
 </div>
 <script>
-// Clear the session variable by making a quick AJAX call
-fetch(window.location.href, {method: 'HEAD'});
+// Function to close modal and clear session
+function closeGeneratedCodesModal() {
+    document.getElementById('generated-codes-modal').style.display = 'none';
+    // Clear the session variable
+    fetch('{% url "payments:admin_free_codes_dashboard" %}?clear_generated_codes=1', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    });
+}
+
+// Add event listeners to close buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const closeButtons = document.querySelectorAll('[onclick*="generated-codes-modal"]');
+    closeButtons.forEach(button => {
+        button.removeAttribute('onclick');
+        button.addEventListener('click', closeGeneratedCodesModal);
+    });
+    
+    // Also close on clicking outside the modal
+    document.getElementById('generated-codes-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeGeneratedCodesModal();
+        }
+    });
+});
 </script>
 {% endif %}
 
