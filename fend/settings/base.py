@@ -19,6 +19,12 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = []
 
+# CSRF Settings
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the cookie if needed
+CSRF_USE_SESSIONS = False  # Use cookies instead of sessions for CSRF
+
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 

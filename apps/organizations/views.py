@@ -26,13 +26,21 @@ from datetime import timedelta
 from django.db.models import Case, When, IntegerField, Q
 from random import shuffle
 import json
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 
 class OrganizationRegistrationView(CreateView):
     model = Organization
     form_class = OrganizationBasicForm
     template_name = 'organizations/registration/basic.html'
+    
+    @method_decorator(ensure_csrf_cookie)
+    def dispatch(self, request, *args, **kwargs):
+        # Ensure session exists before processing
+        if not request.session.session_key:
+            request.session.create()
+        return super().dispatch(request, *args, **kwargs)
     
     def get_initial(self):
         """Pre-populate form with session data if available"""
@@ -48,6 +56,7 @@ class OrganizationRegistrationView(CreateView):
             })
             
         return initial
+    
     
     @transaction.atomic
     def form_valid(self, form):
