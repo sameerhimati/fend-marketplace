@@ -42,7 +42,7 @@ Update your `.env.prod` file with the correct Digital Ocean Spaces credentials:
 AWS_ACCESS_KEY_ID="YOUR_FULL_ACCESS_KEY_HERE"
 AWS_SECRET_ACCESS_KEY="YOUR_FULL_SECRET_KEY_HERE"
 AWS_STORAGE_BUCKET_NAME="fend-marketplace-media"
-AWS_S3_ENDPOINT_URL="https://fend-marketplace-media.sfo3.digitaloceanspaces.com"
+AWS_S3_ENDPOINT_URL="https://sfo3.digitaloceanspaces.com"
 AWS_S3_REGION_NAME="sfo3"
 AWS_S3_CUSTOM_DOMAIN="fend-marketplace-media.sfo3.cdn.digitaloceanspaces.com"
 AWS_DEFAULT_ACL="public-read"

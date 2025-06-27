@@ -52,11 +52,11 @@ if USE_S3:
     
     # Static files configuration
     STATICFILES_STORAGE = 'fend.storage_backends.StaticStorage'
-    STATIC_URL = f'{AWS_S3_ENDPOINT_URL}/static/'
+    STATIC_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/static/'
     
     # Media files configuration
     DEFAULT_FILE_STORAGE = 'fend.storage_backends.PublicMediaStorage'
-    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/media/'
+    MEDIA_URL = f'{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/media/'
     
     # Use CDN domain if provided
     if AWS_S3_CUSTOM_DOMAIN:
