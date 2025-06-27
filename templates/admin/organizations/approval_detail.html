@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="flex items-center space-x-3">
-            <a href="{% url 'admin:pending_approvals' %}" 
+            <a href="{% url 'organizations:admin_pending_approvals' %}" 
                class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                 <i class="fas fa-arrow-left mr-2"></i>
                 Back to Approvals
@@ -213,7 +213,7 @@
                 </div>
                 <div class="p-6 space-y-4">
                     <!-- Approve Button -->
-                    <form method="post" action="{% url 'admin:approve_organization' organization.id %}">
+                    <form method="post" action="{% url 'organizations:admin_approve_organization' organization.id %}">
                         {% csrf_token %}
                         <button type="submit" 
                                 data-confirm="Approve {{ organization.name }}? They will be notified and can begin using the platform."
@@ -327,7 +327,7 @@
                         <p class="text-sm text-gray-500">
                             Please provide feedback explaining why this organization was rejected and what they need to do to reapply.
                         </p>
-                        <form method="post" action="{% url 'admin:reject_organization' organization.id %}" id="reject-form" class="mt-4">
+                        <form method="post" action="{% url 'organizations:admin_reject_organization' organization.id %}" id="reject-form" class="mt-4">
                             {% csrf_token %}
                             <textarea name="rejection_reason" rows="4" required
                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
