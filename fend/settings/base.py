@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
+    # Third party apps
+    'storages',
+    
     # Local apps
     'apps.organizations',
     'apps.pilots',

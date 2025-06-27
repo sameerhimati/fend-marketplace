@@ -60,7 +60,7 @@ class Organization(models.Model):
     )
 
     description = models.TextField(blank=True, null=True, help_text="Company description")
-    logo = models.ImageField(upload_to='organization_logos/', blank=True, null=True)
+    logo = models.ImageField(upload_to='logos/', blank=True, null=True)
 
     # Extended Company Information (New fields)
     employee_count = models.CharField(

@@ -15,7 +15,7 @@ def pilot_technical_doc_path(instance, filename):
     pilot_id = instance.pk or 'temp'
     ext = os.path.splitext(filename)[1]
     safe_filename = f"technical_{slugify(instance.title[:30])}{ext}"
-    return f'pilot_specs/{org_slug}/{pilot_id}/technical/{safe_filename}'
+    return f'documents/pilots/{org_slug}/{pilot_id}/technical/{safe_filename}'
 
 def pilot_performance_doc_path(instance, filename):
     """Generate path for performance metrics documents"""
@@ -23,7 +23,7 @@ def pilot_performance_doc_path(instance, filename):
     pilot_id = instance.pk or 'temp'
     ext = os.path.splitext(filename)[1]
     safe_filename = f"performance_{slugify(instance.title[:30])}{ext}"
-    return f'pilot_specs/{org_slug}/{pilot_id}/performance/{safe_filename}'
+    return f'documents/pilots/{org_slug}/{pilot_id}/performance/{safe_filename}'
 
 def pilot_compliance_doc_path(instance, filename):
     """Generate path for compliance requirements documents"""
@@ -31,7 +31,7 @@ def pilot_compliance_doc_path(instance, filename):
     pilot_id = instance.pk or 'temp'
     ext = os.path.splitext(filename)[1]
     safe_filename = f"compliance_{slugify(instance.title[:30])}{ext}"
-    return f'pilot_specs/{org_slug}/{pilot_id}/compliance/{safe_filename}'
+    return f'documents/pilots/{org_slug}/{pilot_id}/compliance/{safe_filename}'
 
 def pilot_bid_doc_path(instance, filename):
     """Generate path for pilot bid documents"""
@@ -40,7 +40,7 @@ def pilot_bid_doc_path(instance, filename):
     bid_id = instance.pk or 'temp'
     ext = os.path.splitext(filename)[1]
     safe_filename = f"proposal_{bid_id}{ext}"
-    return f'pilot_bids/{org_slug}/{pilot_slug}/{safe_filename}'
+    return f'documents/bids/{org_slug}/{pilot_slug}/{safe_filename}'
 
 class Pilot(models.Model):
     STATUS_CHOICES = (
