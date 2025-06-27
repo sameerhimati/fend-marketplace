@@ -1,0 +1,26 @@
+{
+    "name": "Fend Marketplace",
+    "short_name": "Fend",
+    "description": "Where Enterprise Innovation Meets Startup Excellence",
+    "icons": [
+        {
+            "src": "/static/images/fend/favicon-16x16.png",
+            "sizes": "16x16",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/images/fend/favicon-32x32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/images/fend/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#4f46e5",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "start_url": "/"
+}
