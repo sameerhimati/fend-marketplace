@@ -10,7 +10,7 @@
             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                 <div class="flex items-center space-x-4">
                     {% if organization.logo %}
-                        <img src="{{ organization.logo.url }}" alt="{{ organization.name }} logo" class="h-16 w-16 rounded-full bg-gray-100">
+                        <img src="{{ organization.logo.url }}" alt="{{ organization.name }} logo" class="h-16 w-16 rounded-full bg-gray-100 object-cover">
                     {% else %}
                         <div class="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center">
                             <span class="text-2xl font-bold text-indigo-600">{{ organization.name|slice:":1" }}</span>

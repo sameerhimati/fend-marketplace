@@ -50,9 +50,15 @@ docker-compose exec -T db pg_dump -U postgres fend_db > "backups/pre-deploy-$(da
 echo "🛑 Stopping current containers..."
 docker-compose down
 
-# Clean up old images to save space (optional)
-echo "🧹 Cleaning up old Docker images..."
+# Clean up old images, volumes, and containers to save space
+echo "🧹 Cleaning up Docker resources..."
 docker image prune -f || echo "No images to clean"
+docker volume prune -f || echo "No volumes to clean"
+docker container prune -f || echo "No stopped containers to clean"
+
+# Remove old static files to prevent conflicts
+echo "🗑️  Removing old static files..."
+docker-compose exec web rm -rf /app/staticfiles/* || echo "No static files to remove"
 
 # Build all containers (including new cron service)
 echo "🔨 Building all containers..."

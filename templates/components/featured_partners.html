@@ -56,7 +56,7 @@
                                 {% if promotion.organization.logo %}
                                     <img src="{{ promotion.organization.logo.url }}" 
                                          alt="{{ promotion.organization.name }} logo" 
-                                         class="h-10 w-10 rounded-lg object-cover">
+                                         class="h-10 w-10 rounded-lg object-cover bg-gray-100 p-0.5">
                                 {% else %}
                                     <div class="h-10 w-10 rounded-lg {% if promotion.organization.type == 'enterprise' %}bg-blue-100{% else %}bg-green-100{% endif %} flex items-center justify-center">
                                         <span class="text-sm font-bold {% if promotion.organization.type == 'enterprise' %}text-blue-600{% else %}text-green-600{% endif %}">
