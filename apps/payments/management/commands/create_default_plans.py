@@ -21,7 +21,7 @@ class Command(BaseCommand):
             plan_type='enterprise_monthly',
             price=100.00,
             billing_frequency='monthly',
-            stripe_price_id='temp_enterprise_monthly',
+            stripe_price_id='',  # Empty - will be created by Stripe on first use
             pilot_limit=5,
             is_active=True
         )
@@ -32,7 +32,7 @@ class Command(BaseCommand):
             plan_type='enterprise_yearly',
             price=1000.00,
             billing_frequency='yearly',
-            stripe_price_id='temp_enterprise_yearly',
+            stripe_price_id='',  # Empty - will be created by Stripe on first use
             pilot_limit=None,  # Unlimited
             is_active=True
         )
@@ -44,7 +44,7 @@ class Command(BaseCommand):
             plan_type='startup_monthly', 
             price=10.00,
             billing_frequency='monthly',
-            stripe_price_id='temp_startup_monthly',
+            stripe_price_id='',  # Empty - will be created by Stripe on first use
             pilot_limit=None,  # Unlimited bids
             is_active=True
         )
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             plan_type='startup_yearly',
             price=100.00,
             billing_frequency='yearly',
-            stripe_price_id='temp_startup_yearly',
+            stripe_price_id='',  # Empty - will be created by Stripe on first use
             pilot_limit=None,  # Unlimited bids
             is_active=True
         )
