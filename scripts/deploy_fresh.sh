@@ -91,7 +91,14 @@ docker-compose exec web python manage.py collectstatic --noinput
 
 # If using S3/Spaces, sync static files
 echo "☁️  Checking if S3/Spaces is enabled..."
-USE_S3=$(docker-compose exec -T web python -c "from django.conf import settings; print(settings.USE_S3)")
+USE_S3=$(docker-compose exec -T web python -c "
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fend.settings.production')
+django.setup()
+from django.conf import settings
+print(getattr(settings, 'USE_S3', False))
+")
 if [ "$USE_S3" = "True" ]; then
     echo "📤 Uploading static files to DigitalOcean Spaces..."
     # Force upload to S3/Spaces
