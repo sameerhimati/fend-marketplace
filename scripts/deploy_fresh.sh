@@ -89,6 +89,20 @@ docker-compose exec web python manage.py migrate
 echo "📁 Collecting static files..."
 docker-compose exec web python manage.py collectstatic --noinput
 
+# If using S3/Spaces, sync static files
+echo "☁️  Checking if S3/Spaces is enabled..."
+USE_S3=$(docker-compose exec -T web python -c "from django.conf import settings; print(settings.USE_S3)")
+if [ "$USE_S3" = "True" ]; then
+    echo "📤 Uploading static files to DigitalOcean Spaces..."
+    # Force upload to S3/Spaces
+    docker-compose exec web python -c "
+from django.core.management import call_command
+print('Uploading static files to S3/Spaces...')
+call_command('collectstatic', '--noinput', verbosity=2)
+print('Static files uploaded successfully!')
+"
+fi
+
 # Check service status
 echo "🔍 Checking service status..."
 docker-compose ps
