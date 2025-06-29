@@ -16,7 +16,9 @@
 ### 1. **Switch to Stripe Production Keys**
 - [ ] Create Stripe production account
 - [ ] Get production API keys
-- [ ] Update .env.prod with production keys
+- [ ] Create Stripe price IDs for all 4 plans (Enterprise Monthly/Yearly, Startup Monthly/Yearly)
+- [ ] Update .env.prod with production keys and price IDs
+- [ ] Update PricingPlan records with real Stripe price IDs
 - [ ] Test payment flow end-to-end
 - [ ] Configure production webhook endpoints
 
@@ -107,6 +109,22 @@
 3. **API versioning** implementation
 4. **Database indexing** optimization
 5. **Code documentation** enhancement
+
+## 🔧 Required Environment Variables for Production
+
+Current missing/temporary values in `.env.prod`:
+```bash
+# Stripe Production Settings (currently using test keys)
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Optional: Pre-created Stripe Price IDs (if not using auto-creation)
+STRIPE_ENTERPRISE_MONTHLY_PRICE_ID=price_...
+STRIPE_ENTERPRISE_YEARLY_PRICE_ID=price_...
+STRIPE_STARTUP_MONTHLY_PRICE_ID=price_...
+STRIPE_STARTUP_YEARLY_PRICE_ID=price_...
+```
 
 ---
 
