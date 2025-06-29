@@ -101,13 +101,9 @@ print(getattr(settings, 'USE_S3', False))
 ")
 if [ "$USE_S3" = "True" ]; then
     echo "📤 Uploading static files to DigitalOcean Spaces..."
-    # Force upload to S3/Spaces
-    docker-compose exec web python -c "
-from django.core.management import call_command
-print('Uploading static files to S3/Spaces...')
-call_command('collectstatic', '--noinput', verbosity=2)
-print('Static files uploaded successfully!')
-"
+    # Force upload to S3/Spaces using manage.py
+    docker-compose exec web python manage.py collectstatic --noinput --verbosity=2
+    echo "✅ Static files uploaded successfully to S3/Spaces!"
 fi
 
 # Check service status
