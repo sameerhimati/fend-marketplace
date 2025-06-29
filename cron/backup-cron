@@ -1,0 +1,5 @@
+# Automated database backup - runs daily at 2 AM
+0 2 * * * /root/fend-marketplace/scripts/backup_database.sh >> /root/fend-marketplace/logs/backup.log 2>&1
+
+# Optional: Weekly full system backup on Sundays at 3 AM
+# 0 3 * * 0 /root/fend-marketplace/scripts/full_backup.sh >> /root/fend-marketplace/logs/full_backup.log 2>&1
