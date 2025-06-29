@@ -18,42 +18,46 @@ class Command(BaseCommand):
         # Create Enterprise Plans
         enterprise_monthly = PricingPlan.objects.create(
             name='Enterprise Monthly',
-            plan_type='enterprise',
+            plan_type='enterprise_monthly',
             price=100.00,
+            billing_frequency='monthly',
+            stripe_price_id='temp_enterprise_monthly',
             pilot_limit=5,
-            is_active=True,
-            description='5 pilots per month'
+            is_active=True
         )
         self.stdout.write(f'Created: {enterprise_monthly.name}')
 
         enterprise_yearly = PricingPlan.objects.create(
             name='Enterprise Yearly', 
-            plan_type='enterprise',
+            plan_type='enterprise_yearly',
             price=1000.00,
+            billing_frequency='yearly',
+            stripe_price_id='temp_enterprise_yearly',
             pilot_limit=None,  # Unlimited
-            is_active=True,
-            description='Unlimited pilots per year'
+            is_active=True
         )
         self.stdout.write(f'Created: {enterprise_yearly.name}')
 
         # Create Startup Plans
         startup_monthly = PricingPlan.objects.create(
             name='Startup Monthly',
-            plan_type='startup', 
+            plan_type='startup_monthly', 
             price=10.00,
+            billing_frequency='monthly',
+            stripe_price_id='temp_startup_monthly',
             pilot_limit=None,  # Unlimited bids
-            is_active=True,
-            description='Unlimited bids per month'
+            is_active=True
         )
         self.stdout.write(f'Created: {startup_monthly.name}')
 
         startup_yearly = PricingPlan.objects.create(
             name='Startup Yearly',
-            plan_type='startup',
+            plan_type='startup_yearly',
             price=100.00,
+            billing_frequency='yearly',
+            stripe_price_id='temp_startup_yearly',
             pilot_limit=None,  # Unlimited bids
-            is_active=True,
-            description='Unlimited bids per year'
+            is_active=True
         )
         self.stdout.write(f'Created: {startup_yearly.name}')
 
