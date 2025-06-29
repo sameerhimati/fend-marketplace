@@ -85,6 +85,10 @@ sleep 15
 echo "🔄 Running database migrations..."
 docker-compose exec web python manage.py migrate
 
+# Create default pricing plans
+echo "💰 Creating default pricing plans..."
+docker-compose exec web python manage.py create_default_plans
+
 # Collect static files
 echo "📁 Collecting static files..."
 docker-compose exec web python manage.py collectstatic --noinput
