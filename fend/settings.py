@@ -20,7 +20,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-jd1g!cino=)uxy*&4f$kwv$w48@3g=f@6jd%_@^l9r0%51iwgz'
+# This file is now only used as a fallback. Use settings.base instead.
+import os
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Import settings from base
+try:
+    from .settings.base import *
+except ImportError:
+    # Fallback for development
+    SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-only-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
