@@ -66,3 +66,8 @@ authorized_keys
 
 # Docker volumes
 volumes/
+
+# Backups
+backups/
+*.sql
+*.sql.gz
