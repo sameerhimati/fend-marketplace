@@ -271,19 +271,19 @@
                         </div>
                         <div class="hidden md:ml-6 md:flex md:space-x-8">
                             <a href="{% url 'organizations:dashboard' %}" 
-                            class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'enterprise_dashboard' or request.resolver_match.url_name == 'startup_dashboard' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                            class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'enterprise_dashboard' or request.resolver_match.url_name == 'startup_dashboard' %}active{% endif %}">
                                 Dashboard
                             </a>
                             <a href="{% url 'pilots:list' %}" 
-                            class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                            class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %}">
                                 Pilots
                             </a>
                             <a href="{% url 'organizations:deals' %}" 
-                            class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium {% if request.resolver_match.url_name == 'deals' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                            class="nav-link {% if request.resolver_match.url_name == 'deals' %}active{% endif %}">
                                 Deals
                             </a>
                             <a href="{% url 'organizations:directory' %}" 
-                            class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium {% if request.resolver_match.url_name == 'directory' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                            class="nav-link {% if request.resolver_match.url_name == 'directory' %}active{% endif %}">
                                 Organizations
                             </a>
                         </div>

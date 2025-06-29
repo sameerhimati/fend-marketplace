@@ -93,6 +93,10 @@ docker-compose exec web python manage.py create_default_plans
 echo "📁 Collecting static files..."
 docker-compose exec web python manage.py collectstatic --noinput
 
+# Configure Nginx based on storage settings
+echo "⚙️  Configuring Nginx for static file serving..."
+./scripts/setup_nginx.sh
+
 # If using S3/Spaces, sync static files
 echo "☁️  Checking if S3/Spaces is enabled..."
 USE_S3=$(docker-compose exec -T web python -c "
