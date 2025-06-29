@@ -191,11 +191,27 @@
                         <a href="/" class="text-2xl font-bold text-indigo-600">Fend</a>
                     </div>
                     
-                    <div class="flex items-center space-x-4">
+                    <!-- Desktop Menu -->
+                    <div class="hidden md:flex items-center space-x-4">
                         <a href="{% url 'organizations:login' %}" class="text-gray-500 hover:text-gray-700">Sign in</a>
                         <a href="{% url 'organizations:register' %}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                             Register
                         </a>
+                    </div>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button type="button" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="mobile-menu-button-landing">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Mobile Menu Dropdown -->
+                <div id="mobile-menu-landing" class="hidden md:hidden border-t border-gray-200">
+                    <div class="px-4 py-3 space-y-2">
+                        <a href="{% url 'organizations:login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Sign in</a>
+                        <a href="{% url 'organizations:register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center">Register</a>
                     </div>
                 </div>
             </div>
@@ -374,6 +390,23 @@
                 document.addEventListener('click', function(event) {
                     if (!userMenuButton.contains(event.target) && !userMenu.contains(event.target)) {
                         userMenu.classList.add('hidden');
+                    }
+                });
+            }
+            
+            // Mobile Menu Toggle for Landing Page
+            const mobileMenuButtonLanding = document.getElementById('mobile-menu-button-landing');
+            const mobileMenuLanding = document.getElementById('mobile-menu-landing');
+            
+            if (mobileMenuButtonLanding && mobileMenuLanding) {
+                mobileMenuButtonLanding.addEventListener('click', function() {
+                    mobileMenuLanding.classList.toggle('hidden');
+                });
+                
+                // Close mobile menu when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!mobileMenuButtonLanding.contains(event.target) && !mobileMenuLanding.contains(event.target)) {
+                        mobileMenuLanding.classList.add('hidden');
                     }
                 });
             }

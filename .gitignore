@@ -71,3 +71,14 @@ volumes/
 backups/
 *.sql
 *.sql.gz
+
+# Django auto-generated
+staticfiles/
+
+# Python cache  
+*.py[cod]
+__pycache__/
+
+# Logs
+logs/
+*.log

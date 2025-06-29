@@ -22,23 +22,23 @@
     }
     
     .logo-scroll {
-        display: inline-block;
-        animation: scroll 25s linear infinite;
+        display: flex;
+        animation: scroll 40s linear infinite;
     }
     
     .logo-scroll-reverse {
-        display: inline-block;
-        animation: scroll-reverse 30s linear infinite;
+        display: flex;
+        animation: scroll-reverse 45s linear infinite;
     }
     
     @keyframes scroll {
-        0% { transform: translateX(100%); }
-        100% { transform: translateX(-100%); }
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
     }
     
     @keyframes scroll-reverse {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
+        0% { transform: translateX(-50%); }
+        100% { transform: translateX(0); }
     }
     
     .logo-item {
@@ -514,6 +514,18 @@
             <p class="text-center text-sm font-semibold text-gray-500 mb-8">TRUSTED BY LEADING ENTERPRISES</p>
             <div class="logo-carousel h-16 flex items-center">
                 <div class="logo-scroll">
+                    <!-- First set -->
+                    <span class="logo-item">Microsoft</span>
+                    <span class="logo-item">Google</span>
+                    <span class="logo-item">Amazon</span>
+                    <span class="logo-item">Apple</span>
+                    <span class="logo-item">Meta</span>
+                    <span class="logo-item">Tesla</span>
+                    <span class="logo-item">Netflix</span>
+                    <span class="logo-item">Salesforce</span>
+                    <span class="logo-item">Oracle</span>
+                    <span class="logo-item">IBM</span>
+                    <!-- Duplicate set for seamless loop -->
                     <span class="logo-item">Microsoft</span>
                     <span class="logo-item">Google</span>
                     <span class="logo-item">Amazon</span>
@@ -533,6 +545,18 @@
             <p class="text-center text-sm font-semibold text-gray-500 mb-8">PARTNERED WITH INNOVATIVE STARTUPS</p>
             <div class="logo-carousel h-16 flex items-center">
                 <div class="logo-scroll-reverse">
+                    <!-- First set -->
+                    <span class="logo-item">Stripe</span>
+                    <span class="logo-item">Shopify</span>
+                    <span class="logo-item">Spotify</span>
+                    <span class="logo-item">Airbnb</span>
+                    <span class="logo-item">Uber</span>
+                    <span class="logo-item">Dropbox</span>
+                    <span class="logo-item">Slack</span>
+                    <span class="logo-item">Zoom</span>
+                    <span class="logo-item">Figma</span>
+                    <span class="logo-item">Notion</span>
+                    <!-- Duplicate set for seamless loop -->
                     <span class="logo-item">Stripe</span>
                     <span class="logo-item">Shopify</span>
                     <span class="logo-item">Spotify</span>
