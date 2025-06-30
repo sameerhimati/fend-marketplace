@@ -269,7 +269,7 @@
                         <div class="flex-shrink-0 flex items-center">
                             <a href="{% url 'organizations:dashboard' %}" class="text-2xl font-bold text-indigo-600">Fend</a>
                         </div>
-                        <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <div class="hidden md:ml-6 md:flex">
                             <a href="{% url 'organizations:dashboard' %}" 
                             class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'enterprise_dashboard' or request.resolver_match.url_name == 'startup_dashboard' %}active{% endif %}">
                                 Dashboard
