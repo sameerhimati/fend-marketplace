@@ -34,6 +34,10 @@ CSRF_TRUSTED_ORIGINS = ['https://marketplace.fend.ai']
 # Digital Ocean Spaces Configuration
 USE_S3 = os.getenv('USE_S3', 'False') == 'True'
 
+# Force import storage backends to ensure they're available
+if USE_S3:
+    from django.contrib.staticfiles.storage import ManifestStaticFilesStorage
+    
 if USE_S3:
     # AWS/DO Spaces settings
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
