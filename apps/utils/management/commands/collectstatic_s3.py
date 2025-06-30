@@ -23,7 +23,7 @@ class Command(BaseCommand):
         # First run normal collectstatic
         self.stdout.write('Running collectstatic...')
         call_command('collectstatic', 
-                    noinput=options.get('noinput', False),
+                    interactive=not options.get('noinput', False),
                     clear=options.get('clear', False))
         
         # If using S3, verify and upload CSS files
