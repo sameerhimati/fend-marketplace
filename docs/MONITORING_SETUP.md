@@ -42,50 +42,69 @@ The platform now includes a `/health/` endpoint that:
 - Returns HTTP 503 if database is unreachable
 - Provides more reliable monitoring than homepage checks
 
-## 2. Error Tracking with Sentry
+## 2. Error Tracking (Self-Hosted)
 
-### Setup Steps:
+We use self-hosted error logging to avoid external dependencies and costs.
 
-1. **Create Sentry Account** at https://sentry.io (free tier includes 5,000 errors/month)
+### How It Works:
 
-2. **Create New Django Project:**
-   - Choose Django as the platform
-   - Copy the DSN (Data Source Name) provided
+- Errors are logged to `/app/logs/errors.log` with rotation (10MB max, 5 backups)
+- Console output shows all INFO+ level messages
+- No external services or API keys required
 
-3. **Add Sentry DSN to Environment:**
-   Add to your `.env.prod` file:
+### Viewing Errors:
+
+1. **Real-time logs:**
    ```bash
-   SENTRY_DSN=https://your-dsn-here@sentry.io/project-id
+   # View all container logs
+   docker-compose logs -f web
+   
+   # View only error logs
+   docker-compose exec web tail -f /app/logs/errors.log
    ```
 
-4. **Deploy Updated Code:**
+2. **Search for specific errors:**
    ```bash
-   # On your DigitalOcean server
-   ./deploy.sh
+   # Find database errors
+   docker-compose exec web grep -i "database" /app/logs/errors.log
+   
+   # Find errors from last hour
+   docker-compose exec web grep "$(date -d '1 hour ago' '+%Y-%m-%d %H')" /app/logs/errors.log
    ```
 
-### Sentry Configuration Features:
+3. **Quick monitoring script:**
+   ```bash
+   # Run the monitoring check
+   docker-compose exec web python scripts/quick_log_check.py
+   ```
 
-- **Error Tracking:** Automatically captures Django exceptions
-- **Performance Monitoring:** Tracks 10% of transactions for performance insights
-- **Breadcrumbs:** Captures logs leading up to errors
-- **Release Tracking:** Can be configured to track code deployments
-- **User Context:** Configured to NOT send personal information (GDPR compliant)
+### Testing Error Logging:
 
-### Testing Sentry Setup:
-
-1. **Create a test error** by adding this to your Django shell:
+1. **Create a test error:**
    ```python
-   # In Django shell: python manage.py shell
+   # In Django shell: docker-compose exec web python manage.py shell
    import logging
    logger = logging.getLogger(__name__)
-   logger.error("Test error for Sentry monitoring")
+   logger.error("Test error for monitoring")
    
    # Or create an exception
-   raise Exception("Test exception for Sentry")
+   raise Exception("Test exception for logging")
    ```
 
-2. **Check Sentry dashboard** to confirm errors are being captured
+2. **Check the logs:**
+   ```bash
+   docker-compose exec web tail -n 20 /app/logs/errors.log
+   ```
+
+### Future: AI-Powered Monitoring (Fend Labs Project)
+
+We're building an AI monitoring tool that will:
+- Analyze error patterns using Gemini AI
+- Send intelligent alerts for critical issues
+- Provide weekly health reports
+- Suggest fixes based on error context
+
+This will be the first Fend Labs pilot project!
 
 ## 3. Basic Server Resource Monitoring
 
@@ -153,14 +172,14 @@ echo "CPU: ${CPU_USAGE}%, Memory: ${MEMORY_USAGE}%, Disk: ${DISK_USAGE}%"
 
 ## 5. Environment Variables Summary
 
-Add these to your `.env.prod` file:
+No additional environment variables needed for self-hosted monitoring!
+
+Optional configurations you might add later:
 
 ```bash
-# Sentry Error Tracking
-SENTRY_DSN=https://your-dsn-here@sentry.io/project-id
-
-# Optional: Additional monitoring configurations
+# Optional: Email notifications (when AI monitoring is added)
 MONITORING_EMAIL=admin@yourdomain.com
+GEMINI_API_KEY=your-key-here  # For future AI monitoring
 ```
 
 ## 6. Testing Your Monitoring Setup
@@ -171,10 +190,10 @@ MONITORING_EMAIL=admin@yourdomain.com
 3. Restart containers: `docker-compose up -d`
 4. Verify UptimeRobot sends recovery alert
 
-### Test Error Tracking:
+### Test Error Logging:
 1. Access Django shell: `docker-compose exec web python manage.py shell`
 2. Create test error: `raise Exception("Test error")`
-3. Check Sentry dashboard for the error
+3. Check logs: `docker-compose exec web tail -20 /app/logs/errors.log`
 
 ### Test Health Check:
 ```bash
@@ -185,24 +204,25 @@ curl https://marketplace.fend.ai/health/
 ## 7. Ongoing Maintenance
 
 ### Weekly Tasks:
-- Review Sentry error reports for trends
+- Review error logs for patterns
 - Check UptimeRobot uptime statistics
 - Monitor server resource usage
 
 ### Monthly Tasks:
 - Review and update alert thresholds
-- Clean up resolved Sentry issues
-- Check monitoring service quotas
+- Rotate old log files if needed
+- Check disk space usage
 
 ### Emergency Procedures:
 1. **Site Down:** Check DigitalOcean droplet status, Docker containers, and logs
-2. **High Error Rate:** Check Sentry for error details and recent deployments
+2. **High Error Rate:** Check error logs: `docker-compose exec web tail -100 /app/logs/errors.log`
 3. **Resource Issues:** Check server resources and consider scaling
 
 ## 8. Costs
 
 - **UptimeRobot:** Free tier (50 monitors, 5-minute intervals)
-- **Sentry:** Free tier (5,000 errors/month, 14-day retention)
+- **Error Logging:** $0 (self-hosted)
 - **DigitalOcean Monitoring:** Free with droplet
+- **Future AI Monitoring:** Gemini free tier (60 requests/minute)
 
-This setup provides comprehensive monitoring without additional costs for small to medium traffic levels.
+This setup provides comprehensive monitoring with zero ongoing costs!

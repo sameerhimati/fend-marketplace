@@ -1,9 +1,6 @@
 from .base import *
 import os
 import logging
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
 
 # Add your domain to ALLOWED_HOSTS
 ALLOWED_HOSTS = ['209.38.145.163', 'localhost', '127.0.0.1', 'marketplace.fend.ai']
@@ -11,30 +8,43 @@ ALLOWED_HOSTS = ['209.38.145.163', 'localhost', '127.0.0.1', 'marketplace.fend.a
 # Make sure debug is off in production
 DEBUG = False
 
-# Sentry Error Tracking
-if SENTRY_DSN:
-    sentry_logging = LoggingIntegration(
-        level=logging.INFO,        # Capture info and above as breadcrumbs
-        event_level=logging.ERROR  # Send errors as events
-    )
-    
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[
-            DjangoIntegration(
-                transaction_style='url',
-                middleware_spans=True,
-                signals_spans=False,
-                cache_spans=True,
-            ),
-            sentry_logging,
-        ],
-        traces_sample_rate=0.1,  # Capture 10% of transactions for performance monitoring
-        send_default_pii=False,  # Don't send personal information
-        environment='production',
-        attach_stacktrace=True,
-        auto_session_tracking=True,
-    )
+# Self-hosted error logging (no external dependencies)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/app/logs/errors.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 # Security Settings for HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
