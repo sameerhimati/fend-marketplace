@@ -38,44 +38,58 @@ class Command(BaseCommand):
             
             storage = StaticStorage()
             
-            # Check and upload CSS files
-            css_dirs = [
-                ('/app/static/css', 'css'),
-                ('/app/staticfiles/css', 'css'),
+            # Verify ALL static files are uploaded to S3
+            static_dirs = [
+                '/app/staticfiles',  # Where collectstatic puts files
+                '/app/static',       # Source static files
             ]
             
-            for local_dir, s3_prefix in css_dirs:
-                if os.path.exists(local_dir):
-                    self.stdout.write(f'\nChecking {local_dir}...')
-                    for filename in os.listdir(local_dir):
-                        if filename.endswith('.css'):
-                            filepath = os.path.join(local_dir, filename)
-                            s3_path = f'{s3_prefix}/{filename}'
+            missing_files = []
+            verified_files = 0
+            
+            for static_dir in static_dirs:
+                if os.path.exists(static_dir):
+                    self.stdout.write(f'\nChecking {static_dir}...')
+                    
+                    for root, dirs, files in os.walk(static_dir):
+                        for filename in files:
+                            filepath = os.path.join(root, filename)
+                            
+                            # Calculate S3 path relative to static directory
+                            rel_path = os.path.relpath(filepath, static_dir)
+                            s3_path = rel_path.replace('\\', '/')  # Handle Windows paths
+                            
+                            # Skip hidden files and Python cache
+                            if filename.startswith('.') or '__pycache__' in filepath:
+                                continue
                             
                             # Check if file exists in S3
                             if not storage.exists(s3_path):
-                                self.stdout.write(f'  Uploading missing file: {s3_path}')
-                                with open(filepath, 'rb') as f:
-                                    storage.save(s3_path, File(f))
+                                missing_files.append((filepath, s3_path))
                             else:
-                                self.stdout.write(f'  ✓ {s3_path} already exists')
+                                verified_files += 1
             
-            # Also check admin CSS
-            admin_css_dir = '/usr/local/lib/python3.11/site-packages/django/contrib/admin/static/admin/css'
-            if os.path.exists(admin_css_dir):
-                self.stdout.write(f'\nChecking admin CSS...')
-                for filename in os.listdir(admin_css_dir):
-                    if filename.endswith('.css'):
-                        filepath = os.path.join(admin_css_dir, filename)
-                        s3_path = f'admin/css/{filename}'
-                        
-                        if not storage.exists(s3_path):
-                            self.stdout.write(f'  Uploading missing file: {s3_path}')
-                            with open(filepath, 'rb') as f:
-                                storage.save(s3_path, File(f))
+            # Upload any missing files
+            if missing_files:
+                self.stdout.write(
+                    self.style.WARNING(f'\nFound {len(missing_files)} missing files in S3. Uploading...')
+                )
+                
+                for filepath, s3_path in missing_files:
+                    try:
+                        with open(filepath, 'rb') as f:
+                            storage.save(s3_path, File(f))
+                            self.stdout.write(f'  ✓ Uploaded: {s3_path}')
+                    except Exception as e:
+                        self.stdout.write(
+                            self.style.ERROR(f'  ✗ Failed to upload {s3_path}: {e}')
+                        )
             
             self.stdout.write(
-                self.style.SUCCESS('\n✅ All CSS files verified in S3!')
+                self.style.SUCCESS(
+                    f'\n✅ Static files sync complete! '
+                    f'Verified: {verified_files}, Uploaded: {len(missing_files)}'
+                )
             )
         else:
             self.stdout.write(
