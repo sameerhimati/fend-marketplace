@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8001:8000"  # Different port to avoid production conflicts
+    volumes:
+      - .:/app
+      - staging_staticfiles:/app/staticfiles
+      - staging_media:/app/media
+      - staging_logs:/app/logs
+    environment:
+      - DJANGO_SETTINGS_MODULE=fend.settings.staging
+    depends_on:
+      - db
+    networks:
+      - staging_network
+
+  db:
+    image: postgres:14
+    volumes:
+      - staging_db_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=fend_staging_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5433:5432"  # Different port
+    networks:
+      - staging_network
+
+  nginx:
+    image: nginx:1.21
+    ports:
+      - "8080:80"   # HTTP staging
+      - "8443:443"  # HTTPS staging (if needed later)
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/conf.d/default.conf
+      - staging_staticfiles:/app/staticfiles:ro
+      - staging_media:/app/media:ro
+    depends_on:
+      - web
+    networks:
+      - staging_network
+
+volumes:
+  staging_db_data:
+  staging_staticfiles:
+  staging_media:
+  staging_logs:
+
+networks:
+  staging_network:
+    driver: bridge

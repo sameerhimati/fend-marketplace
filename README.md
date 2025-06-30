@@ -28,6 +28,16 @@ docker-compose exec web python manage.py collectstatic --noinput
 docker-compose logs -f web
 ```
 
+### Staging (Local)
+```bash
+# Start local staging environment
+./scripts/staging.sh start
+
+# Visit staging: http://localhost:8080
+# Stop staging
+./scripts/staging.sh stop
+```
+
 ## 🔧 Useful Scripts
 
 All scripts are in the `scripts/` directory:
