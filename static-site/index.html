@@ -16,6 +16,11 @@
     <!-- View analytics at: dash.cloudflare.com → fend.ai → Analytics & Logs -->
     
     <style>
+        /* Fix anchor link scroll offset for sticky header */
+        html {
+            scroll-padding-top: 80px; /* Account for 64px header + 16px buffer */
+        }
+        
         /* Custom gradient for hero text */
         .gradient-text {
             background: linear-gradient(135deg, #6366F1 0%, #7C3AED 100%);
@@ -41,11 +46,11 @@
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
-            <a href="#" class="text-2xl font-bold text-indigo-600">Fend</a>
+            <a href="#" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
             
             <!-- Desktop Menu -->
             <ul class="nav-links hidden md:flex space-x-8 items-center">
-                <li><a href="#pilot-marketplace" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Pilot Marketplace</a></li>
+                <li><a href="https://marketplace.fend.ai/" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Pilot Marketplace</a></li>
                 <li><a href="#fend-labs" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Fend Labs</a></li>
                 <li><a href="#contact" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Contact</a></li>
                 <li><a href="https://marketplace.fend.ai/organizations/login/" class="text-indigo-600 font-medium hover:text-indigo-700">Login</a></li>
@@ -62,7 +67,7 @@
         <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100">
             <div class="px-4 py-3 space-y-2">
-                <a href="#pilot-marketplace" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Pilot Marketplace</a>
+                <a href="https://marketplace.fend.ai/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Pilot Marketplace</a>
                 <a href="#fend-labs" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Fend Labs</a>
                 <a href="#contact" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Contact</a>
                 <div class="pt-2 border-t border-gray-200">

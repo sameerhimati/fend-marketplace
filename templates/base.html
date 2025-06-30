@@ -64,7 +64,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-center h-16">
                     <div class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-indigo-600">Fend</span>
+                        <span class="text-2xl font-bold text-indigo-600">Fend Marketplace</span>
                     </div>
                 </div>
             </div>
@@ -77,7 +77,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="{% url 'admin:index' %}" class="text-2xl font-bold text-indigo-600">Fend Admin</a>
+                        <a href="{% url 'admin:index' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace Admin</a>
                     </div>
                     <div class="hidden md:ml-6 md:flex md:space-x-8">
                         <a href="{% url 'admin:index' %}" 
@@ -146,7 +146,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-indigo-600">Fend</span>
+                        <span class="text-2xl font-bold text-indigo-600">Fend Marketplace</span>
                     </div>
                     
                     <!-- Logout option -->
@@ -188,11 +188,13 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-2xl font-bold text-indigo-600">Fend</a>
+                        <a href="/" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
                     </div>
                     
                     <!-- Desktop Menu -->
-                    <div class="hidden md:flex items-center space-x-4">
+                    <div class="hidden md:flex items-center space-x-6">
+                        <a href="https://fend.ai/" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Home</a>
+                        <a href="https://fend.ai/#fend-labs" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Fend Labs</a>
                         <a href="{% url 'organizations:login' %}" class="text-gray-500 hover:text-gray-700">Sign in</a>
                         <a href="{% url 'organizations:register' %}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                             Register
@@ -210,8 +212,12 @@
                 <!-- Mobile Menu Dropdown -->
                 <div id="mobile-menu-landing" class="hidden md:hidden border-t border-gray-200">
                     <div class="px-4 py-3 space-y-2">
-                        <a href="{% url 'organizations:login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Sign in</a>
-                        <a href="{% url 'organizations:register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center">Register</a>
+                        <a href="https://fend.ai/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Home</a>
+                        <a href="https://fend.ai/#fend-labs" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Fend Labs</a>
+                        <div class="pt-2 border-t border-gray-200">
+                            <a href="{% url 'organizations:login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Sign in</a>
+                            <a href="{% url 'organizations:register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center">Register</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -222,7 +228,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="{% url 'payments:subscription_detail' %}" class="text-2xl font-bold text-indigo-600">Fend</a>
+                        <a href="{% url 'payments:subscription_detail' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
                     </div>
                     
                     <!-- Always show user menu on payment/registration pages if logged in -->
@@ -267,7 +273,7 @@
                 <div class="flex justify-between h-16">
                     <div class="flex">
                         <div class="flex-shrink-0 flex items-center">
-                            <a href="{% url 'organizations:dashboard' %}" class="text-2xl font-bold text-indigo-600">Fend</a>
+                            <a href="{% url 'organizations:dashboard' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
                         </div>
                         <div class="hidden md:ml-6 md:flex md:space-x-8">
                             <a href="{% url 'organizations:dashboard' %}" 
