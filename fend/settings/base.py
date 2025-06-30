@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.notifications',
     'apps.payments',
+    'apps.utils',
 ]
 
 # These middleware classes are required for Django to work properly
