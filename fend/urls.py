@@ -22,6 +22,27 @@ from . import views
 from .views import LandingPageView
 from django.contrib.auth.views import LogoutView
 from apps.organizations import legal_views
+from django.http import JsonResponse
+from django.db import connection
+from django.utils import timezone
+
+def health_check(request):
+    """Health check endpoint for monitoring"""
+    try:
+        # Test database connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return JsonResponse({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': timezone.now().isoformat()
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=503)
 
 urlpatterns = [
     path('admin/logout/', LogoutView.as_view(next_page='landing'), name='admin_logout'),
@@ -33,6 +54,7 @@ urlpatterns = [
     path('admin/search/', views.admin_global_search, name='admin_global_search'),
     path('admin/export/', views.admin_export_csv, name='admin_export_csv'),
     path('admin/', admin.site.urls),
+    path('health/', health_check, name='health_check'),
     path('', LandingPageView.as_view(), name='landing'),
     
     # Legal portal at root level
