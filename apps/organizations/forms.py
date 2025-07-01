@@ -309,7 +309,7 @@ class OrganizationBasicForm(forms.ModelForm):
         if not phone_digits:
             raise forms.ValidationError("Phone number must contain digits")
         
-        if len(phone_digits) < 6:  # Most phone numbers are at least 7 digits
+        if len(phone_digits) < 6:  # Most phone numbers are at least 6 digits
             raise forms.ValidationError("Phone number seems too short")
         
         if len(phone_digits) > 15:  # ITU-T recommendation E.164 max length

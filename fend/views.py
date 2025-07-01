@@ -401,79 +401,206 @@ def admin_export_csv(request):
 
 
 def _export_payments_csv():
-    """Export payments data as CSV"""
+    """Export payments data as CSV with comprehensive information"""
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="fend_payments_{timezone.now().strftime("%Y%m%d")}.csv"'
     
     writer = csv.writer(response)
     writer.writerow([
-        'Reference Code', 'Pilot Title', 'Enterprise', 'Startup', 
-        'Total Amount', 'Status', 'Created', 'Released'
+        'Reference Code', 'Pilot Title', 'Pilot ID', 'Enterprise Name', 'Enterprise Contact',
+        'Enterprise Email', 'Startup Name', 'Startup Contact', 'Startup Email',
+        'Total Amount', 'Startup Amount', 'Platform Fee', 'Enterprise Fee %', 'Startup Fee %',
+        'Status', 'Bid Status', 'Payment Reference', 'Admin Notes',
+        'Created Date', 'Instructions Sent Date', 'Payment Initiated Date', 
+        'Received Date', 'Released Date'
     ])
     
     payments = EscrowPayment.objects.select_related(
         'pilot_bid__pilot__organization',
         'pilot_bid__startup'
+    ).prefetch_related(
+        'pilot_bid__pilot__organization__users',
+        'pilot_bid__startup__users'
     ).order_by('-created_at')
     
     for payment in payments:
+        # Get enterprise contact info
+        enterprise_contact = payment.pilot_bid.pilot.organization.primary_contact_name or ''
+        enterprise_email = ''
+        if payment.pilot_bid.pilot.organization.users.exists():
+            enterprise_email = payment.pilot_bid.pilot.organization.users.first().email
+        
+        # Get startup contact info
+        startup_contact = payment.pilot_bid.startup.primary_contact_name or ''
+        startup_email = ''
+        if payment.pilot_bid.startup.users.exists():
+            startup_email = payment.pilot_bid.startup.users.first().email
+        
         writer.writerow([
             payment.reference_code,
             payment.pilot_bid.pilot.title,
+            payment.pilot_bid.pilot.id,
             payment.pilot_bid.pilot.organization.name,
+            enterprise_contact,
+            enterprise_email,
             payment.pilot_bid.startup.name,
+            startup_contact,
+            startup_email,
             payment.total_amount,
+            payment.startup_amount,
+            payment.platform_fee,
+            payment.enterprise_fee_percentage,
+            payment.startup_fee_percentage,
             payment.get_status_display(),
-            payment.created_at.strftime('%Y-%m-%d'),
-            payment.released_at.strftime('%Y-%m-%d') if payment.released_at else '',
+            payment.pilot_bid.get_status_display(),
+            payment.payment_reference or '',
+            payment.admin_notes or '',
+            payment.created_at.strftime('%Y-%m-%d %H:%M'),
+            payment.instructions_sent_at.strftime('%Y-%m-%d %H:%M') if payment.instructions_sent_at else '',
+            payment.payment_initiated_at.strftime('%Y-%m-%d %H:%M') if payment.payment_initiated_at else '',
+            payment.received_at.strftime('%Y-%m-%d %H:%M') if payment.received_at else '',
+            payment.released_at.strftime('%Y-%m-%d %H:%M') if payment.released_at else ''
         ])
     
     return response
 
 
 def _export_organizations_csv():
-    """Export organizations data as CSV"""
+    """Export organizations data as CSV with comprehensive information"""
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="fend_organizations_{timezone.now().strftime("%Y%m%d")}.csv"'
     
     writer = csv.writer(response)
     writer.writerow([
-        'Name', 'Type', 'Approval Status', 'Primary Contact', 'Created'
+        'Organization Name', 'Type', 'Approval Status', 'Website', 'Employee Count',
+        'Primary Contact Name', 'Contact Email', 'Contact Phone', 'Country Code',
+        'Business Type', 'Business Reg Number', 'Tax ID', 'Headquarters Location',
+        'Founded Year', 'LinkedIn URL', 'Twitter URL', 'Description',
+        'Has Active Subscription', 'Subscription Plan', 'Subscription Status',
+        'Stripe Customer ID', 'Published Pilots Count', 'Onboarding Completed',
+        'Created Date', 'Approval Date'
     ])
     
-    organizations = Organization.objects.order_by('-created_at')
+    organizations = Organization.objects.prefetch_related(
+        'users', 'subscription'
+    ).order_by('-created_at')
     
     for org in organizations:
+        # Get primary user email
+        primary_email = ''
+        if org.users.exists():
+            primary_email = org.users.first().email
+        
+        # Get subscription info
+        subscription_plan = ''
+        subscription_status = ''
+        if hasattr(org, 'subscription'):
+            subscription_plan = org.subscription.plan.name if org.subscription.plan else ''
+            subscription_status = org.subscription.get_status_display() if org.subscription else ''
+        
         writer.writerow([
             org.name,
             org.get_type_display(),
             org.get_approval_status_display(),
+            org.website or '',
+            org.employee_count or '',
             org.primary_contact_name or '',
-            org.created_at.strftime('%Y-%m-%d'),
+            primary_email,
+            org.primary_contact_phone or '',
+            org.country_code or '',
+            org.get_business_type_display() if org.business_type else '',
+            org.business_registration_number or '',
+            org.tax_identification_number or '',
+            org.headquarters_location or '',
+            org.founding_year or '',
+            org.linkedin_url or '',
+            org.twitter_url or '',
+            org.description or '',
+            'Yes' if org.has_active_subscription() else 'No',
+            subscription_plan,
+            subscription_status,
+            org.stripe_customer_id or '',
+            org.published_pilot_count,
+            'Yes' if org.onboarding_completed else 'No',
+            org.created_at.strftime('%Y-%m-%d %H:%M'),
+            org.approval_date.strftime('%Y-%m-%d %H:%M') if org.approval_date else ''
         ])
     
     return response
 
 
 def _export_pilots_csv():
-    """Export pilots data as CSV"""
+    """Export pilots data as CSV with comprehensive information"""
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="fend_pilots_{timezone.now().strftime("%Y%m%d")}.csv"'
     
     writer = csv.writer(response)
     writer.writerow([
-        'Title', 'Organization', 'Status', 'Price', 'Created'
+        'Pilot ID', 'Title', 'Organization Name', 'Organization Type', 'Organization Contact',
+        'Organization Email', 'Status', 'Price', 'Industry', 'Timeline',
+        'Description', 'Requirements', 'Is Private', 'Total Bids', 'Active Bids',
+        'Selected Startup', 'Selected Startup Contact', 'Selected Startup Email',
+        'Payment Status', 'Created Date', 'Published Date', 'Completion Date'
     ])
     
-    pilots = Pilot.objects.select_related('organization').order_by('-created_at')
+    pilots = Pilot.objects.select_related(
+        'organization', 'selected_bid__startup'
+    ).prefetch_related(
+        'organization__users',
+        'bids',
+        'selected_bid__startup__users'
+    ).order_by('-created_at')
     
     for pilot in pilots:
+        # Get organization contact info
+        org_contact = pilot.organization.primary_contact_name or ''
+        org_email = ''
+        if pilot.organization.users.exists():
+            org_email = pilot.organization.users.first().email
+        
+        # Get selected startup info if exists
+        selected_startup_name = ''
+        selected_startup_contact = ''
+        selected_startup_email = ''
+        payment_status = ''
+        
+        if hasattr(pilot, 'selected_bid') and pilot.selected_bid:
+            selected_startup_name = pilot.selected_bid.startup.name
+            selected_startup_contact = pilot.selected_bid.startup.primary_contact_name or ''
+            if pilot.selected_bid.startup.users.exists():
+                selected_startup_email = pilot.selected_bid.startup.users.first().email
+            
+            # Get payment status if exists
+            if hasattr(pilot.selected_bid, 'payment_holding_service'):
+                payment_status = pilot.selected_bid.payment_holding_service.get_status_display()
+        
+        # Count bids
+        total_bids = pilot.bids.count()
+        active_bids = pilot.bids.filter(status__in=['pending', 'under_review']).count()
+        
         writer.writerow([
+            pilot.id,
             pilot.title,
             pilot.organization.name,
+            pilot.organization.get_type_display(),
+            org_contact,
+            org_email,
             pilot.get_status_display(),
             pilot.price,
-            pilot.created_at.strftime('%Y-%m-%d'),
+            pilot.industry or '',
+            pilot.timeline or '',
+            pilot.description[:200] + '...' if len(pilot.description) > 200 else pilot.description,
+            pilot.requirements[:200] + '...' if pilot.requirements and len(pilot.requirements) > 200 else pilot.requirements or '',
+            'Yes' if pilot.is_private else 'No',
+            total_bids,
+            active_bids,
+            selected_startup_name,
+            selected_startup_contact,
+            selected_startup_email,
+            payment_status,
+            pilot.created_at.strftime('%Y-%m-%d %H:%M'),
+            pilot.published_at.strftime('%Y-%m-%d %H:%M') if pilot.published_at else '',
+            pilot.completed_at.strftime('%Y-%m-%d %H:%M') if pilot.completed_at else ''
         ])
     
     return response

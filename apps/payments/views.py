@@ -65,6 +65,15 @@ def payment_selection(request):
                     # Use the plan specified by the code
                     plan = code.plan
                     
+                    # Validate that org type matches plan type
+                    plan_org_type = 'startup' if 'startup' in plan.plan_type else 'enterprise'
+                    if organization.type != plan_org_type:
+                        messages.error(request, f"This code is for {plan_org_type} organizations only")
+                        return render(request, 'payments/plan_selection.html', {
+                            'plans': sorted_plans,
+                            'organization': organization
+                        })
+                    
                     # Create or update subscription with free account code
                     subscription, created = Subscription.objects.get_or_create(
                         organization=organization,
@@ -166,6 +175,16 @@ def validate_free_code(request):
         try:
             free_code = FreeAccountCode.objects.select_related('plan').get(code=code)
             if free_code.can_be_used():
+                # Get the user's organization
+                organization = getattr(request.user, 'organization', None)
+                if not organization:
+                    return JsonResponse({'valid': False, 'message': 'Organization not found'})
+                
+                # Validate that org type matches plan type
+                plan_org_type = 'startup' if 'startup' in free_code.plan.plan_type else 'enterprise'
+                if organization.type != plan_org_type:
+                    return JsonResponse({'valid': False, 'message': f'This code is for {plan_org_type} organizations only'})
+                
                 # Store the code in session for later use
                 request.session['validated_free_code'] = code
                 return JsonResponse({
@@ -1179,23 +1198,61 @@ def admin_export_payments_csv(request):
     
     writer = csv.writer(response)
     writer.writerow([
-        'Reference Code', 'Pilot Title', 'Enterprise', 'Startup', 
-        'Total Amount', 'Startup Amount', 'Platform Fee', 'Status', 
-        'Created Date', 'Instructions Sent', 'Received Date', 'Released Date'
+        'Reference Code', 'Pilot Title', 'Pilot ID', 'Enterprise Name', 'Enterprise Contact',
+        'Enterprise Email', 'Enterprise Phone', 'Startup Name', 'Startup Contact', 
+        'Startup Email', 'Startup Phone', 'Total Amount', 'Startup Amount', 'Platform Fee', 
+        'Enterprise Fee %', 'Startup Fee %', 'Payment Status', 'Bid Status', 
+        'Payment Reference', 'Admin Notes', 'Created Date', 'Instructions Sent Date', 
+        'Payment Initiated Date', 'Received Date', 'Released Date'
     ])
     
+    # Prefetch related data for better performance
+    payments = payments.prefetch_related(
+        'pilot_bid__pilot__organization__users',
+        'pilot_bid__startup__users'
+    )
+    
     for payment in payments:
+        # Get enterprise contact info
+        enterprise = payment.pilot_bid.pilot.organization
+        enterprise_contact = enterprise.primary_contact_name or ''
+        enterprise_email = ''
+        if enterprise.users.exists():
+            enterprise_email = enterprise.users.first().email
+        enterprise_phone = enterprise.primary_contact_phone or ''
+        
+        # Get startup contact info
+        startup = payment.pilot_bid.startup
+        startup_contact = startup.primary_contact_name or ''
+        startup_email = ''
+        if startup.users.exists():
+            startup_email = startup.users.first().email
+        startup_phone = startup.primary_contact_phone or ''
+        
         writer.writerow([
             payment.reference_code,
             payment.pilot_bid.pilot.title,
-            payment.pilot_bid.pilot.organization.name,
-            payment.pilot_bid.startup.name,
+            payment.pilot_bid.pilot.id,
+            enterprise.name,
+            enterprise_contact,
+            enterprise_email,
+            enterprise_phone,
+            startup.name,
+            startup_contact,
+            startup_email,
+            startup_phone,
             payment.total_amount,
             payment.startup_amount,
             payment.platform_fee,
+            payment.enterprise_fee_percentage,
+            payment.startup_fee_percentage,
             payment.get_status_display(),
+            payment.pilot_bid.get_status_display(),
+            payment.payment_reference or '',
+            payment.admin_notes or '',
             payment.created_at.strftime('%Y-%m-%d %H:%M'),
             payment.instructions_sent_at.strftime('%Y-%m-%d %H:%M') if payment.instructions_sent_at else '',
+            payment.payment_initiated_at.strftime('%Y-%m-%d %H:%M') if payment.payment_initiated_at else '',
             payment.received_at.strftime('%Y-%m-%d %H:%M') if payment.received_at else '',
             payment.released_at.strftime('%Y-%m-%d %H:%M') if payment.released_at else ''
         ])
@@ -1667,23 +1724,43 @@ def admin_export_free_codes_csv(request):
     
     writer = csv.writer(response)
     writer.writerow([
-        'Code', 'Plan', 'Description', 'Free Months', 'Times Used', 'Max Uses',
-        'Is Active', 'Valid From', 'Valid Until', 'Created At', 'Created By'
+        'Code', 'Plan Name', 'Plan Type', 'Plan Price', 'Description', 'Free Months', 
+        'Times Used', 'Max Uses', 'Remaining Uses', 'Is Active', 'Currently Valid',
+        'Valid From', 'Valid Until', 'Days Until Expiry', 'Created At', 'Created By',
+        'Organizations Using Code'
     ])
     
+    # Prefetch subscriptions using the codes
+    codes = codes.prefetch_related('subscription_set__organization')
+    
     for code in codes:
+        # Calculate days until expiry
+        days_until_expiry = (code.valid_until - timezone.now()).days if code.valid_until > timezone.now() else 0
+        
+        # Get organizations using this code
+        orgs_using_code = []
+        for subscription in code.subscription_set.all():
+            orgs_using_code.append(subscription.organization.name)
+        orgs_using_code_str = '; '.join(orgs_using_code) if orgs_using_code else 'None'
+        
         writer.writerow([
             code.code,
             code.plan.name,
+            code.plan.get_plan_type_display(),
+            f"${code.plan.price}",
             code.description,
             code.free_months,
             code.times_used,
             code.max_uses,
+            code.max_uses - code.times_used,
             'Yes' if code.is_active else 'No',
+            'Yes' if code.is_valid() else 'No',
             code.valid_from.strftime('%Y-%m-%d %H:%M'),
             code.valid_until.strftime('%Y-%m-%d %H:%M'),
+            days_until_expiry if days_until_expiry > 0 else 'Expired',
             code.created_at.strftime('%Y-%m-%d %H:%M'),
-            code.created_by.get_full_name() if code.created_by else 'System'
+            code.created_by.get_full_name() if code.created_by else 'System',
+            orgs_using_code_str
         ])
     
     return response

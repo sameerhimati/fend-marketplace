@@ -204,12 +204,12 @@
                             <input type="tel" name="{{ form.primary_contact_phone.name }}" 
                                 id="{{ form.primary_contact_phone.id_for_label }}"
                                 value="{{ form.primary_contact_phone.value|default:'' }}"
-                                placeholder="Phone number"
+                                placeholder="(123) 456-7890"
                                 class="appearance-none flex-grow px-3 py-2 border border-gray-300 rounded-r-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                 required>
                         </div>
                         <p class="mt-1 text-xs text-gray-500" id="phone_format_help">
-                            Enter 10 digits for US/Canada numbers
+                            Format: (123) 456-7890 for US/Canada numbers
                         </p>
                     </div>
                 </div>
@@ -332,13 +332,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Function to format phone numbers for display
+    function formatPhoneNumber(number, countryCode) {
+        // Remove all non-digits
+        const digits = number.replace(/\D/g, '');
+        
+        if (countryCode === '+1' && digits.length > 0) {
+            // Format as (123) 456-7890
+            if (digits.length <= 3) {
+                return digits;
+            } else if (digits.length <= 6) {
+                return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+            } else {
+                return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+            }
+        }
+        return digits;
+    }
+    
     // Function to update phone help text based on country
     function updatePhoneHelp() {
         const countryCode = countryCodeSelect.value;
         if (countryCode === '+1') {
-            phoneFormatHelp.textContent = 'Enter 10 digits for US/Canada numbers';
-            phoneInput.placeholder = '10 digits for US numbers';
-            phoneInput.maxLength = '10';
+            phoneFormatHelp.textContent = 'Format: (123) 456-7890 for US/Canada numbers';
+            phoneInput.placeholder = '(123) 456-7890';
+            phoneInput.maxLength = '14'; // Account for formatting characters
         } else {
             phoneFormatHelp.textContent = 'Enter phone number without country code';
             phoneInput.placeholder = 'Phone number';
@@ -351,20 +369,56 @@ document.addEventListener('DOMContentLoaded', function() {
     countryCodeSelect.addEventListener('change', updatePhoneHelp);
     
     // Phone number formatting
-    phoneInput.addEventListener('input', function() {
+    phoneInput.addEventListener('input', function(event) {
         const countryCode = countryCodeSelect.value;
+        const cursorPosition = this.selectionStart;
+        const previousLength = this.value.length;
+        
         // Remove ALL non-digits (including parentheses, dashes, spaces)
-        let value = this.value.replace(/\D/g, '');
+        let digits = this.value.replace(/\D/g, '');
         
         if (countryCode === '+1') {
             // Limit to 10 digits for US/Canada
-            value = value.substring(0, 10);
+            digits = digits.substring(0, 10);
+            // Format the number
+            const formatted = formatPhoneNumber(digits, countryCode);
+            this.value = formatted;
+            
+            // Adjust cursor position after formatting
+            const newLength = formatted.length;
+            let newCursorPosition = cursorPosition;
+            
+            // If we added characters (formatting), move cursor forward
+            if (newLength > previousLength) {
+                newCursorPosition = cursorPosition + (newLength - previousLength);
+            }
+            // If we're at a formatting character, skip it
+            if (formatted[newCursorPosition] === ' ' || formatted[newCursorPosition] === '-' || formatted[newCursorPosition] === '(' || formatted[newCursorPosition] === ')') {
+                newCursorPosition++;
+            }
+            
+            // Set cursor position
+            this.setSelectionRange(newCursorPosition, newCursorPosition);
         } else {
-            // Limit to 15 digits for international (E.164 standard)
-            value = value.substring(0, 15);
+            // For international numbers, just limit to 15 digits
+            digits = digits.substring(0, 15);
+            this.value = digits;
         }
+    });
+    
+    // Handle paste events to format pasted phone numbers
+    phoneInput.addEventListener('paste', function(event) {
+        event.preventDefault();
+        const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+        const countryCode = countryCodeSelect.value;
         
-        this.value = value;
+        // Remove non-digits and format
+        const digits = pastedText.replace(/\D/g, '');
+        if (countryCode === '+1') {
+            this.value = formatPhoneNumber(digits.substring(0, 10), countryCode);
+        } else {
+            this.value = digits.substring(0, 15);
+        }
     });
     
     // Initialize the UI
