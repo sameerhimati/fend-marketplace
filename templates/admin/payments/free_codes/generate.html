@@ -97,6 +97,7 @@
                                    required
                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                             <p class="mt-1 text-xs text-gray-500">How many months of free access to grant (default: 12 months)</p>
+                            <p id="months-warning" class="mt-1 text-xs text-red-600 hidden">For annual plans, please use multiples of 12 months (12, 24, 36, etc.)</p>
                         </div>
 
                         <!-- Code Validity Period -->
@@ -238,6 +239,7 @@
                                 <li>Set appropriate validity periods based on your campaign timeline</li>
                                 <li>Single-use codes (max uses = 1) are most secure for partnerships</li>
                                 <li>Multi-use codes are useful for demo accounts or broader distribution</li>
+                                <li><strong>Annual plans:</strong> Use multiples of 12 months (12, 24, 36, etc.) for better user experience</li>
                             </ul>
                         </div>
                     </div>
@@ -254,15 +256,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const validDaysInput = document.getElementById('valid_days');
     const freeMonthsInput = document.getElementById('free_months');
     const planSelect = document.getElementById('plan_id');
+    const monthsWarning = document.getElementById('months-warning');
+    const form = document.querySelector('form');
+
+    function validateMonthsForPlan() {
+        const selectedOption = planSelect.options[planSelect.selectedIndex];
+        const freeMonths = parseInt(freeMonthsInput.value) || 0;
+        
+        if (selectedOption && selectedOption.text.toLowerCase().includes('yearly')) {
+            if (freeMonths % 12 !== 0) {
+                monthsWarning.classList.remove('hidden');
+                freeMonthsInput.style.borderColor = '#ef4444';
+                return false;
+            } else {
+                monthsWarning.classList.add('hidden');
+                freeMonthsInput.style.borderColor = '';
+                return true;
+            }
+        } else {
+            monthsWarning.classList.add('hidden');
+            freeMonthsInput.style.borderColor = '';
+            return true;
+        }
+    }
 
     function updatePreview() {
         const count = countInput.value || 0;
         const validDays = validDaysInput.value || 0;
         const freeMonths = freeMonthsInput.value || 0;
         
+        validateMonthsForPlan();
+        
         // Could add a preview section showing calculated values
         console.log(`Generating ${count} codes valid for ${validDays} days granting ${freeMonths} months free access`);
     }
+
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        if (!validateMonthsForPlan()) {
+            e.preventDefault();
+            alert('For annual plans, free months must be a multiple of 12 (e.g., 12, 24, 36).');
+        }
+    });
 
     [countInput, validDaysInput, freeMonthsInput, planSelect].forEach(input => {
         input.addEventListener('change', updatePreview);

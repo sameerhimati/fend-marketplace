@@ -189,7 +189,7 @@ def validate_free_code(request):
                 request.session['validated_free_code'] = code
                 return JsonResponse({
                     'valid': True, 
-                    'message': f'Valid code! This gives you {free_code.free_months} months of {free_code.plan.name} (${free_code.plan.price}/{free_code.plan.billing_frequency})',
+                    'message': '',  # Remove the redundant message - we'll only show the green bubble
                     'plan_name': free_code.plan.name,
                     'plan_price': str(free_code.plan.price),
                     'plan_billing': free_code.plan.billing_frequency,
@@ -1650,6 +1650,11 @@ def admin_generate_free_codes(request):
             
             # Get the selected plan
             plan = get_object_or_404(PricingPlan, id=plan_id)
+            
+            # For annual plans, ensure free_months is a multiple of 12
+            if 'yearly' in plan.plan_type and free_months % 12 != 0:
+                messages.error(request, f"For annual plans, free months must be a multiple of 12 (e.g., 12, 24, 36). You entered {free_months} months.")
+                return redirect('payments:admin_generate_free_codes')
             
             # Generate codes
             generated_codes = []

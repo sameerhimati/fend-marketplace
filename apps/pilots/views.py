@@ -299,7 +299,6 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
     model = Pilot
     form_class = PilotForm
     template_name = 'pilots/pilot_form.html'
-    success_url = reverse_lazy('pilots:list')
 
     def dispatch(self, request, *args, **kwargs):
         # Only enterprise users can create pilots
@@ -310,7 +309,59 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.organization = self.request.user.organization
         form.instance.status = 'draft'  # Default to draft status
-        return super().form_valid(form)
+        
+        # Handle different save actions
+        if 'save_draft' in self.request.POST:
+            response = super().form_valid(form)
+            messages.success(
+                self.request, 
+                f'✅ Pilot "{form.instance.title}" has been saved as a draft. You can continue editing anytime.'
+            )
+            return response
+        else:
+            # Try to submit for review
+            response = super().form_valid(form)
+            pilot = form.instance
+            
+            # Check if pilot is complete enough for submission
+            missing_fields = []
+            if not (pilot.technical_specs_doc or pilot.technical_specs_text):
+                missing_fields.append("Technical Specifications")
+            if not (pilot.performance_metrics_doc or pilot.performance_metrics):
+                missing_fields.append("Performance Metrics")
+            if not (pilot.compliance_requirements_doc or pilot.compliance_requirements):
+                missing_fields.append("Compliance Requirements")
+            
+            if missing_fields:
+                messages.warning(
+                    self.request,
+                    f'⚠️ Pilot "{pilot.title}" has been saved as a draft. To submit for review, please complete: {", ".join(missing_fields)}'
+                )
+            else:
+                # Attempt to publish (this will handle all validation)
+                try:
+                    from .models import publish_pilot
+                    success = publish_pilot(pilot, self.request.user)
+                    if success:
+                        messages.success(
+                            self.request,
+                            f'🎉 Pilot "{pilot.title}" has been submitted for review! You\'ll be notified when it\'s approved (usually within 24 hours).'
+                        )
+                    else:
+                        messages.info(
+                            self.request,
+                            f'📝 Pilot "{pilot.title}" has been saved. Please check the pilot details page for next steps.'
+                        )
+                except Exception as e:
+                    messages.warning(
+                        self.request,
+                        f'⚠️ Pilot "{pilot.title}" has been created but could not be submitted for review. Please check the pilot details for requirements.'
+                    )
+            
+            return response
+    
+    def get_success_url(self):
+        return reverse('pilots:detail', kwargs={'pk': self.object.pk})
 
 class PilotUpdateView(LoginRequiredMixin, UpdateView):
     model = Pilot
@@ -321,9 +372,70 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
     def dispatch(self, request, *args, **kwargs):
         pilot = self.get_object()
         if not pilot.can_be_edited_by(request.user):
-            messages.error(request, "You don't have permission to edit this pilot")
+            messages.error(
+                request, 
+                f"⚠️ You don't have permission to edit this pilot. Only the pilot owner can make changes while it's in {pilot.get_status_display()} status."
+            )
             return redirect('pilots:detail', pk=pilot.pk)
         return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        # Handle different save actions
+        if 'save_draft' in self.request.POST:
+            response = super().form_valid(form)
+            messages.success(
+                self.request, 
+                f'✅ Your changes to "{form.instance.title}" have been saved successfully.'
+            )
+            return response
+        else:
+            # Regular save or attempt submission
+            response = super().form_valid(form)
+            pilot = form.instance
+            
+            # If still in draft and trying to submit
+            if pilot.status == 'draft':
+                # Check if pilot is complete enough for submission
+                missing_fields = []
+                if not (pilot.technical_specs_doc or pilot.technical_specs_text):
+                    missing_fields.append("Technical Specifications")
+                if not (pilot.performance_metrics_doc or pilot.performance_metrics):
+                    missing_fields.append("Performance Metrics")
+                if not (pilot.compliance_requirements_doc or pilot.compliance_requirements):
+                    missing_fields.append("Compliance Requirements")
+                
+                if missing_fields:
+                    messages.warning(
+                        self.request,
+                        f'⚠️ Changes saved! To submit "{pilot.title}" for review, please complete: {", ".join(missing_fields)}'
+                    )
+                else:
+                    # Attempt to publish
+                    try:
+                        from .models import publish_pilot
+                        success = publish_pilot(pilot, self.request.user)
+                        if success:
+                            messages.success(
+                                self.request,
+                                f'🎉 "{pilot.title}" has been submitted for review! You\'ll be notified when it\'s approved.'
+                            )
+                        else:
+                            messages.success(
+                                self.request,
+                                f'✅ Changes to "{pilot.title}" have been saved successfully.'
+                            )
+                    except Exception as e:
+                        messages.success(
+                            self.request,
+                            f'✅ Changes to "{pilot.title}" have been saved successfully.'
+                        )
+            else:
+                messages.success(
+                    self.request,
+                    f'✅ Changes to "{pilot.title}" have been saved successfully.'
+                )
+            
+            return response
     
     def get_success_url(self):
         return reverse_lazy('pilots:detail', kwargs={'pk': self.object.pk})
@@ -616,18 +728,10 @@ def publish_pilot(request, pk):
         messages.error(request, "Only draft pilots can be published.")
         return redirect('pilots:detail', pk=pk)
     
-    # Validate legal document acceptances
+    # Check if organization is approved
     organization = pilot.organization
-    
-    # Check if organization has accepted required payment legal documents
-    if not organization.has_payment_legal_acceptances():
-        missing_docs = []
-        if not organization.payment_terms_accepted:
-            missing_docs.append("Payment Terms")
-        if not organization.payment_holding_agreement_accepted:
-            missing_docs.append("Payment Holding Service Agreement")
-        
-        messages.error(request, f"You must accept the following legal documents before publishing pilots: {', '.join(missing_docs)}")
+    if organization.approval_status != 'approved':
+        messages.error(request, "You must be approved before you can publish pilots.")
         return redirect('pilots:detail', pk=pk)
     
     # Validate current legal agreement acceptance (checkbox on form)
@@ -635,6 +739,12 @@ def publish_pilot(request, pk):
     if not legal_agreement_accepted:
         messages.error(request, "You must accept the legal agreement to publish this pilot.")
         return redirect('pilots:detail', pk=pk)
+    
+    # Auto-accept payment legal documents when checkbox is checked
+    if not organization.payment_terms_accepted:
+        organization.accept_legal_document('payment_terms')
+    if not organization.payment_holding_agreement_accepted:
+        organization.accept_legal_document('payment_holding_agreement')
     
     # Enhanced validation for required fields
     missing_fields = []

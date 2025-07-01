@@ -25,6 +25,7 @@ class Notification(models.Model):
         ('monthly_deals_digest', 'Monthly Deals Digest'),
         ('admin_pilot_verification', 'Admin Pilot Verification'),
         ('admin_action_required', 'Admin Action Required'),
+        ('account_approved', 'Account Approved'),
     ]
 
     recipient = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='notifications')

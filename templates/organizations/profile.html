@@ -120,7 +120,7 @@
         </div>
 
         <!-- Partner Promotions Section (MOST IMPORTANT FEATURE) -->
-        {% if partner_promotions %}
+        {% if partner_promotions and request.ui_state != 'pending_approval' %}
         <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:px-6">
                 <h2 class="text-lg font-medium text-gray-900 flex items-center">

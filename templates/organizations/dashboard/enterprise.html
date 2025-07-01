@@ -5,11 +5,38 @@
 {% block content %}
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Pending Approval Banner -->
+        {% if request.ui_state == 'pending_approval' %}
+        <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <strong>Account Approval Pending:</strong> Your account is under review. You can browse the platform, but full access including creating and publishing pilots will be available once approved.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="lg:flex lg:items-center lg:justify-between">
             <div class="flex-1 min-w-0">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                    Welcome back, {{ request.user.organization.name }}
-                </h2>
+                <div class="flex items-center">
+                    <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                        Welcome to Fend Marketplace, {{ request.user.organization.name }}
+                    </h2>
+                    {% if request.ui_state != 'pending_approval' %}
+                    <button onclick="showHowFendWorksModal()" class="ml-3 p-1 rounded-full text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="How Fend Works">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </button>
+                    {% endif %}
+                </div>
                 <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
                     <div class="mt-2 flex items-center text-sm text-gray-500">
                         <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -21,32 +48,42 @@
             </div>
             <div class="mt-5 flex lg:mt-0 lg:ml-4">
                 <span class="sm:ml-3">
-                    <a href="{% url 'pilots:create' %}"
-                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                        </svg>
-                        Create New Pilot
-                    </a>
+                    {% if request.ui_state == 'pending_approval' %}
+                        <a href="{% url 'pilots:create' %}"
+                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Create Draft Pilot
+                        </a>
+                    {% else %}
+                        <a href="{% url 'pilots:create' %}"
+                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Create New Pilot
+                        </a>
+                    {% endif %}
                 </span>
             </div>
         </div>
 
         <!-- Quick Stats -->
         <div class="mt-8">
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-4">
                 <!-- Active Pilots -->
                 <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-5">
+                    <div class="p-4">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="ml-3 w-0 flex-1">
                                 <dl>
-                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                    <dt class="text-xs font-medium text-gray-500 truncate">
                                         Active Pilots
                                     </dt>
                                     <dd class="text-lg font-medium text-gray-900">
@@ -56,10 +93,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-5 py-3">
-                        <div class="text-sm">
+                    <div class="bg-gray-50 px-4 py-2">
+                        <div class="text-xs">
                             <a href="{% url 'pilots:list' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
-                                View all pilots
+                                View all
                             </a>
                         </div>
                     </div>
@@ -67,89 +104,393 @@
 
                 <!-- Pilot Limit -->
                 <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-5">
+                    <div class="p-4">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
                             </div>
-                            <div class="ml-5 w-0 flex-1">
+                            <div class="ml-3 w-0 flex-1">
                                 <dl>
-                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                    <dt class="text-xs font-medium text-gray-500 truncate">
                                         Pilots Remaining
                                     </dt>
                                     <dd class="text-lg font-medium text-gray-900">
-                                        {% if request.user.organization.subscription.plan.pilot_limit %}
-                                            {{ request.user.organization.get_remaining_pilots }}
+                                        {% if request.ui_state == 'pending_approval' %}
+                                            <span class="text-yellow-600">*</span>
                                         {% else %}
-                                            Unlimited
+                                            {% if request.user.organization.subscription.plan.pilot_limit %}
+                                                {{ request.user.organization.get_remaining_pilots }}
+                                            {% else %}
+                                                Unlimited
+                                            {% endif %}
                                         {% endif %}
                                     </dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-5 py-3">
-                        <div class="text-sm">
-                            <a href="{% url 'payments:subscription_detail' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
-                                Manage subscription
+                    <div class="bg-gray-50 px-4 py-2">
+                        <div class="text-xs">
+                            {% if request.ui_state == 'pending_approval' %}
+                                <span class="font-medium text-yellow-600">* Available after approval</span>
+                            {% else %}
+                                <a href="{% url 'payments:subscription_detail' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                    Manage
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Size -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-xs font-medium text-gray-500 truncate">
+                                        Available Startups
+                                    </dt>
+                                    <dd class="text-lg font-medium text-gray-900">
+                                        {{ startups|length }}+
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-2">
+                        <div class="text-xs">
+                            <a href="{% url 'organizations:directory' %}?type=startup" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Browse
                             </a>
                         </div>
                     </div>
                 </div>
 
+                <!-- Enterprise Network -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-xs font-medium text-gray-500 truncate">
+                                        Enterprise Partners
+                                    </dt>
+                                    <dd class="text-lg font-medium text-gray-900">
+                                        {{ enterprises|length }}+
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-2">
+                        <div class="text-xs">
+                            <a href="{% url 'organizations:directory' %}?type=enterprise" class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Network
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- 🔥 NEW: Featured Partners Section -->
-        {% include "components/featured_partners.html" %}
+        <!-- Draft Pilots Section (for pending approval users) -->
+        {% if request.ui_state == 'pending_approval' %}
+        <div class="mt-8">
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Your Draft Pilots</h3>
+                            <p class="text-sm text-gray-600">Prepare your pilots while waiting for approval</p>
+                        </div>
+                        <a href="{% url 'pilots:create' %}" 
+                           class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                            Create New Draft →
+                        </a>
+                    </div>
+                </div>
+                <div class="p-6">
+                    {% if draft_pilots %}
+                        <div class="space-y-4">
+                            {% for pilot in draft_pilots %}
+                            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="text-base font-medium text-gray-900">{{ pilot.title }}</h4>
+                                        <p class="text-sm text-gray-600 mt-1">{{ pilot.description|truncatewords:20 }}</p>
+                                        <div class="flex items-center mt-2 space-x-4 text-xs text-gray-500">
+                                            <span>Created {{ pilot.created_at|date:"M j, Y" }}</span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                Draft
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="flex space-x-2 ml-4">
+                                        <a href="{% url 'pilots:edit' pilot.pk %}" 
+                                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-100 rounded hover:bg-indigo-200">
+                                            Edit
+                                        </a>
+                                        <a href="{% url 'pilots:detail' pilot.pk %}" 
+                                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200">
+                                            Preview
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                <h3 class="mt-2 text-sm font-medium text-gray-900">No draft pilots yet</h3>
+                                <p class="mt-1 text-sm text-gray-500">Start by creating your first pilot draft.</p>
+                                <div class="mt-6">
+                                    <a href="{% url 'pilots:create' %}" 
+                                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                        Create Draft Pilot
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">No draft pilots yet</h3>
+                            <p class="mt-1 text-sm text-gray-500">Start by creating your first pilot draft.</p>
+                            <div class="mt-6">
+                                <a href="{% url 'pilots:create' %}" 
+                                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Create Draft Pilot
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Startup Partner Showcase -->
+        {% if startups %}
+        <div class="mt-8">
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0">
+                                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    🚀 Featured Startup Partners
+                                </h3>
+                                <p class="text-sm text-gray-600">
+                                    Innovative startups ready to collaborate on your next pilot project
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{% url 'organizations:directory' %}?type=startup" 
+                           class="text-sm font-medium text-green-600 hover:text-green-700">
+                            View All Startups →
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {% for startup in startups %}
+                        <div class="group cursor-pointer" onclick="window.location.href='{% url 'organizations:profile' startup.id %}'">
+                            <div class="bg-white border border-gray-200 rounded-xl p-4 hover:border-green-300 hover:shadow-lg transition-all duration-200 text-center">
+                                {% if startup.logo %}
+                                    <img src="{{ startup.logo.url }}" 
+                                         alt="{{ startup.name }}" 
+                                         class="w-12 h-12 mx-auto rounded-lg object-cover bg-gray-100 p-1">
+                                {% else %}
+                                    <div class="w-12 h-12 mx-auto bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
+                                        <span class="text-white font-bold text-lg">{{ startup.name|slice:":1"|upper }}</span>
+                                    </div>
+                                {% endif %}
+                                <h4 class="mt-3 text-sm font-medium text-gray-900 truncate group-hover:text-green-600 transition-colors">
+                                    {{ startup.name }}
+                                </h4>
+                                {% if startup.website %}
+                                <div class="mt-2">
+                                    <a href="{{ startup.website }}" target="_blank" rel="noopener" class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                        Go to Site
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+
+        <!-- 🔥 Featured Partners Section -->
+        {% if featured_promotions and request.ui_state != 'pending_approval' %}
+            {% include "components/featured_partners.html" %}
+        {% else %}
+        <!-- Enhanced Network Section when no promotions -->
+        <div class="mt-8">
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Explore Our Network</h3>
+                            <p class="text-sm text-gray-600">Connect with innovative startups and fellow enterprises</p>
+                        </div>
+                        <a href="{% url 'organizations:directory' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                            Browse All →
+                        </a>
+                    </div>
+                </div>
+                <div class="p-6">
+                    {% if startups %}
+                    <div class="mb-6">
+                        <h4 class="text-sm font-medium text-gray-900 mb-4">Featured Startups</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {% for startup in startups %}
+                            <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center space-x-3">
+                                    {% if startup.logo %}
+                                        <img src="{{ startup.logo.url }}" alt="{{ startup.name }}" class="h-8 w-8 rounded-lg object-cover">
+                                    {% else %}
+                                        <div class="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                            <span class="text-sm font-bold text-green-600">{{ startup.name|slice:":1"|upper }}</span>
+                                        </div>
+                                    {% endif %}
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">{{ startup.name }}</p>
+                                        <a href="{% url 'organizations:profile' startup.id %}" class="text-xs text-indigo-600 hover:text-indigo-500">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="{% url 'organizations:directory' %}?type=startup" 
+                           class="flex-1 bg-green-50 border border-green-200 rounded-lg p-4 hover:bg-green-100 transition-colors">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-green-900">Browse Startups</h4>
+                                    <p class="text-xs text-green-700">Find innovative partners for your next project</p>
+                                </div>
+                            </div>
+                        </a>
+                        <a href="{% url 'organizations:directory' %}?type=enterprise"
+                           class="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-4 hover:bg-blue-100 transition-colors">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-blue-900">Connect with Enterprises</h4>
+                                    <p class="text-xs text-blue-700">Network with fellow industry leaders</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Recent Pilots -->
         {% if active_pilots %}
         <div class="mt-8">
             <div class="bg-white shadow sm:rounded-lg">
                 <div class="px-4 py-5 sm:p-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        Recent Pilots
-                    </h3>
-                    <div class="mt-5">
-                        <div class="flow-root">
-                            <ul class="-my-5 divide-y divide-gray-200">
-                                {% for pilot in active_pilots %}
-                                <li class="py-4">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">
-                                                {{ pilot.title }}
-                                            </p>
-                                            <p class="text-sm text-gray-500 truncate">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                            Your Recent Pilots
+                        </h3>
+                        <a href="{% url 'pilots:list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                            View All →
+                        </a>
+                    </div>
+                    <div class="flow-root">
+                        <ul class="-my-5 divide-y divide-gray-200">
+                            {% for pilot in active_pilots %}
+                            <li class="py-4">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                            <svg class="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">
+                                            {{ pilot.title }}
+                                        </p>
+                                        <div class="flex items-center space-x-2 mt-1">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                                {% if pilot.status == 'pending_approval' %}bg-yellow-100 text-yellow-800
+                                                {% elif pilot.status == 'published' %}bg-blue-100 text-blue-800
+                                                {% elif pilot.status == 'in_progress' %}bg-green-100 text-green-800
+                                                {% else %}bg-gray-100 text-gray-800{% endif %}">
                                                 {% if pilot.status == 'pending_approval' %}
                                                     Pending Approval
                                                 {% elif pilot.status == 'in_progress' %}
                                                     In Progress
                                                 {% else %}
                                                     {{ pilot.status|title }}
-                                                {% endif %} • Created {{ pilot.created_at|date:"M j" }}
-                                            </p>
-                                        </div>
-                                        <div class="flex-shrink-0">
-                                            <a href="{% url 'pilots:detail' pilot.pk %}"
-                                               class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
-                                                View
-                                            </a>
+                                                {% endif %}
+                                            </span>
+                                            <span class="text-xs text-gray-500">{{ pilot.created_at|date:"M j, Y" }}</span>
                                         </div>
                                     </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                        <div class="mt-6">
-                            <a href="{% url 'pilots:list' %}"
-                               class="w-full flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                View all pilots
-                            </a>
-                        </div>
+                                    <div class="flex-shrink-0">
+                                        <a href="{% url 'pilots:detail' pilot.pk %}"
+                                           class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
+                                            <svg class="mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            View
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -157,5 +498,147 @@
         {% endif %}
     </div>
 </div>
+
+<!-- How Fend Works Modal -->
+{% if show_how_fend_works %}
+<div id="howFendWorksModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-4 border-b">
+                <div class="flex items-center space-x-3">
+                    <div class="flex-shrink-0">
+                        <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-900">Welcome to Fend Marketplace!</h3>
+                        <p class="text-sm text-gray-600">Your account has been approved. Here's how to get started:</p>
+                    </div>
+                </div>
+                <button onclick="closeFendWorksModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="py-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Step 1 -->
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl font-bold text-indigo-600">1</span>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">Create Your First Pilot</h4>
+                        <p class="text-sm text-gray-600 mb-4">Define your project requirements, timeline, and budget to attract the right startups.</p>
+                        <a href="{% url 'pilots:create' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Create Pilot
+                        </a>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl font-bold text-green-600">2</span>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">Browse Startup Network</h4>
+                        <p class="text-sm text-gray-600 mb-4">Explore our curated network of innovative startups ready to collaborate with you.</p>
+                        <a href="{% url 'organizations:directory' %}?type=startup" class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Browse Startups
+                        </a>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-2xl font-bold text-blue-600">3</span>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">Manage & Scale</h4>
+                        <p class="text-sm text-gray-600 mb-4">Review proposals, select partners, and scale successful pilots across your organization.</p>
+                        <a href="{% url 'pilots:list' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            View Pilots
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+                    <p class="text-sm text-gray-600 mb-4">
+                        🎉 <strong>You're all set!</strong> Your enterprise account gives you access to our full network of vetted startups and comprehensive project management tools.
+                    </p>
+                    <div class="text-center">
+                        <label class="inline-flex items-center mb-4">
+                            <input type="checkbox" id="neverShowAgain" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            <span class="ml-2 text-sm text-gray-600">Don't show this again</span>
+                        </label>
+                    </div>
+                    <div class="flex justify-center space-x-4">
+                        <button onclick="handleModalClose();" class="px-6 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700">
+                            Got it, thanks!
+                        </button>
+                        <a href="{% url 'pilots:create' %}" onclick="handleModalClose();" class="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+                            Create My First Pilot
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function closeFendWorksModal() {
+    document.getElementById('howFendWorksModal').style.display = 'none';
+}
+
+function handleModalClose() {
+    const neverShowAgain = document.getElementById('neverShowAgain').checked;
+    if (neverShowAgain) {
+        localStorage.setItem('hideHowFendWorks', 'true');
+    }
+    markNotificationRead();
+    closeFendWorksModal();
+}
+
+function showHowFendWorksModal() {
+    document.getElementById('howFendWorksModal').style.display = 'block';
+}
+
+function markNotificationRead() {
+    // Find and mark the account_approved notification as read
+    fetch('/notifications/mark-all-read/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    }).catch(function(error) {
+        console.log('Could not mark notifications as read:', error);
+    });
+}
+
+// Auto-show modal when page loads (if not previously dismissed)
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('howFendWorksModal');
+    const hideModal = localStorage.getItem('hideHowFendWorks');
+    
+    if (modal && !hideModal) {
+        modal.style.display = 'block';
+    }
+});
+</script>
+{% endif %}
 
 {% endblock %}

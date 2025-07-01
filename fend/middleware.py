@@ -55,13 +55,33 @@ class AuthenticationFlowMiddleware:
                 # If organization is pending approval
                 if hasattr(org, 'approval_status') and org.approval_status == 'pending':
                     # Set UI state for templates
-                    request.ui_state = 'minimal'
+                    request.ui_state = 'pending_approval'
                     
-                    # Only allow pending-approval page and payment-related paths
+                    # Allow access to dashboard, organization directory, and pilot functionality
                     pending_allowed_paths = [
                         '/organizations/pending-approval/',
                         '/payments/', # Allow access to payment processing
+                        '/organizations/dashboard/', # Allow dashboard access
+                        '/organizations/enterprise-dashboard/', # Allow enterprise dashboard
+                        '/organizations/startup-dashboard/', # Allow startup dashboard
+                        '/organizations/directory/', # Allow browsing organizations
+                        '/organizations/profile/', # Allow viewing organization profiles
+                        '/pilots/', # Allow full pilots access
                     ]
+                    
+                    # Block only bid submission and deals for pending users
+                    pending_blocked_paths = [
+                        '/pilots/bid/',
+                        '/deals/', # Block deals pages
+                    ]
+                    
+                    is_pending_blocked = any(
+                        request.path.startswith(path) for path in pending_blocked_paths
+                    )
+                    
+                    if is_pending_blocked:
+                        messages.warning(request, "You must be approved before you can create pilots or submit bids.")
+                        return redirect('organizations:pending_approval')
                     
                     is_pending_allowed = any(
                         request.path.startswith(path) for path in pending_allowed_paths

@@ -182,7 +182,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             return redirect('organizations:enterprise_dashboard')
         return redirect('organizations:startup_dashboard')
 
-def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=6):
+def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=3):
     """
     Get 'featured' partner promotions for dashboard display
     
@@ -267,29 +267,47 @@ class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
     
         user_org = self.request.user.organization
         
-        # Existing pilot data
-        context['active_pilots'] = Pilot.objects.filter(
-            organization=user_org
-        ).order_by('-created_at')[:5]
+        # Check for newly approved users to show "How Fend Works" popup
+        # Show popup if approved within last 24 hours and user hasn't seen it
+        show_popup = False
+        if (user_org.approval_status == 'approved' and 
+            user_org.approval_date and 
+            (timezone.now() - user_org.approval_date).total_seconds() < 86400):  # 24 hours
+            # Check if user has an unread account_approved notification
+            from apps.notifications.models import Notification
+            has_unread_approval = Notification.objects.filter(
+                recipient=self.request.user,
+                type='account_approved',
+                read=False
+            ).exists()
+            show_popup = has_unread_approval
+        context['show_how_fend_works'] = show_popup
         
-        # Existing network data
+        # Pilot data - separate drafts from active/published pilots
+        all_pilots = Pilot.objects.filter(organization=user_org).order_by('-created_at')
+        context['active_pilots'] = all_pilots.filter(
+            status__in=['published', 'pending_approval', 'in_progress', 'completed']
+        )[:5]
+        context['draft_pilots'] = all_pilots.filter(status='draft')[:5]
+        
+        # Network data - use deterministic ordering instead of random
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             approval_status='approved',
             onboarding_completed=True
-        ).exclude(id=user_org.id).order_by('?')[:4]
+        ).exclude(id=user_org.id).order_by('-created_at')[:4]
         
         context['startups'] = Organization.objects.filter(
             type='startup',
             approval_status='approved',
             onboarding_completed=True
-        ).order_by('?')[:4]
+        ).order_by('-created_at')[:4]
         
         # NEW: Featured Partner Promotions
         context['featured_promotions'] = get_featured_promotions(
             user_organization_type='enterprise',
             exclude_org_id=user_org.id,
-            limit=6
+            limit=3
         )
         
         return context
@@ -306,6 +324,22 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
             return context
     
         user_org = self.request.user.organization
+        
+        # Check for newly approved users to show "How Fend Works" popup
+        # Show popup if approved within last 24 hours and user hasn't seen it
+        show_popup = False
+        if (user_org.approval_status == 'approved' and 
+            user_org.approval_date and 
+            (timezone.now() - user_org.approval_date).total_seconds() < 86400):  # 24 hours
+            # Check if user has an unread account_approved notification
+            from apps.notifications.models import Notification
+            has_unread_approval = Notification.objects.filter(
+                recipient=self.request.user,
+                type='account_approved',
+                read=False
+            ).exists()
+            show_popup = has_unread_approval
+        context['show_how_fend_works'] = show_popup
         
         # Existing pilots data
         pilots = Pilot.objects.filter(
@@ -330,19 +364,19 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
             type='startup',
             approval_status='approved',
             onboarding_completed=True
-        ).exclude(id=user_org.id).order_by('?')[:4]
+        ).exclude(id=user_org.id).order_by('-created_at')[:4]
         
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             approval_status='approved',
             onboarding_completed=True
-        ).order_by('?')[:4]
+        ).order_by('-created_at')[:4]
         
         # NEW: Featured Partner Promotions  
         context['featured_promotions'] = get_featured_promotions(
             user_organization_type='startup',
             exclude_org_id=user_org.id,
-            limit=6
+            limit=3
         )
         
         return context

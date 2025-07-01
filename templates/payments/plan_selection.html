@@ -213,8 +213,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.valid) {
-                    // Show detailed message about the code
-                    showCodeMessage(data.message, 'success');
+                    // Hide any previous error messages
+                    codeMessage.classList.add('hidden');
                     codeApplied = true;
                     
                     // Disable plan selection
@@ -224,7 +224,7 @@
                     });
                     
                     // Update continue button text with plan info
-                    const buttonText = `Continue with ${data.plan_name} (${data.free_months} months free)`;
+                    const buttonText = `Continue with Free ${data.plan_name}`;
                     continueButton.textContent = buttonText;
                     continueButton.disabled = false;
                     continueButton.classList.add('bg-green-600', 'hover:bg-green-700');
@@ -237,7 +237,7 @@
                     applyCodeButton.disabled = true;
                     applyCodeButton.style.display = 'none';
                     
-                    // Add a visual indicator of the applied plan
+                    // Add a clean visual indicator of the applied plan
                     const appliedPlanDiv = document.createElement('div');
                     appliedPlanDiv.className = 'mt-4 p-4 bg-green-50 border border-green-200 rounded-lg';
                     appliedPlanDiv.innerHTML = `
@@ -245,7 +245,7 @@
                             <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                             </svg>
-                            <span class="text-green-800 font-medium">Code Applied: ${data.plan_name} - ${data.free_months} months free!</span>
+                            <span class="text-green-800 font-medium">${data.plan_name} - ${data.free_months} months free</span>
                         </div>
                     `;
                     freeAccountCodeInput.parentElement.parentElement.appendChild(appliedPlanDiv);
