@@ -1,8 +1,11 @@
 # Django Management Commands for Fend Marketplace
 # All commands run in the Docker environment
 
-# Send subscription expiry notifications daily at 9 AM
-0 9 * * * cd /app && python manage.py send_subscription_expiry_notifications >> /var/log/cron.log 2>&1
+# Send subscription expiry notifications at multiple intervals (9 AM daily)
+0 9 * * * cd /app && python manage.py send_subscription_expiry_notifications --days=30 >> /var/log/cron.log 2>&1
+5 9 * * * cd /app && python manage.py send_subscription_expiry_notifications --days=14 >> /var/log/cron.log 2>&1
+10 9 * * * cd /app && python manage.py send_subscription_expiry_notifications --days=7 >> /var/log/cron.log 2>&1
+15 9 * * * cd /app && python manage.py send_subscription_expiry_notifications --days=1 >> /var/log/cron.log 2>&1
 
 # Send deal expiry notifications daily at 10 AM  
 0 10 * * * cd /app && python manage.py send_deal_expiry_notifications >> /var/log/cron.log 2>&1

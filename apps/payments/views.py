@@ -101,6 +101,11 @@ def payment_selection(request):
                     # Mark code as used
                     code.use_code()
                     
+                    # Mark organization as onboarded (subscription active)
+                    # but keep has_payment_method=False since no card on file
+                    organization.onboarding_completed = True
+                    organization.save()
+                    
                     messages.success(request, f"Free {plan.name} account activated for {code.free_months} months!")
                     return redirect('organizations:dashboard')
                 else:

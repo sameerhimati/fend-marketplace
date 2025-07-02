@@ -94,6 +94,7 @@ TEMPLATES = [
                 'apps.payments.context_processors.stripe_key',
                 'django.contrib.messages.context_processors.messages',
                 'apps.payments.context_processors.payment_stats',
+                'apps.payments.context_processors.subscription_warnings',
             ],
         },
     },

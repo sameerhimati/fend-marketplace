@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
-from apps.payments.models import EscrowPayment
+from datetime import timedelta
+from apps.payments.models import EscrowPayment, Subscription
 from apps.pilots.models import PilotBid
 
 def stripe_key(request):
@@ -48,3 +49,74 @@ def payment_stats(request):
             'active_pilots_count': active_pilots_count,
         }
     return {}
+
+def subscription_warnings(request):
+    """
+    Add subscription warning context to all templates
+    """
+    if not request.user.is_authenticated:
+        return {}
+    
+    organization = getattr(request.user, 'organization', None)
+    if not organization:
+        return {}
+    
+    try:
+        subscription = organization.subscription
+        if not subscription or subscription.status != 'active':
+            return {}
+        
+        now = timezone.now()
+        days_until_expiry = (subscription.current_period_end - now).days
+        
+        # Only show warnings if subscription expires within 30 days
+        if days_until_expiry > 30:
+            return {}
+        
+        is_free_trial = subscription.free_account_code is not None
+        
+        # Determine warning level and message
+        warning_data = None
+        if days_until_expiry <= 1:
+            warning_data = {
+                'level': 'danger',
+                'urgency': 'critical',
+                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires {"today" if days_until_expiry == 0 else "tomorrow"}!',
+                'action': 'Add payment method now' if is_free_trial else 'Update payment method',
+                'days_left': days_until_expiry,
+                'is_free_trial': is_free_trial
+            }
+        elif days_until_expiry <= 7:
+            warning_data = {
+                'level': 'warning',
+                'urgency': 'high',
+                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires in {days_until_expiry} day{"s" if days_until_expiry != 1 else ""}',
+                'action': 'Add payment method' if is_free_trial else 'Verify payment method',
+                'days_left': days_until_expiry,
+                'is_free_trial': is_free_trial
+            }
+        elif days_until_expiry <= 14:
+            warning_data = {
+                'level': 'info',
+                'urgency': 'medium',
+                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires in {days_until_expiry} days',
+                'action': 'Setup payment method' if is_free_trial else 'Check payment method',
+                'days_left': days_until_expiry,
+                'is_free_trial': is_free_trial
+            }
+        elif days_until_expiry <= 30:
+            warning_data = {
+                'level': 'info',
+                'urgency': 'low',
+                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires in {days_until_expiry} days',
+                'action': 'Consider setting up payment' if is_free_trial else 'Review subscription',
+                'days_left': days_until_expiry,
+                'is_free_trial': is_free_trial
+            }
+        
+        return {
+            'subscription_warning': warning_data
+        }
+        
+    except Subscription.DoesNotExist:
+        return {}

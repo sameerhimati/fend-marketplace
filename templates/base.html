@@ -57,6 +57,7 @@
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="min-h-screen bg-gray-50 flex flex-col">
     {% include "components/messages.html" %}
+    {% include "components/subscription_warning_banner.html" %}
     
     {% if request.ui_state == 'minimal' %}
         <!-- Minimal header for pending approval -->
