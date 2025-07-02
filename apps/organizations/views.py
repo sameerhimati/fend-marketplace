@@ -372,6 +372,13 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
             onboarding_completed=True
         ).order_by('-created_at')[:4]
         
+        # Add startup count statistic
+        context['startup_count'] = Organization.objects.filter(
+            type='startup',
+            approval_status='approved',
+            onboarding_completed=True
+        ).exclude(id=user_org.id).count()
+        
         # NEW: Featured Partner Promotions  
         context['featured_promotions'] = get_featured_promotions(
             user_organization_type='startup',
