@@ -1,0 +1,26 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_('Fend Administration') }}</a>
+</h1>
+
+<!-- Featured Content Quick Links -->
+<div style="background: #28a745; color: white; padding: 8px 12px; margin: 10px 0; border-radius: 4px;">
+    <strong>⭐ Featured Content Management:</strong>
+    <a href="/admin/organizations/organization/" style="color: #fff; margin: 0 10px; text-decoration: underline; font-weight: bold;">
+        📋 Organizations
+    </a>
+    <a href="/admin/pilots/pilot/" style="color: #fff; margin: 0 10px; text-decoration: underline; font-weight: bold;">
+        🚀 Pilots/Deals
+    </a>
+    <span style="font-size: 11px; opacity: 0.9; display: block; margin-top: 4px;">
+        → Click "featured_order" column numbers to edit directly
+        <br>→ Use bulk actions: "Set as featured" / "Remove from featured"
+    </span>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

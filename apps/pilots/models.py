@@ -118,6 +118,12 @@ class Pilot(models.Model):
 
     legal_agreement_accepted = models.BooleanField(default=False)
 
+    # Featured content ordering
+    featured_order = models.PositiveIntegerField(
+        default=999,
+        help_text="Order for featured sections (lower numbers appear first, 0 = highest priority)"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

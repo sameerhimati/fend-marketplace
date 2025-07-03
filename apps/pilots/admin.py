@@ -54,9 +54,11 @@ class PilotAdminForm(forms.ModelForm):
 @admin.register(Pilot)
 class PilotAdmin(admin.ModelAdmin):
     form = PilotAdminForm
-    list_display = ('title', 'organization', 'status', 'price', 'created_at')
+    list_display = ('title', 'organization', 'status', 'featured_order', 'price', 'created_at')
     list_filter = ('status', 'organization', 'legal_agreement_accepted')
+    list_editable = ('featured_order',)
     search_fields = ('title', 'description')
+    actions = ['set_as_featured', 'remove_from_featured']
     
     fieldsets = (
         (None, {
@@ -73,6 +75,10 @@ class PilotAdmin(admin.ModelAdmin):
         }),
         ('Privacy', {
             'fields': ('is_private',)
+        }),
+        ('⭐ Featured Display Settings', {
+            'fields': ('featured_order',),
+            'description': 'Lower numbers appear first in featured sections (0 = highest priority, 999 = default). Use list view for bulk management.'
         }),
         ('Verification', {
             'fields': ('legal_agreement_accepted',),
@@ -116,6 +122,22 @@ class PilotAdmin(admin.ModelAdmin):
             obj.organization = request.user.organization
         super().save_model(request, obj, form, change)
 
+    def set_as_featured(self, request, queryset):
+        """Set selected pilots as featured (priority 0-10)"""
+        next_order = 0
+        for pilot in queryset:
+            pilot.featured_order = next_order
+            pilot.save()
+            next_order += 1
+        self.message_user(request, f'{queryset.count()} pilots set as featured with priority ordering.')
+    set_as_featured.short_description = "Set as featured (highest priority)"
+
+    def remove_from_featured(self, request, queryset):
+        """Remove selected pilots from featured (set to 999)"""
+        count = queryset.update(featured_order=999)
+        self.message_user(request, f'{count} pilots removed from featured sections.')
+    remove_from_featured.short_description = "Remove from featured"
+
     def get_urls(self):
         """Add custom admin URLs for the enhanced workflow"""
         urls = super().get_urls()
@@ -144,6 +166,9 @@ class PilotAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         """Add pilot verification stats to the changelist view"""
         extra_context = extra_context or {}
+        
+        # Add featured content management info
+        extra_context['featured_pilots_count'] = Pilot.objects.filter(featured_order__lt=999).count()
         
         # Add pilot verification stats
         extra_context['pilot_count_pending'] = Pilot.objects.filter(

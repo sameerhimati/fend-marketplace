@@ -314,9 +314,9 @@ class BidDetailView(LoginRequiredMixin, DetailView):
             bid.can_verify_completion()
         )
         
-        # Payment information if escrow exists
-        if hasattr(bid, 'escrow_payment'):
-            context['escrow_payment'] = bid.escrow_payment
+        # Payment information if payment holding service exists
+        if hasattr(bid, 'payment_holding_service'):
+            context['payment_holding_service'] = bid.payment_holding_service
         
         # Calculate financial breakdown
         context['financial_breakdown'] = {
@@ -346,6 +346,18 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
+        # Only save if user explicitly clicked a save button
+        valid_actions = ['save_draft', 'create_pilot', 'save_changes']
+        has_valid_action = any(action in self.request.POST for action in valid_actions)
+        
+        if not has_valid_action:
+            # If no explicit save action, redirect back to form without saving
+            messages.warning(
+                self.request,
+                'Please use the "Save as Draft" or "Create & Submit for Review" button to save your pilot.'
+            )
+            return self.form_invalid(form)
+        
         form.instance.organization = self.request.user.organization
         form.instance.status = 'draft'  # Default to draft status
         
@@ -391,6 +403,18 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
+        # Only save if user explicitly clicked a save button
+        valid_actions = ['save_draft', 'create_pilot', 'save_changes']
+        has_valid_action = any(action in self.request.POST for action in valid_actions)
+        
+        if not has_valid_action:
+            # If no explicit save action, redirect back to form without saving
+            messages.warning(
+                self.request,
+                'Please use one of the save buttons to save your changes.'
+            )
+            return self.form_invalid(form)
+        
         # Handle different save actions
         if 'save_draft' in self.request.POST:
             response = super().form_valid(form)
@@ -1095,3 +1119,29 @@ def admin_mark_bid_as_live(request, pk):
         messages.error(request, f"Unable to mark bid as live. Current status: {bid.get_status_display()}")
     
     return redirect('admin:pilots_pilotbid_change', object_id=pk)
+
+
+@login_required
+@staff_member_required
+def admin_manage_featured_pilots(request):
+    """Featured pilots management"""
+    
+    # Get featured pilots ordered by featured_order
+    featured_pilots = Pilot.objects.filter(
+        featured_order__lt=999,
+        status='published'
+    ).order_by('featured_order')
+    
+    # Get all pilots that could be featured
+    available_pilots = Pilot.objects.filter(
+        status='published'
+    ).order_by('-created_at')
+    
+    context = {
+        'featured_pilots': featured_pilots,
+        'available_pilots': available_pilots,
+        'total_pilots': Pilot.objects.filter(status='published').count(),
+        'featured_pilots_count': featured_pilots.count(),
+    }
+    
+    return render(request, 'admin/pilots/manage_featured_pilots.html', context)

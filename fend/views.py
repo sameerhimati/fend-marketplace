@@ -9,7 +9,7 @@ import csv
 
 from apps.pilots.models import Pilot, PilotBid
 from apps.organizations.models import Organization
-from apps.payments.models import EscrowPayment, Subscription, Payment
+from apps.payments.models import PaymentHoldingService, Subscription, Payment
 from apps.users.models import User
 
 class LandingPageView(TemplateView):
@@ -54,7 +54,7 @@ def enhanced_admin_dashboard(request):
     today = timezone.now().date()
     sla_cutoff = timezone.now() - timedelta(hours=24)
     
-    # STEP 1: Generate Mercury Invoices (approved bids without escrow payment)
+    # STEP 1: Generate Mercury Invoices (approved bids without payment holding service)
     approved_bids = PilotBid.objects.filter(
         status='approved',
         payment_holding_service__isnull=True
@@ -63,20 +63,20 @@ def enhanced_admin_dashboard(request):
     overdue_invoices = approved_bids.filter(updated_at__lt=sla_cutoff).count()
     
     # STEP 2: Check Mercury for Wire Transfers (invoices sent, payment pending)
-    check_mercury_payments = EscrowPayment.objects.filter(
+    check_mercury_payments = PaymentHoldingService.objects.filter(
         status='instructions_sent'
     ).count()
-    overdue_mercury = EscrowPayment.objects.filter(
+    overdue_mercury = PaymentHoldingService.objects.filter(
         status='instructions_sent',
         created_at__lt=sla_cutoff
     ).count()
     
     # STEP 3: Release Funds to Startups (work completed, payment received)
-    release_funds = EscrowPayment.objects.filter(
+    release_funds = PaymentHoldingService.objects.filter(
         status='received',
         pilot_bid__status='completed'
     ).count()
-    overdue_releases = EscrowPayment.objects.filter(
+    overdue_releases = PaymentHoldingService.objects.filter(
         status='received',
         pilot_bid__status='completed',
         pilot_bid__updated_at__lt=sla_cutoff
@@ -240,13 +240,13 @@ def admin_org_detail(request, org_id):
     # Get payments related to this org
     if org.type == 'enterprise':
         # For enterprises, get pilots they've posted and payments made
-        enterprise_payments = EscrowPayment.objects.filter(
+        enterprise_payments = PaymentHoldingService.objects.filter(
             pilot_bid__pilot__organization=org
         ).order_by('-created_at')[:5]
         startup_payments = None
     else:
         # For startups, get bids they've made and payments received
-        startup_payments = EscrowPayment.objects.filter(
+        startup_payments = PaymentHoldingService.objects.filter(
             pilot_bid__startup=org
         ).order_by('-created_at')[:5]
         enterprise_payments = None
@@ -365,7 +365,7 @@ def admin_global_search(request):
         })
     
     # Search payments
-    payments = EscrowPayment.objects.filter(
+    payments = PaymentHoldingService.objects.filter(
         Q(reference_code__icontains=query) |
         Q(pilot_bid__pilot__title__icontains=query) |
         Q(pilot_bid__startup__name__icontains=query)
@@ -376,7 +376,7 @@ def admin_global_search(request):
             'type': 'Payment',
             'title': f"Payment {payment.reference_code}",
             'subtitle': f"${payment.total_amount} - {payment.get_status_display()}",
-            'url': f'/admin/payments/escrowpayment/{payment.id}/change/',
+            'url': f'/admin/payments/paymentholdingservice/{payment.id}/change/',
             'icon': 'fas fa-credit-card'
         })
     
@@ -415,7 +415,7 @@ def _export_payments_csv():
         'Received Date', 'Released Date'
     ])
     
-    payments = EscrowPayment.objects.select_related(
+    payments = PaymentHoldingService.objects.select_related(
         'pilot_bid__pilot__organization',
         'pilot_bid__startup'
     ).prefetch_related(

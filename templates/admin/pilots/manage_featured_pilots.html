@@ -1,0 +1,95 @@
+{% extends 'admin/base.html' %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}Manage Featured Pilots{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    › <a href="{% url 'admin:pilots_pilot_changelist' %}">Pilots</a>
+    › Featured Pilots Management
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Featured Pilots Management</h1>
+
+<div class="module aligned">
+    <h2>Current Featured Pilots ({{ featured_pilots_count }} / ∞)</h2>
+    <p class="help">Lower numbers appear first in featured sections. Drag to reorder or edit numbers directly.</p>
+    
+    {% if featured_pilots %}
+    <div class="form-row">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Pilot Title</th>
+                    <th>Organization</th>
+                    <th>Price</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pilot in featured_pilots %}
+                <tr>
+                    <td><strong>{{ pilot.featured_order }}</strong></td>
+                    <td>
+                        <a href="{% url 'admin:pilots_pilot_change' pilot.id %}">
+                            {{ pilot.title }}
+                        </a>
+                    </td>
+                    <td>{{ pilot.organization.name }}</td>
+                    <td>${{ pilot.price|floatformat:0 }}</td>
+                    <td>
+                        <a href="{% url 'admin:pilots_pilot_change' pilot.id %}" class="button">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No pilots are currently featured.</p>
+    {% endif %}
+</div>
+
+<div class="module aligned">
+    <h2>Quick Actions</h2>
+    <p class="help">Use the bulk actions on the <a href="{% url 'admin:pilots_pilot_changelist' %}">Pilots list page</a> to:</p>
+    <ul>
+        <li><strong>Set as featured</strong> - Automatically assigns priority ordering (0, 1, 2, etc.)</li>
+        <li><strong>Remove from featured</strong> - Sets featured_order to 999 (unfeatured)</li>
+        <li><strong>Edit featured_order directly</strong> - Click on the number in the list to edit inline</li>
+    </ul>
+</div>
+
+<div class="module aligned">
+    <h2>All Published Pilots ({{ total_pilots }} total)</h2>
+    <p class="help">Go to the <a href="{% url 'admin:pilots_pilot_changelist' %}">Pilots list</a> to manage featured status.</p>
+    
+    <div class="form-row">
+        <a href="{% url 'admin:pilots_pilot_changelist' %}" class="button default">
+            Manage All Pilots →
+        </a>
+    </div>
+</div>
+
+<style>
+.module table th {
+    background: #f8f8f8;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+}
+.module table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+.help {
+    color: #666;
+    font-size: 11px;
+    margin-top: 5px;
+}
+</style>
+{% endblock %}

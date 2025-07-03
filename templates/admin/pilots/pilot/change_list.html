@@ -1,0 +1,28 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block content_title %}
+    {% if cl.result_count %}
+        {% blocktrans count counter=cl.result_count %}{{ counter }} pilot{% plural %}{{ counter }} pilots{% endblocktrans %}
+    {% else %}
+        {{ cl.opts.verbose_name_plural|capfirst }}
+    {% endif %}
+{% endblock %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+{% endblock %}
+
+{% block result_list %}
+<div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+    <h3 style="margin: 0 0 8px 0; color: #1976d2;">🚀 Featured Pilots Management</h3>
+    <p style="margin: 0; font-size: 13px;">
+        <strong>{{ featured_pilots_count }}</strong> pilots are currently featured.
+    </p>
+    <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+        Use bulk actions below: <strong>Set as featured</strong> or <strong>Remove from featured</strong>. 
+        Edit the <strong>featured_order</strong> column directly to reorder.
+    </p>
+</div>
+{{ block.super }}
+{% endblock %}

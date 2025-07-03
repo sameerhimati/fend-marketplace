@@ -28,7 +28,7 @@ def get_admin_statistics():
             'verification_count': 0,
             'release_count': 0,
             'activation_count': 0,
-            'total_escrow_value': 0,
+            'total_payment_holding_value': 0,
             'monthly_revenue': 0,
         }
     }
@@ -37,7 +37,7 @@ def get_admin_statistics():
         # Import models here to avoid circular imports
         from apps.organizations.models import Organization
         from apps.pilots.models import Pilot, PilotBid
-        from apps.payments.models import EscrowPayment
+        from apps.payments.models import PaymentHoldingService
         
         # Organization statistics
         stats['pending_approvals_count'] = Organization.objects.filter(
@@ -66,14 +66,14 @@ def get_admin_statistics():
         ).count()
         
         # Payment statistics
-        needs_verification = EscrowPayment.objects.filter(status='payment_initiated').count()
-        ready_for_release = EscrowPayment.objects.filter(
+        needs_verification = PaymentHoldingService.objects.filter(status='payment_initiated').count()
+        ready_for_release = PaymentHoldingService.objects.filter(
             status='received', pilot_bid__status='completed'
         ).count()
-        payment_received_pilots = EscrowPayment.objects.filter(
+        payment_received_pilots = PaymentHoldingService.objects.filter(
             status='received', pilot_bid__status='approval_pending'
         ).count()
-        total_escrow_amount = EscrowPayment.objects.filter(
+        total_payment_holding_amount = PaymentHoldingService.objects.filter(
             status__in=['received', 'payment_initiated']
         ).aggregate(total=Sum('total_amount'))['total'] or 0
         
@@ -82,7 +82,7 @@ def get_admin_statistics():
             'verification_count': needs_verification,
             'release_count': ready_for_release,
             'activation_count': payment_received_pilots,
-            'total_escrow_value': total_escrow_amount,
+            'total_payment_holding_value': total_payment_holding_amount,
             'monthly_revenue': 0,  # Calculate based on your needs
         }
         
