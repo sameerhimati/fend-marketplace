@@ -13,7 +13,7 @@ from django.core.paginator import Paginator
 import csv
 from apps.notifications.services import create_notification
 
-from .models import PricingPlan, Subscription, Payment, EscrowPayment, EscrowPaymentLog, FreeAccountCode
+from .models import PricingPlan, Subscription, Payment, PaymentHoldingService, PaymentHoldingServiceLog, FreeAccountCode
 from apps.pilots.models import PilotBid
 from apps.organizations.models import Organization
 
@@ -759,7 +759,7 @@ def complete_payment(request):
 @login_required
 def payment_holding_instructions(request, payment_id):
     """Show payment instructions for enterprise"""
-    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    payment = get_object_or_404(PaymentHoldingService, id=payment_id)
     
     # Security check - only the enterprise can see this
     if request.user.organization != payment.pilot_bid.pilot.organization:
@@ -773,7 +773,7 @@ def payment_holding_instructions(request, payment_id):
 @login_required
 def payment_holding_confirmation(request, payment_id):
     """Enterprise confirms payment has been sent"""
-    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    payment = get_object_or_404(PaymentHoldingService, id=payment_id)
     
     # Security check - only the enterprise can confirm payment
     if request.user.organization != payment.pilot_bid.pilot.organization:
@@ -823,7 +823,7 @@ def admin_payment_dashboard(request):
     ).order_by('-updated_at')
     
     # STAGE 2: Invoices sent, awaiting payment
-    invoices_sent_awaiting_payment = EscrowPayment.objects.filter(
+    invoices_sent_awaiting_payment = PaymentHoldingService.objects.filter(
         status='instructions_sent'
     ).select_related(
         'pilot_bid__pilot__organization',
@@ -831,7 +831,7 @@ def admin_payment_dashboard(request):
     ).order_by('-instructions_sent_at')
     
     # STAGE 3: Payments ready to confirm and activate (combined verification + activation)
-    ready_to_confirm_and_activate = EscrowPayment.objects.filter(
+    ready_to_confirm_and_activate = PaymentHoldingService.objects.filter(
         status='instructions_sent'  # Payments awaiting admin confirmation
     ).select_related(
         'pilot_bid__pilot__organization',
@@ -839,7 +839,7 @@ def admin_payment_dashboard(request):
     ).order_by('-instructions_sent_at')
     
     # STAGE 4: Work completed, ready for payment release
-    completed_ready_for_release = EscrowPayment.objects.filter(
+    completed_ready_for_release = PaymentHoldingService.objects.filter(
         status='received', 
         pilot_bid__status='completed'
     ).select_related(
@@ -859,7 +859,7 @@ def admin_payment_dashboard(request):
     ).order_by('-updated_at')
     
     # Payment confirmed but work not yet marked as live
-    payment_confirmed_ready_to_start = EscrowPayment.objects.filter(
+    payment_confirmed_ready_to_start = PaymentHoldingService.objects.filter(
         status='received',
         pilot_bid__status='approved'  # Payment confirmed but work not yet marked as live
     ).select_related(
@@ -868,13 +868,13 @@ def admin_payment_dashboard(request):
     ).order_by('-received_at')
     
     # Recent activity logs
-    recent_logs = EscrowPaymentLog.objects.select_related(
-        'escrow_payment__pilot_bid__pilot',
+    recent_logs = PaymentHoldingServiceLog.objects.select_related(
+        'payment_holding_service__pilot_bid__pilot',
         'changed_by'
     ).order_by('-created_at')[:10]
     
     # Calculate stats for the dashboard
-    total_escrow_amount = EscrowPayment.objects.filter(
+    total_payment_holding_amount = PaymentHoldingService.objects.filter(
         status__in=['received', 'instructions_sent']
     ).aggregate(total=Sum('total_amount'))['total'] or 0
     
@@ -895,7 +895,7 @@ def admin_payment_dashboard(request):
         'ready_to_confirm_and_activate': ready_to_confirm_and_activate[:5],
         'completed_ready_for_release': completed_ready_for_release[:5],
         'recent_logs': recent_logs,
-        'total_escrow_amount': total_escrow_amount,
+        'total_payment_holding_amount': total_payment_holding_amount,
         
         # NEW: Active work sections
         'active_pilots': active_pilots[:8],  # Show up to 8 active pilots
@@ -934,22 +934,22 @@ def admin_mark_invoice_sent(request, bid_id):
         messages.error(request, f"Bid must be in 'approved' status. Current status: {bid.get_status_display()}")
         return redirect('payments:admin_payment_dashboard')
     
-    # Get or create escrow payment
+    # Get or create payment holding service
     try:
         payment_holding_service = bid.payment_holding_service
         if payment_holding_service.status != 'pending':
             messages.error(request, f"Payment must be in 'pending' status. Current status: {payment_holding_service.get_status_display()}")
             return redirect('payments:admin_payment_dashboard')
-    except EscrowPayment.DoesNotExist:
-        messages.error(request, "No escrow payment found for this bid")
+    except PaymentHoldingService.DoesNotExist:
+        messages.error(request, "No payment holding service found for this bid")
         return redirect('payments:admin_payment_dashboard')
     
     # Get admin notes
     notes = request.POST.get('notes', '')
     
     # Create log entry
-    EscrowPaymentLog.objects.create(
-        escrow_payment=payment_holding_service,
+    PaymentHoldingServiceLog.objects.create(
+        payment_holding_service=payment_holding_service,
         previous_status=payment_holding_service.status,
         new_status='instructions_sent',
         changed_by=request.user,
@@ -982,7 +982,7 @@ def admin_confirm_payment_and_activate(request, payment_id):
     if request.method != 'POST':
         return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
-    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    payment = get_object_or_404(PaymentHoldingService, id=payment_id)
     
     # Verify that payment is in 'instructions_sent' status
     if payment.status != 'instructions_sent':
@@ -1009,7 +1009,7 @@ def admin_release_startup_payment(request, payment_id):
     if request.method != 'POST':
         return redirect('payments:admin_payment_holding_detail', payment_id=payment_id)
     
-    payment = get_object_or_404(EscrowPayment, id=payment_id)
+    payment = get_object_or_404(PaymentHoldingService, id=payment_id)
     
     # Enhanced validation
     if payment.status != 'received':
@@ -1059,13 +1059,13 @@ def admin_release_startup_payment(request, payment_id):
 @login_required
 @staff_member_required
 def admin_payment_holding_services(request):
-    """Enhanced admin view for all escrow payments with 4-stage workflow filtering"""
+    """Enhanced admin view for all payment holding services with 4-stage workflow filtering"""
     tab = request.GET.get('tab', 'all')
     search = request.GET.get('search', '')
     amount_filter = request.GET.get('amount_filter', '')
     
     # Base queryset with optimized select_related
-    payments = EscrowPayment.objects.select_related(
+    payments = PaymentHoldingService.objects.select_related(
         'pilot_bid__pilot__organization',
         'pilot_bid__startup'
     ).prefetch_related(
@@ -1109,11 +1109,11 @@ def admin_payment_holding_services(request):
     page_obj = paginator.get_page(page_number)
     
     # Get counts for tabs (4-stage workflow)
-    invoice_pending_count = EscrowPayment.objects.filter(status='pending').count()
-    invoice_sent_count = EscrowPayment.objects.filter(status='instructions_sent').count()
-    ready_for_release_count = EscrowPayment.objects.filter(status='received', pilot_bid__status='completed').count()
-    completed_count = EscrowPayment.objects.filter(status='released').count()
-    all_count = EscrowPayment.objects.count()
+    invoice_pending_count = PaymentHoldingService.objects.filter(status='pending').count()
+    invoice_sent_count = PaymentHoldingService.objects.filter(status='instructions_sent').count()
+    ready_for_release_count = PaymentHoldingService.objects.filter(status='received', pilot_bid__status='completed').count()
+    completed_count = PaymentHoldingService.objects.filter(status='released').count()
+    all_count = PaymentHoldingService.objects.count()
     
     context = {
         'payments': page_obj,
@@ -1128,14 +1128,14 @@ def admin_payment_holding_services(request):
         'all_count': all_count,
     }
     
-    return render(request, 'admin/payments/admin_escrow_payments.html', context)
+    return render(request, 'admin/payments/admin_payment_holding_services.html', context)
 
 @login_required
 @staff_member_required
 def admin_payment_holding_detail(request, payment_id):
     """Enhanced admin view for individual payment details"""
     payment = get_object_or_404(
-        EscrowPayment.objects.select_related(
+        PaymentHoldingService.objects.select_related(
             'pilot_bid__pilot__organization',
             'pilot_bid__startup'
         ), 
@@ -1143,8 +1143,8 @@ def admin_payment_holding_detail(request, payment_id):
     )
     
     # Get payment logs for audit trail
-    payment_logs = EscrowPaymentLog.objects.filter(
-        escrow_payment=payment
+    payment_logs = PaymentHoldingServiceLog.objects.filter(
+        payment_holding_service=payment
     ).select_related('changed_by').order_by('-created_at')
     
     context = {
@@ -1158,13 +1158,13 @@ def admin_payment_holding_detail(request, payment_id):
 @staff_member_required
 def admin_export_payments_csv(request):
     """Export payments as CSV with current filters applied"""
-    # Apply same filters as admin_escrow_payments
+    # Apply same filters as admin_payment_holding_services
     tab = request.GET.get('tab')
     search = request.GET.get('search')
     amount_filter = request.GET.get('amount_filter')
     
     # Base queryset
-    payments = EscrowPayment.objects.select_related(
+    payments = PaymentHoldingService.objects.select_related(
         'pilot_bid__pilot__organization',
         'pilot_bid__startup'
     )
@@ -1199,7 +1199,7 @@ def admin_export_payments_csv(request):
     
     # Create the HttpResponse with CSV header
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="escrow_payments_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="payment_holding_services_{timezone.now().strftime("%Y%m%d_%H%M")}.csv"'
     
     writer = csv.writer(response)
     writer.writerow([

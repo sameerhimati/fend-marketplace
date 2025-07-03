@@ -243,7 +243,7 @@ class FreeAccountCode(models.Model):
         )
 
 
-class EscrowPayment(models.Model):
+class PaymentHoldingService(models.Model):
     # Updated 4-stage workflow status choices
     STATUS_CHOICES = (
         ('pending', 'Invoice Pending'),           # Stage 1: Waiting for admin to generate invoice
@@ -309,7 +309,7 @@ class EscrowPayment(models.Model):
         self.save(update_fields=['status', 'instructions_sent_at'])
         
         # Log the change
-        EscrowPaymentLog.log_status_change(self, old_status, user, "Payment instructions sent to enterprise")
+        PaymentHoldingServiceLog.log_status_change(self, old_status, user, "Payment instructions sent to enterprise")
         
         # Notify enterprise
         self._notify_instructions_sent()
@@ -327,7 +327,7 @@ class EscrowPayment(models.Model):
         self.save(update_fields=['status', 'received_at', 'admin_notes'])
         
         # Log the change
-        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment received and work activated. {notes or ''}")
+        PaymentHoldingServiceLog.log_status_change(self, old_status, user, f"Payment received and work activated. {notes or ''}")
         
         # Mark bid as live so work can begin
         self.pilot_bid.mark_live()
@@ -348,7 +348,7 @@ class EscrowPayment(models.Model):
         self.save(update_fields=['status', 'released_at', 'admin_notes'])
         
         # Log the change
-        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment released to startup. {notes or ''}")
+        PaymentHoldingServiceLog.log_status_change(self, old_status, user, f"Payment released to startup. {notes or ''}")
         
         # Notify both parties
         self._notify_payment_released()
@@ -356,7 +356,7 @@ class EscrowPayment(models.Model):
         return True
     
     def cancel_payment(self, reason=None, user=None):
-        """Cancel the escrow payment"""
+        """Cancel the payment holding service"""
         old_status = self.status
         self.status = 'cancelled'
         if reason:
@@ -364,7 +364,7 @@ class EscrowPayment(models.Model):
         self.save(update_fields=['status', 'admin_notes'])
         
         # Log the change
-        EscrowPaymentLog.log_status_change(self, old_status, user, f"Payment cancelled. Reason: {reason or 'No reason provided'}")
+        PaymentHoldingServiceLog.log_status_change(self, old_status, user, f"Payment cancelled. Reason: {reason or 'No reason provided'}")
         
         # Notify parties
         self._notify_payment_cancelled()
@@ -455,10 +455,10 @@ class EscrowPayment(models.Model):
         )
 
 
-class EscrowPaymentLog(models.Model):
-    """Comprehensive audit log for escrow payments - REQUIRED for compliance"""
-    escrow_payment = models.ForeignKey(
-        EscrowPayment,
+class PaymentHoldingServiceLog(models.Model):
+    """Comprehensive audit log for payment holding services - REQUIRED for compliance"""
+    payment_holding_service = models.ForeignKey(
+        PaymentHoldingService,
         on_delete=models.CASCADE,
         related_name='logs'
     )
@@ -468,19 +468,19 @@ class EscrowPaymentLog(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='escrow_payment_logs'
+        related_name='payment_holding_service_logs'
     )
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"Payment {self.escrow_payment.reference_code}: {self.previous_status} → {self.new_status}"
+        return f"Payment {self.payment_holding_service.reference_code}: {self.previous_status} → {self.new_status}"
     
     @classmethod
     def log_status_change(cls, payment_holding_service, previous_status, changed_by=None, notes=None):
         """Create audit log entry for status changes"""
         return cls.objects.create(
-            escrow_payment=payment_holding_service,  # Keep field name for DB compatibility
+            payment_holding_service=payment_holding_service,
             previous_status=previous_status,
             new_status=payment_holding_service.status,
             changed_by=changed_by,

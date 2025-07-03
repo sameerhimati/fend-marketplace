@@ -302,10 +302,10 @@
                                 <span class="flex items-center">
                                     {% if user.organization.subscription.plan.pilot_limit %}
                                         <span class="font-medium text-indigo-600">{{ user.organization.get_remaining_pilots }}</span>
-                                        <span class="ml-1">pilots left</span>
+                                        <span class="ml-1">Pilots left</span>
                                     {% else %}
                                         <span class="font-medium text-indigo-600">Unlimited</span>
-                                        <span class="ml-1">pilots</span>
+                                        <span class="ml-1">Pilots</span>
                                     {% endif %}
                                 </span>
                             </a>
@@ -377,7 +377,7 @@
                         <div class="pt-2 border-t border-gray-200">
                             <a href="{% url 'payments:subscription_detail' %}" class="block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">
                                 {% if user.organization.subscription.plan.pilot_limit %}
-                                    {{ user.organization.get_remaining_pilots }} pilots left
+                                    {{ user.organization.get_remaining_pilots }} Pilots left
                                 {% else %}
                                     Unlimited Pilots
                                 {% endif %}

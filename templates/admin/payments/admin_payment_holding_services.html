@@ -8,7 +8,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-3xl font-bold text-gray-900">Payment Management</h1>
-            <p class="mt-1 text-gray-600">Monitor and manage all escrow payments - 4-stage workflow</p>
+            <p class="mt-1 text-gray-600">Monitor and manage all payment holding services - 4-stage workflow</p>
         </div>
         <div class="flex items-center space-x-3">
             <a href="{% url 'payments:admin_payment_dashboard' %}" 
@@ -316,7 +316,7 @@
                 {% if request.GET.search or request.GET.tab %}
                     Try adjusting your search or filter criteria.
                 {% else %}
-                    No escrow payments have been created yet.
+                    No payment holding services have been created yet.
                 {% endif %}
             </p>
             {% if request.GET.search or request.GET.tab %}

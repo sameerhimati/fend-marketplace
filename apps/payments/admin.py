@@ -8,8 +8,8 @@ from .models import (
     PricingPlan, 
     Subscription, 
     Payment,
-    EscrowPayment,
-    EscrowPaymentLog,
+    PaymentHoldingService,
+    PaymentHoldingServiceLog,
     FreeAccountCode
 )
 
@@ -24,8 +24,8 @@ class CustomAdminMixin:
         extra_context = extra_context or {}
         extra_context['custom_dashboard_url'] = reverse('payments:admin_payment_dashboard')
         
-        # Add payment stats for EscrowPayment model - Updated for 4-stage workflow
-        if self.model._meta.model_name == 'escrowpayment':
+        # Add payment stats for PaymentHoldingService model - Updated for 4-stage workflow
+        if self.model._meta.model_name == 'paymentholdingservice':
             queryset = self.get_queryset(request)
             
             # 4-Stage Workflow Stats
@@ -36,15 +36,15 @@ class CustomAdminMixin:
             ).count()
             extra_context['payment_released_count'] = queryset.filter(status='released').count()
             
-            # Total escrow amount (payments in progress)
-            extra_context['total_escrow_amount'] = queryset.filter(
+            # Total payment holding amount (payments in progress)
+            extra_context['total_payment_holding_amount'] = queryset.filter(
                 status__in=['received', 'instructions_sent']
             ).aggregate(total=Sum('total_amount'))['total'] or 0
         
         return super().changelist_view(request, extra_context=extra_context)
 
-@admin.register(EscrowPayment)
-class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
+@admin.register(PaymentHoldingService)
+class PaymentHoldingServiceAdmin(CustomAdminMixin, admin.ModelAdmin):
     list_display = ('reference_code', 'pilot_bid_link', 'total_amount', 'startup_amount', 
                    'status_badge', 'created_at', 'actions_column')
     list_filter = ('status', 'created_at')
@@ -190,12 +190,12 @@ class EscrowPaymentAdmin(CustomAdminMixin, admin.ModelAdmin):
         ]
         return custom_urls + urls
 
-@admin.register(EscrowPaymentLog)
-class EscrowPaymentLogAdmin(admin.ModelAdmin):
-    list_display = ('escrow_payment', 'status_change', 'changed_by', 'created_at')
+@admin.register(PaymentHoldingServiceLog)
+class PaymentHoldingServiceLogAdmin(admin.ModelAdmin):
+    list_display = ('payment_holding_service', 'status_change', 'changed_by', 'created_at')
     list_filter = ('new_status', 'created_at')
-    search_fields = ('escrow_payment__reference_code', 'notes')
-    raw_id_fields = ('escrow_payment', 'changed_by')
+    search_fields = ('payment_holding_service__reference_code', 'notes')
+    raw_id_fields = ('payment_holding_service', 'changed_by')
     readonly_fields = ('created_at',)
     
     def status_change(self, obj):

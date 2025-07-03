@@ -21,7 +21,7 @@
             {% if organization.type == 'enterprise' and organization.subscription.plan.pilot_limit and organization.get_remaining_pilots <= 1 %}
             <div class="mt-3 bg-yellow-50 border-l-4 border-yellow-400 p-3">
                 <p class="text-sm text-yellow-700">
-                    <span class="font-medium">Reaching pilot limit:</span> You have {{ organization.get_remaining_pilots }} pilot{{ organization.get_remaining_pilots|pluralize }} remaining on your monthly plan. Upgrade to yearly for unlimited pilots.
+                    <span class="font-medium">Reaching Pilot limit:</span> You have {{ organization.get_remaining_pilots }} Pilot{{ organization.get_remaining_pilots|pluralize }} remaining on your monthly plan. Upgrade to yearly for unlimited Pilots.
                 </p>
             </div>
             {% endif %}
@@ -85,7 +85,7 @@
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                 </svg>
                                             </div>
-                                            <p class="ml-2 text-sm text-gray-700">Bidding on unlimited pilots</p>
+                                            <p class="ml-2 text-sm text-gray-700">Bidding on unlimited Pilots</p>
                                         </li>
                                         <li class="flex items-start">
                                             <div class="flex-shrink-0">
@@ -93,7 +93,7 @@
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                 </svg>
                                             </div>
-                                            <p class="ml-2 text-sm text-gray-700">5% transaction fee on successful pilots</p>
+                                            <p class="ml-2 text-sm text-gray-700">5% transaction fee on successful Pilots</p>
                                         </li>
                                     {% elif organization.type == 'enterprise' %}
                                         {% if plan.plan_type == 'enterprise_monthly' %}
