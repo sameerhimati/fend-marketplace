@@ -758,6 +758,14 @@ class DirectoryView(LoginRequiredMixin, TemplateView):
             context['startups'] = Organization.objects.none()
             return context
         
+        # Mark "first_connection_made" when user browses organizations
+        from .models import UserOnboardingProgress
+        if self.request.user.is_authenticated:
+            progress = UserOnboardingProgress.get_or_create_for_user(self.request.user)
+            if not progress.first_connection_made:
+                progress.first_connection_made = True
+                progress.save(update_fields=['first_connection_made'])
+        
         # Get search query and filters from request
         search_query = self.request.GET.get('search', '').strip()
         org_type_filter = self.request.GET.get('type', '')  # 'enterprise', 'startup', or empty for all

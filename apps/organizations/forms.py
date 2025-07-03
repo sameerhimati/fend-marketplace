@@ -389,11 +389,17 @@ class EnhancedOrganizationProfileForm(forms.Form):
         # Add CSS classes for styling
         for field_name, field in self.fields.items():
             if field_name == 'description':
-                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+                field.widget.attrs['class'] = 'form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm'
             elif field_name == 'logo':
                 field.widget.attrs['class'] = 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100'
+            elif field_name == 'employee_count':
+                # Dropdown styling consistent with registration and filters
+                field.widget.attrs.update({
+                    'class': 'block w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm appearance-none bg-no-repeat bg-right-4 bg-top-1/2',
+                    'style': "background-image: url('data:image/svg+xml,%3csvg xmlns=\\'http://www.w3.org/2000/svg\\' fill=\\'none\\' viewBox=\\'0 0 20 20\\'%3e%3cpath stroke=\\'%236b7280\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M6 8l4 4 4-4\\'/%3e%3c/svg%3e'); background-size: 1.5em 1.5em; background-position: right 0.5rem center;"
+                })
             else:
-                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+                field.widget.attrs['class'] = 'form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm'
 
     def clean_website(self):
         """Clean and validate website field using centralized validator"""
@@ -464,11 +470,17 @@ class PartnerPromotionForm(forms.ModelForm):
         # Add CSS classes for styling
         for field_name, field in self.fields.items():
             if field_name == 'description':
-                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+                field.widget.attrs['class'] = 'form-textarea focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm'
             elif field_name == 'is_exclusive':
                 field.widget.attrs['class'] = 'focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded'
+            elif field_name == 'display_order':
+                # Dropdown styling consistent with registration and filters
+                field.widget.attrs.update({
+                    'class': 'block w-full px-4 py-3 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm appearance-none bg-no-repeat bg-right-4 bg-top-1/2',
+                    'style': "background-image: url('data:image/svg+xml,%3csvg xmlns=\\'http://www.w3.org/2000/svg\\' fill=\\'none\\' viewBox=\\'0 0 20 20\\'%3e%3cpath stroke=\\'%236b7280\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M6 8l4 4 4-4\\'/%3e%3c/svg%3e'); background-size: 1.5em 1.5em; background-position: right 0.5rem center;"
+                })
             else:
-                field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+                field.widget.attrs['class'] = 'form-input focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm'
 
 
 class PilotDefinitionForm(forms.ModelForm):

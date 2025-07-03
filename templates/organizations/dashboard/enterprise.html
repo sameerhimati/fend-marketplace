@@ -7,8 +7,11 @@
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <!-- Enhanced Onboarding Progress -->
-        {% if show_progress_bar %}
+        <!-- Collapsible Onboarding -->
+        {% include 'components/collapsible_onboarding.html' %}
+        
+        <!-- Legacy Enhanced Onboarding Progress (Hidden) -->
+        {% if false and show_progress_bar %}
         <div id="session-progress-bar" class="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mb-8">
             <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -110,8 +113,8 @@
         </div>
         {% endif %}
         
-        <!-- Detailed Onboarding Checklist -->
-        {% if onboarding_progress and onboarding_completion < 100 %}
+        <!-- Legacy Detailed Onboarding Checklist (Hidden) -->
+        {% if false and onboarding_progress and onboarding_completion < 100 %}
         <div class="mb-8">
             {% include 'components/onboarding_checklist.html' %}
         </div>

@@ -480,50 +480,40 @@ class UserOnboardingProgress(models.Model):
             return self._get_enterprise_completion()
     
     def _get_startup_completion(self):
-        """Startup-specific completion milestones - streamlined for quick onboarding"""
-        # Focus on just the essentials for quick value
-        core_milestones = [
-            self.profile_description_added,  # Most important for credibility
-            self.first_pilot_posted or self.first_bid_made,  # Core engagement
+        """Startup-specific completion milestones based on actual onboarding tasks"""
+        milestones = [
+            self.profile_logo_added,           # Add company logo
+            self.profile_description_added,    # Complete profile description  
+            self.tags_added,                   # Fill out complete profile information
+            self.first_bid_made,               # Submit first bid
+            self.first_connection_made,        # Explore the network
         ]
         
-        # Bonus milestones give extra completion but aren't required for 100%
-        bonus_milestones = [
-            self.profile_logo_added,
-            self.tags_added,
-        ]
+        completed = sum(milestones)
+        total = len(milestones)
         
-        core_completed = sum(core_milestones)
-        bonus_completed = sum(bonus_milestones)
-        
-        # Core milestones = 80%, bonus = 20%
-        core_percentage = (core_completed / len(core_milestones)) * 80
-        bonus_percentage = (bonus_completed / len(bonus_milestones)) * 20
-        
-        return min(100, core_percentage + bonus_percentage)
+        if total == 0:
+            return 0
+            
+        return int((completed / total) * 100)
     
     def _get_enterprise_completion(self):
-        """Enterprise-specific completion milestones - streamlined for quick onboarding"""
-        # Focus on just the essentials for quick value
-        core_milestones = [
-            self.profile_description_added,  # Most important for credibility
-            self.first_pilot_posted,  # Core engagement for enterprises
+        """Enterprise-specific completion milestones based on actual onboarding tasks"""
+        milestones = [
+            self.profile_logo_added,           # Add company logo
+            self.profile_description_added,    # Complete profile description
+            self.tags_added,                   # Fill out complete profile information  
+            self.first_pilot_posted,           # Post first pilot opportunity
+            self.first_connection_made,        # Explore the network
         ]
         
-        # Bonus milestones give extra completion but aren't required for 100%
-        bonus_milestones = [
-            self.profile_logo_added,
-            self.team_members_added,
-        ]
+        completed = sum(milestones)
+        total = len(milestones)
         
-        core_completed = sum(core_milestones)
-        bonus_completed = sum(bonus_milestones)
-        
-        # Core milestones = 80%, bonus = 20%
-        core_percentage = (core_completed / len(core_milestones)) * 80
-        bonus_percentage = (bonus_completed / len(bonus_milestones)) * 20
-        
-        return min(100, core_percentage + bonus_percentage)
+        if total == 0:
+            return 0
+            
+        return int((completed / total) * 100)
     
     def get_next_suggestion(self):
         """
@@ -691,19 +681,15 @@ class UserOnboardingProgress(models.Model):
         if organization.logo:
             self.profile_logo_added = True
         
-        # Check if profile is substantially complete (description + at least 2 other key fields)
+        # Check if profile description is complete (main description field)
+        has_description = organization.description and len(organization.description.strip()) > 50
+        if has_description:
+            self.profile_description_added = True
+        
+        # Check if comprehensive profile information is complete
         profile_fields_completed = 0
         
-        # Core field: Description (required)
-        has_description = organization.description and len(organization.description.strip()) > 50
-        
-        # Additional profile fields
-        if has_description:
-            profile_fields_completed += 1
-            
-        if organization.industry_tags and len(organization.industry_tags) > 0:
-            profile_fields_completed += 1
-            
+        # Count additional profile fields
         if organization.employee_count:
             profile_fields_completed += 1
             
@@ -715,10 +701,13 @@ class UserOnboardingProgress(models.Model):
             
         if organization.linkedin_url or organization.twitter_url:
             profile_fields_completed += 1
+            
+        if organization.website and len(organization.website.strip()) > 0:
+            profile_fields_completed += 1
         
-        # Consider profile complete if they have description + at least 2 other fields
+        # Consider comprehensive profile complete if they have at least 3 additional fields
         if profile_fields_completed >= 3:
-            self.profile_description_added = True
+            self.tags_added = True
         
         # Check if they've posted pilots
         from apps.pilots.models import Pilot

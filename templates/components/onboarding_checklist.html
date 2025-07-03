@@ -116,7 +116,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- Add Industry Tags -->
+                <!-- Complete Profile Information -->
                 <div class="flex items-center justify-between py-2 hover:bg-gray-50 px-3 rounded-md transition-colors">
                     <div class="flex items-center">
                         {% if onboarding_progress.tags_added %}
@@ -129,13 +129,13 @@
                             </svg>
                         {% endif %}
                         <div>
-                            <div class="text-sm font-medium text-gray-900">Add industry tags</div>
-                            <div class="text-xs text-gray-500">Help partners find you easier</div>
+                            <div class="text-sm font-medium text-gray-900">Fill out complete profile information</div>
+                            <div class="text-xs text-gray-500">Add location, website, and detailed info</div>
                         </div>
                     </div>
                     {% if not onboarding_progress.tags_added %}
                         <a href="{% url 'organizations:profile_edit' %}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                            Add →
+                            Complete →
                         </a>
                     {% endif %}
                 </div>
@@ -199,7 +199,7 @@
                     </div>
                 {% endif %}
                 
-                <!-- Make First Connection -->
+                <!-- Explore the Network -->
                 <div class="flex items-center justify-between py-2 hover:bg-gray-50 px-3 rounded-md transition-colors">
                     <div class="flex items-center">
                         {% if onboarding_progress.first_connection_made %}
@@ -212,47 +212,13 @@
                             </svg>
                         {% endif %}
                         <div>
-                            <div class="text-sm font-medium text-gray-900">Make your first connection</div>
-                            <div class="text-xs text-gray-500">Network with potential partners</div>
+                            <div class="text-sm font-medium text-gray-900">Explore the network</div>
+                            <div class="text-xs text-gray-500">Browse organizations and discover partners</div>
                         </div>
                     </div>
                     {% if not onboarding_progress.first_connection_made %}
                         <a href="{% url 'organizations:directory' %}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                            Explore →
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Growth Section -->
-            <div>
-                <h4 class="text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                    <svg class="w-4 h-4 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                    </svg>
-                    Showcase Success
-                </h4>
-                
-                <!-- Add Case Studies -->
-                <div class="flex items-center justify-between py-2 hover:bg-gray-50 px-3 rounded-md transition-colors">
-                    <div class="flex items-center">
-                        {% if onboarding_progress.case_studies_added %}
-                            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                        {% else %}
-                            <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10"></circle>
-                            </svg>
-                        {% endif %}
-                        <div>
-                            <div class="text-sm font-medium text-gray-900">Add case studies</div>
-                            <div class="text-xs text-gray-500">Demonstrate your track record</div>
-                        </div>
-                    </div>
-                    {% if not onboarding_progress.case_studies_added %}
-                        <a href="{% url 'organizations:profile_edit' %}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                            Add →
+                            Browse →
                         </a>
                     {% endif %}
                 </div>
