@@ -1,0 +1,33 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block content_title %}
+    {% if cl.result_count %}
+        {% blocktrans count counter=cl.result_count %}{{ counter }} deal{% plural %}{{ counter }} deals{% endblocktrans %}
+    {% else %}
+        {{ cl.opts.verbose_name_plural|capfirst }}
+    {% endif %}
+{% endblock %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+{% endblock %}
+
+{% block result_list %}
+<div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+    <h3 style="margin: 0 0 8px 0; color: #1976d2;">🎯 Featured Deals Management</h3>
+    <p style="margin: 0; font-size: 13px;">
+        <strong>{{ featured_deals_count }}/4</strong> deals are currently featured. 
+        {% if featured_deals_remaining > 0 %}
+            <span style="color: #059669;">{{ featured_deals_remaining }} slot{{ featured_deals_remaining|pluralize }} available.</span>
+        {% else %}
+            <span style="color: #dc2626;">No slots available.</span>
+        {% endif %}
+    </p>
+    <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+        Use bulk actions below: <strong>Mark as featured</strong> or <strong>Remove from featured</strong>. 
+        Check the <strong>is_featured</strong> checkbox to feature individual deals.
+    </p>
+</div>
+{{ block.super }}
+{% endblock %}

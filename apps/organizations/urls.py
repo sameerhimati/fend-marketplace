@@ -92,6 +92,11 @@ urlpatterns = [
          views.admin_reject_organization, 
          name='admin_reject_organization'),
     
+    # Featured content management
+    path('admin/featured/', 
+         views.admin_manage_featured_content, 
+         name='admin_manage_featured_content'),
+    
     # =============================================================================
     # ONBOARDING AJAX ENDPOINTS
     # =============================================================================

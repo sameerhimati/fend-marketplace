@@ -127,6 +127,12 @@ class Organization(models.Model):
     bank_routing_number = models.CharField(max_length=255, blank=True, null=True)
     
     published_pilot_count = models.IntegerField(default=0, help_text="Number of published pilots")
+    
+    # Featured ordering for manual curation
+    featured_order = models.PositiveIntegerField(
+        default=999,
+        help_text="Order for featured sections (lower numbers appear first, 0 = highest priority)"
+    )
 
     # Legal document acceptance tracking
     terms_of_service_accepted = models.BooleanField(default=False)
@@ -327,6 +333,16 @@ class PartnerPromotion(models.Model):
         help_text="Order in which this promotion appears (lower numbers first)"
     )
     
+    # Featured content management
+    is_featured = models.BooleanField(
+        default=False,
+        help_text="Mark as featured deal (maximum 4 deals can be featured at once)"
+    )
+    featured_order = models.PositiveIntegerField(
+        default=999,
+        help_text="Order for featured sections (lower numbers appear first, 0 = highest priority)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -349,6 +365,18 @@ class PartnerPromotion(models.Model):
             ).count()
             if existing_count >= 5:  # Max 5 active promotions
                 raise ValidationError("Maximum 5 active promotions allowed per organization")
+        
+        # Enforce featured deals limit
+        if self.is_featured:
+            featured_count = PartnerPromotion.objects.filter(
+                is_featured=True,
+                is_active=True
+            ).exclude(pk=self.pk if self.pk else None).count()
+            
+            if featured_count >= 4:
+                raise ValidationError(
+                    "Maximum 4 deals can be featured at once. Please unfeature another deal first."
+                )
 
 
 class PilotDefinition(models.Model):

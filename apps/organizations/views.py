@@ -184,13 +184,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=3):
     """
-    Get 'featured' partner promotions for dashboard display
+    Get featured partner promotions for dashboard display
     
     Algorithm:
-    1. Recent promotions get priority (last 30 days)
-    2. Max 2 promotions per organization 
-    3. Mix of enterprise/startup promotions
-    4. Manual curation via display_order
+    1. First check for manually featured deals (is_featured=True)
+    2. If not enough featured deals, fall back to recency algorithm
+    3. Featured deals are ordered by recency
+    4. Max 2 promotions per organization for non-featured fallback
     5. Active promotions only
     
     Args:
@@ -198,8 +198,6 @@ def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=3
         exclude_org_id: Current user's org ID to exclude
         limit: Max promotions to return
     """
-    thirty_days_ago = timezone.now() - timedelta(days=30)
-    
     # Base queryset - active promotions only
     base_qs = PartnerPromotion.objects.filter(
         is_active=True,
@@ -210,17 +208,35 @@ def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=3
     if exclude_org_id:
         base_qs = base_qs.exclude(organization_id=exclude_org_id)
     
+    # First, get manually featured deals ordered by recency
+    featured_deals = list(base_qs.filter(
+        is_featured=True
+    ).order_by('-created_at')[:limit])
+    
+    # If we have enough featured deals, return them
+    if len(featured_deals) >= limit:
+        return featured_deals[:limit]
+    
+    # If not enough featured deals, supplement with algorithm-based selection
+    remaining_limit = limit - len(featured_deals)
+    featured_ids = [deal.id for deal in featured_deals]
+    
+    # Exclude already featured deals from the pool
+    non_featured_qs = base_qs.exclude(id__in=featured_ids)
+    
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    
     # Prioritize different types based on user type
     if user_organization_type == 'enterprise':
         # Enterprises see startup promotions first (solutions/tools)
-        priority_orgs = base_qs.filter(organization__type='startup')
-        secondary_orgs = base_qs.filter(organization__type='enterprise')
+        priority_orgs = non_featured_qs.filter(organization__type='startup')
+        secondary_orgs = non_featured_qs.filter(organization__type='enterprise')
     else:
         # Startups see enterprise promotions first (opportunities)
-        priority_orgs = base_qs.filter(organization__type='enterprise') 
-        secondary_orgs = base_qs.filter(organization__type='startup')
+        priority_orgs = non_featured_qs.filter(organization__type='enterprise') 
+        secondary_orgs = non_featured_qs.filter(organization__type='startup')
     
-    # Add recency scoring
+    # Add recency scoring for non-featured deals
     def add_recency_score(queryset):
         return queryset.annotate(
             recency_score=Case(
@@ -234,25 +250,26 @@ def get_featured_promotions(user_organization_type, exclude_org_id=None, limit=3
     priority_promotions = add_recency_score(priority_orgs)
     secondary_promotions = add_recency_score(secondary_orgs)
     
-    # Limit to max 2 per organization and collect results
-    featured_promotions = []
+    # Limit to max 2 per organization for fallback deals
+    additional_promotions = []
     org_count = {}
     
-    # First pass: Priority type (startups for enterprises, enterprises for startups)
+    # First pass: Priority type
     for promo in priority_promotions:
         org_id = promo.organization_id
-        if org_count.get(org_id, 0) < 2 and len(featured_promotions) < limit:
-            featured_promotions.append(promo)
+        if org_count.get(org_id, 0) < 2 and len(additional_promotions) < remaining_limit:
+            additional_promotions.append(promo)
             org_count[org_id] = org_count.get(org_id, 0) + 1
     
     # Second pass: Secondary type if we need more
     for promo in secondary_promotions:
         org_id = promo.organization_id
-        if org_count.get(org_id, 0) < 2 and len(featured_promotions) < limit:
-            featured_promotions.append(promo)
+        if org_count.get(org_id, 0) < 2 and len(additional_promotions) < remaining_limit:
+            additional_promotions.append(promo)
             org_count[org_id] = org_count.get(org_id, 0) + 1
     
-    return featured_promotions[:limit]
+    # Combine featured deals (first) with algorithm-selected deals
+    return featured_deals + additional_promotions[:remaining_limit]
 
 
 class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
@@ -295,13 +312,26 @@ class EnterpriseDashboardView(LoginRequiredMixin, TemplateView):
             type='enterprise',
             approval_status='approved',
             onboarding_completed=True
-        ).exclude(id=user_org.id).order_by('-created_at')[:4]
+        ).exclude(id=user_org.id).order_by('featured_order', '-created_at')[:4]
         
         context['startups'] = Organization.objects.filter(
             type='startup',
             approval_status='approved',
             onboarding_completed=True
-        ).order_by('-created_at')[:4]
+        ).order_by('featured_order', '-created_at')[:4]
+        
+        # Add actual counts
+        context['startups_count'] = Organization.objects.filter(
+            type='startup',
+            approval_status='approved',
+            onboarding_completed=True
+        ).count()
+        
+        context['enterprises_count'] = Organization.objects.filter(
+            type='enterprise',
+            approval_status='approved',
+            onboarding_completed=True
+        ).exclude(id=user_org.id).count()
         
         # NEW: Featured Partner Promotions
         context['featured_promotions'] = get_featured_promotions(
@@ -364,13 +394,13 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
             type='startup',
             approval_status='approved',
             onboarding_completed=True
-        ).exclude(id=user_org.id).order_by('-created_at')[:4]
+        ).exclude(id=user_org.id).order_by('featured_order', '-created_at')[:4]
         
         context['enterprises'] = Organization.objects.filter(
             type='enterprise',
             approval_status='approved',
             onboarding_completed=True
-        ).order_by('-created_at')[:4]
+        ).order_by('featured_order', '-created_at')[:4]
         
         # Add startup count statistic
         context['startup_count'] = Organization.objects.filter(
@@ -378,6 +408,13 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
             approval_status='approved',
             onboarding_completed=True
         ).exclude(id=user_org.id).count()
+        
+        # Add enterprise count statistic
+        context['enterprise_count'] = Organization.objects.filter(
+            type='enterprise',
+            approval_status='approved',
+            onboarding_completed=True
+        ).count()
         
         # NEW: Featured Partner Promotions  
         context['featured_promotions'] = get_featured_promotions(
@@ -818,6 +855,7 @@ class DirectoryView(LoginRequiredMixin, TemplateView):
             'org_type_filter': org_type_filter,
             'total_enterprises': enterprises.count() if hasattr(enterprises, 'count') else 0,
             'total_startups': startups.count() if hasattr(startups, 'count') else 0,
+            'user_org_type': self.request.user.organization.type,
         })
         
         return context
@@ -932,3 +970,44 @@ class DealsView(LoginRequiredMixin, TemplateView):
         })
         
         return context
+
+
+@login_required
+@staff_member_required
+def admin_manage_featured_content(request):
+    """Unified featured content management for organizations and deals"""
+    
+    # Get featured organizations ordered by featured_order
+    featured_orgs = Organization.objects.filter(
+        featured_order__lt=999,
+        approval_status='approved'
+    ).order_by('featured_order')
+    
+    # Get all organizations that could be featured
+    available_orgs = Organization.objects.filter(
+        approval_status='approved'
+    ).order_by('name')
+    
+    # Get featured deals ordered by recency
+    featured_deals = PartnerPromotion.objects.filter(
+        is_featured=True,
+        is_active=True
+    ).select_related('organization').order_by('-created_at')
+    
+    # Get all deals that could be featured
+    available_deals = PartnerPromotion.objects.filter(
+        is_active=True
+    ).select_related('organization').order_by('organization__name', 'title')
+    
+    context = {
+        'featured_orgs': featured_orgs,
+        'available_orgs': available_orgs,
+        'total_orgs': Organization.objects.filter(approval_status='approved').count(),
+        'featured_orgs_count': featured_orgs.count(),
+        'featured_deals': featured_deals,
+        'available_deals': available_deals,
+        'total_deals': PartnerPromotion.objects.filter(is_active=True).count(),
+        'featured_deals_count': featured_deals.count(),
+    }
+    
+    return render(request, 'admin/organizations/manage_featured_content.html', context)

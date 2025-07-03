@@ -1,0 +1,149 @@
+{% extends 'admin/base.html' %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}Manage Featured Content - Organizations{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    › <a href="{% url 'admin:organizations_organization_changelist' %}">Organizations</a>
+    › Featured Content Management
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Featured Content Management - Organizations & Deals</h1>
+
+<div class="module aligned">
+    <h2>Current Featured Organizations ({{ featured_orgs_count }} / ∞)</h2>
+    <p class="help">Lower numbers appear first in featured sections. Drag to reorder or edit numbers directly.</p>
+    
+    {% if featured_orgs %}
+    <div class="form-row">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Organization</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in featured_orgs %}
+                <tr>
+                    <td><strong>{{ org.featured_order }}</strong></td>
+                    <td>
+                        <a href="{% url 'admin:organizations_organization_change' org.id %}">
+                            {{ org.name }}
+                        </a>
+                    </td>
+                    <td>{{ org.get_type_display }}</td>
+                    <td>
+                        <a href="{% url 'admin:organizations_organization_change' org.id %}" class="button">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No organizations are currently featured.</p>
+    {% endif %}
+</div>
+
+<div class="module aligned">
+    <h2>Current Featured Deals ({{ featured_deals_count }}/4)</h2>
+    <p class="help">Featured deals appear in hero sections, ordered by recency. Maximum 4 deals can be featured at once.</p>
+    
+    {% if featured_deals %}
+    <div class="form-row">
+        <table>
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Deal Title</th>
+                    <th>Organization</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for deal in featured_deals %}
+                <tr>
+                    <td><strong>Featured</strong></td>
+                    <td>
+                        <a href="{% url 'admin:organizations_partnerpromotion_change' deal.id %}">
+                            {{ deal.title }}
+                        </a>
+                    </td>
+                    <td>{{ deal.organization.name }}</td>
+                    <td>{{ deal.organization.get_type_display }}</td>
+                    <td>
+                        <a href="{% url 'admin:organizations_partnerpromotion_change' deal.id %}" class="button">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No deals are currently featured.</p>
+    {% endif %}
+</div>
+
+<div class="module aligned">
+    <h2>Quick Actions</h2>
+    <p class="help">Use the bulk actions on the admin list pages to manage featured content:</p>
+    <ul>
+        <li><strong>Organizations:</strong> Go to <a href="{% url 'admin:organizations_organization_changelist' %}">Organizations list</a></li>
+        <li><strong>Deals:</strong> Go to <a href="{% url 'admin:organizations_partnerpromotion_changelist' %}">Deals list</a></li>
+    </ul>
+    <p class="help">Available actions:</p>
+    <ul>
+        <li><strong>Mark as featured</strong> - Feature selected deals (up to 4 total)</li>
+        <li><strong>Remove from featured</strong> - Unfeature selected deals</li>
+        <li><strong>Edit checkbox directly</strong> - Check/uncheck the is_featured column inline</li>
+    </ul>
+</div>
+
+<div class="module aligned">
+    <h2>All Organizations ({{ total_orgs }} total)</h2>
+    <p class="help">Go to the <a href="{% url 'admin:organizations_organization_changelist' %}">Organizations list</a> to manage featured status.</p>
+    
+    <div class="form-row">
+        <a href="{% url 'admin:organizations_organization_changelist' %}" class="button default">
+            Manage All Organizations →
+        </a>
+    </div>
+</div>
+
+<div class="module aligned">
+    <h2>All Deals ({{ total_deals }} total)</h2>
+    <p class="help">Go to the <a href="{% url 'admin:organizations_partnerpromotion_changelist' %}">Deals list</a> to manage featured status.</p>
+    
+    <div class="form-row">
+        <a href="{% url 'admin:organizations_partnerpromotion_changelist' %}" class="button default">
+            Manage All Deals →
+        </a>
+    </div>
+</div>
+
+<style>
+.module table th {
+    background: #f8f8f8;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+}
+.module table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+.help {
+    color: #666;
+    font-size: 11px;
+    margin-top: 5px;
+}
+</style>
+{% endblock %}

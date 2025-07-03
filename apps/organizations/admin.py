@@ -19,18 +19,22 @@ class PartnerPromotionInline(admin.TabularInline):
     model = PartnerPromotion
     extra = 0
     max_num = 5
-    fields = ('title', 'description', 'link_url', 'is_exclusive', 'is_active', 'display_order')
+    fields = ('title', 'description', 'link_url', 'is_exclusive', 'is_active', 'is_featured', 'display_order')
     readonly_fields = ('created_at', 'updated_at')
     
     def get_queryset(self, request):
         return super().get_queryset(request).order_by('display_order', '-created_at')
 
+# PartnerPromotion admin functionality is handled via inline in OrganizationAdmin
+# Full admin interface can be added separately if needed
+
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ('name', 'type', 'approval_status', 'business_type', 'employee_count', 'founding_year', 'primary_contact_name', 'onboarding_completed', 'payment_status')
+    list_display = ('name', 'type', 'approval_status', 'featured_order', 'business_type', 'employee_count', 'founding_year', 'primary_contact_name', 'onboarding_completed', 'payment_status')
     list_filter = ('type', 'approval_status', 'business_type', 'employee_count', 'onboarding_completed', 'has_payment_method')
+    list_editable = ('featured_order',)
     search_fields = ('name', 'primary_contact_name', 'users__email', 'website', 'headquarters_location')
-    actions = ['approve_organizations', 'reject_organizations']
+    actions = ['approve_organizations', 'reject_organizations', 'set_as_featured', 'remove_from_featured']
 
     def payment_status(self, obj):
         if obj.onboarding_completed and obj.has_payment_method:
@@ -43,6 +47,10 @@ class OrganizationAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Basic Information', {
             'fields': ('name', 'type', 'website', 'description', 'logo', 'approval_status', 'approval_date')
+        }),
+        ('⭐ Featured Display Settings', {
+            'fields': ('featured_order',),
+            'description': 'Lower numbers appear first in featured sections (0 = highest priority, 999 = default). Use list view for bulk management.'
         }),
         ('Business Information', {
             'fields': (
@@ -122,6 +130,22 @@ class OrganizationAdmin(admin.ModelAdmin):
         self.message_user(request, f'{queryset.count()} organizations were approved.')
     approve_organizations.short_description = "Approve selected organizations"
     
+    def set_as_featured(self, request, queryset):
+        """Set selected organizations as featured (priority 0-10)"""
+        next_order = 0
+        for org in queryset:
+            org.featured_order = next_order
+            org.save()
+            next_order += 1
+        self.message_user(request, f'{queryset.count()} organizations set as featured with priority ordering.')
+    set_as_featured.short_description = "Set as featured (highest priority)"
+
+    def remove_from_featured(self, request, queryset):
+        """Remove selected organizations from featured (set to 999)"""
+        count = queryset.update(featured_order=999)
+        self.message_user(request, f'{count} organizations removed from featured sections.')
+    remove_from_featured.short_description = "Remove from featured"
+    
     def reject_organizations(self, request, queryset):
         """Bulk action to reject selected organizations"""
         count = queryset.update(approval_status='rejected')
@@ -157,6 +181,9 @@ class OrganizationAdmin(admin.ModelAdmin):
         """Add statistics to the changelist view"""
         extra_context = extra_context or {}
         
+        # Add featured content management info
+        extra_context['featured_orgs_count'] = Organization.objects.filter(featured_order__lt=999).count()
+        
         # Add pending approvals count for the admin dashboard
         extra_context['pending_approvals_count'] = Organization.objects.filter(
             approval_status='pending'
@@ -185,10 +212,11 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 @admin.register(PartnerPromotion)
 class PartnerPromotionAdmin(admin.ModelAdmin):
-    list_display = ('title', 'organization', 'is_exclusive', 'is_active', 'display_order', 'created_at')
-    list_filter = ('is_exclusive', 'is_active', 'organization__type', 'created_at')
+    list_display = ('title', 'organization', 'is_exclusive', 'is_active', 'is_featured', 'display_order', 'created_at')
+    list_filter = ('is_featured', 'is_exclusive', 'is_active', 'organization__type', 'created_at')
     search_fields = ('title', 'description', 'organization__name', 'link_url')
-    list_editable = ('is_active', 'display_order')
+    list_editable = ('is_active', 'is_featured', 'display_order')
+    actions = ['mark_as_featured', 'unmark_as_featured']
     ordering = ('organization', 'display_order', '-created_at')
     
     fieldsets = [
@@ -197,6 +225,10 @@ class PartnerPromotionAdmin(admin.ModelAdmin):
         }),
         ('Settings', {
             'fields': ('is_exclusive', 'is_active', 'display_order')
+        }),
+        ('⭐ Featured Settings', {
+            'fields': ('is_featured',),
+            'description': 'Featured deals appear in hero sections (max 4 deals can be featured). Featured deals are ordered by recency.'
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),
@@ -215,6 +247,44 @@ class PartnerPromotionAdmin(admin.ModelAdmin):
                 approval_status='approved'
             ).order_by('name')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def mark_as_featured(self, request, queryset):
+        """Mark selected deals as featured (limit 4 total)"""
+        # Check current featured count
+        current_featured = PartnerPromotion.objects.filter(is_featured=True, is_active=True).count()
+        selected_count = queryset.count()
+        
+        if current_featured + selected_count > 4:
+            self.message_user(
+                request, 
+                f'Cannot feature {selected_count} deals. Only {4 - current_featured} slots available (current: {current_featured}/4).', 
+                level='ERROR'
+            )
+            return
+        
+        try:
+            count = queryset.update(is_featured=True)
+            self.message_user(request, f'{count} deals marked as featured.')
+        except Exception as e:
+            self.message_user(request, f'Error: {str(e)}', level='ERROR')
+    mark_as_featured.short_description = "Mark as featured"
+
+    def unmark_as_featured(self, request, queryset):
+        """Remove selected deals from featured"""
+        count = queryset.update(is_featured=False)
+        self.message_user(request, f'{count} deals removed from featured sections.')
+    unmark_as_featured.short_description = "Remove from featured"
+    
+    def changelist_view(self, request, extra_context=None):
+        """Add featured deals stats to the changelist view"""
+        extra_context = extra_context or {}
+        
+        # Add featured content management info
+        featured_count = PartnerPromotion.objects.filter(is_featured=True, is_active=True).count()
+        extra_context['featured_deals_count'] = featured_count
+        extra_context['featured_deals_remaining'] = 4 - featured_count
+        
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 # Keep the existing PilotDefinition admin registration if it exists separately
