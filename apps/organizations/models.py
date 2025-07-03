@@ -8,6 +8,8 @@ import phonenumbers
 from django.core.exceptions import ValidationError
 from datetime import datetime
 
+# Onboarding model will be defined below
+
 class Organization(models.Model):
     ORGANIZATION_TYPES = (
         ('enterprise', 'Enterprise'),
@@ -40,7 +42,12 @@ class Organization(models.Model):
     # Basic Organization Info
     name = models.CharField(max_length=50)
     type = models.CharField(max_length=20, choices=ORGANIZATION_TYPES)
-    website = models.CharField(max_length=50)
+    website = models.CharField(max_length=100, help_text="Your company website (without http://)")
+    industry_tags = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Industry tags for better matching (e.g., ['AI/ML', 'FinTech', 'SaaS'])"
+    )
     business_type = models.CharField(
         max_length=20, 
         choices=BUSINESS_TYPES,
@@ -415,3 +422,313 @@ def create_stripe_customer(sender, instance, created, **kwargs):
                 instance.save(update_fields=['stripe_customer_id'])
         except Exception as e:
             print(f"Error creating Stripe customer: {e}")
+
+
+class UserOnboardingProgress(models.Model):
+    """
+    Track user onboarding progress with subtle, dismissible suggestions.
+    Focus on value-driven outcomes, not feature completion.
+    """
+    
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='onboarding_progress'
+    )
+    
+    # Profile completion milestones
+    profile_logo_added = models.BooleanField(default=False)
+    profile_description_added = models.BooleanField(default=False)
+    team_members_added = models.BooleanField(default=False)
+    
+    # Engagement milestones  
+    first_pilot_posted = models.BooleanField(default=False)
+    first_bid_made = models.BooleanField(default=False)
+    first_connection_made = models.BooleanField(default=False)
+    
+    # Discovery optimization
+    tags_added = models.BooleanField(default=False)
+    case_studies_added = models.BooleanField(default=False)
+    
+    # Dismissal preferences (user can hide specific suggestions)
+    dismissed_suggestions = models.JSONField(default=list, blank=True)
+    
+    # Global onboarding preferences
+    onboarding_disabled = models.BooleanField(default=False, help_text="User chose to disable all onboarding suggestions")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'organizations_user_onboarding_progress'
+        verbose_name = 'User Onboarding Progress'
+        verbose_name_plural = 'User Onboarding Progress'
+    
+    def __str__(self):
+        return f"{self.user.username} - Onboarding Progress"
+    
+    def get_completion_percentage(self):
+        """Calculate completion percentage based on user type"""
+        organization = getattr(self.user, 'organization', None)
+        if not organization:
+            return 0
+            
+        if organization.type == 'startup':
+            return self._get_startup_completion()
+        else:
+            return self._get_enterprise_completion()
+    
+    def _get_startup_completion(self):
+        """Startup-specific completion milestones - streamlined for quick onboarding"""
+        # Focus on just the essentials for quick value
+        core_milestones = [
+            self.profile_description_added,  # Most important for credibility
+            self.first_pilot_posted or self.first_bid_made,  # Core engagement
+        ]
+        
+        # Bonus milestones give extra completion but aren't required for 100%
+        bonus_milestones = [
+            self.profile_logo_added,
+            self.tags_added,
+        ]
+        
+        core_completed = sum(core_milestones)
+        bonus_completed = sum(bonus_milestones)
+        
+        # Core milestones = 80%, bonus = 20%
+        core_percentage = (core_completed / len(core_milestones)) * 80
+        bonus_percentage = (bonus_completed / len(bonus_milestones)) * 20
+        
+        return min(100, core_percentage + bonus_percentage)
+    
+    def _get_enterprise_completion(self):
+        """Enterprise-specific completion milestones - streamlined for quick onboarding"""
+        # Focus on just the essentials for quick value
+        core_milestones = [
+            self.profile_description_added,  # Most important for credibility
+            self.first_pilot_posted,  # Core engagement for enterprises
+        ]
+        
+        # Bonus milestones give extra completion but aren't required for 100%
+        bonus_milestones = [
+            self.profile_logo_added,
+            self.team_members_added,
+        ]
+        
+        core_completed = sum(core_milestones)
+        bonus_completed = sum(bonus_milestones)
+        
+        # Core milestones = 80%, bonus = 20%
+        core_percentage = (core_completed / len(core_milestones)) * 80
+        bonus_percentage = (bonus_completed / len(bonus_milestones)) * 20
+        
+        return min(100, core_percentage + bonus_percentage)
+    
+    def get_next_suggestion(self):
+        """
+        Get the next most valuable suggestion for the user.
+        Returns None if onboarding is complete or disabled.
+        """
+        if self.onboarding_disabled:
+            return None
+            
+        organization = getattr(self.user, 'organization', None)
+        if not organization:
+            return None
+        
+        # Check what's most important next
+        suggestions = self._get_prioritized_suggestions(organization.type)
+        
+        # Filter out dismissed suggestions
+        for suggestion in suggestions:
+            if suggestion['id'] not in self.dismissed_suggestions:
+                return suggestion
+        
+        return None
+    
+    def should_show_progress_bar(self):
+        """
+        Check if the progress bar should be shown at all.
+        Returns False if user has dismissed the progress bar or has no suggestions.
+        """
+        if self.onboarding_disabled:
+            return False
+        
+        # If user dismissed the progress bar entirely, don't show it
+        if 'progress_bar' in self.dismissed_suggestions:
+            return False
+            
+        # Only show if there are available suggestions
+        return self.get_next_suggestion() is not None
+    
+    def dismiss_progress_bar(self):
+        """Dismiss the entire progress bar"""
+        if 'progress_bar' not in self.dismissed_suggestions:
+            self.dismissed_suggestions.append('progress_bar')
+            self.save(update_fields=['dismissed_suggestions'])
+    
+    def _get_prioritized_suggestions(self, org_type):
+        """Get prioritized list of suggestions - streamlined for quick onboarding"""
+        suggestions = []
+        
+        # CORE: Essential for credibility (Priority 1)
+        if not self.profile_description_added:
+            suggestions.append({
+                'id': 'add_description', 
+                'title': 'Complete your organization profile',
+                'description': 'Add your company description, location, and key details so partners can find and understand your business',
+                'action_text': 'Edit Profile →',
+                'action_url': 'organizations:profile_edit',
+                'estimated_time': '3 min',
+                'priority': 1,
+                'icon': 'building'
+            })
+        
+        # CORE: Start using the platform (Priority 2)
+        if org_type == 'startup':
+            if not (self.first_pilot_posted or self.first_bid_made):
+                suggestions.append({
+                    'id': 'first_engagement',
+                    'title': 'Start earning revenue',
+                    'description': 'Browse active pilot opportunities from enterprises looking for startup solutions',
+                    'action_text': 'Browse Pilots →',
+                    'action_url': 'pilots:list',
+                    'estimated_time': '5 min',
+                    'priority': 2,
+                    'icon': 'search'
+                })
+        elif org_type == 'enterprise':
+            if not self.first_pilot_posted:
+                suggestions.append({
+                    'id': 'post_first_pilot',
+                    'title': 'Find innovation partners',
+                    'description': 'Post your first pilot project to connect with innovative startups and get bids on your challenges',
+                    'action_text': 'Create Pilot →',
+                    'action_url': 'pilots:create',
+                    'estimated_time': '8 min',
+                    'priority': 2,
+                    'icon': 'plus'
+                })
+        
+        # BONUS: Polish your presence (Priority 3) - only after core is done
+        if self.profile_description_added and not self.profile_logo_added:
+            suggestions.append({
+                'id': 'add_logo',
+                'title': 'Upload your company logo',
+                'description': 'Professional branding helps build trust and makes your organization more recognizable',
+                'action_text': 'Upload Logo →',
+                'action_url': 'organizations:profile_edit',
+                'estimated_time': '2 min',
+                'priority': 3,
+                'icon': 'upload'
+            })
+        
+        # BONUS: Optimization features (Priority 4) - only after engagement
+        engaged = (self.first_pilot_posted or self.first_bid_made)
+        
+        # BONUS: Team building (Priority 4) - enterprise specific
+        if engaged and org_type == 'enterprise' and not self.team_members_added:
+            suggestions.append({
+                'id': 'add_team',
+                'title': 'Add your team members',
+                'description': 'Invite team members to collaborate on pilot projects and manage your organization together',
+                'action_text': 'Invite Team →',
+                'action_url': 'organizations:profile_edit',
+                'estimated_time': '5 min',
+                'priority': 4,
+                'icon': 'plus'
+            })
+        
+        # BONUS: Optimization features (Priority 4) - startup specific
+        if engaged and org_type == 'startup' and not self.tags_added:
+            suggestions.append({
+                'id': 'add_tags',
+                'title': 'Add your expertise areas',
+                'description': 'Tag your skills and industry expertise to get matched with more relevant opportunities',
+                'action_text': 'Add Expertise →',
+                'action_url': 'organizations:profile_edit',
+                'estimated_time': '2 min',
+                'priority': 4,
+                'icon': 'tag'
+            })
+        
+        # Sort by priority
+        return sorted(suggestions, key=lambda x: x['priority'])
+    
+    def dismiss_suggestion(self, suggestion_id):
+        """Dismiss a specific suggestion"""
+        if suggestion_id not in self.dismissed_suggestions:
+            self.dismissed_suggestions.append(suggestion_id)
+            self.save(update_fields=['dismissed_suggestions'])
+    
+    def disable_all_onboarding(self):
+        """User chooses to disable all onboarding suggestions"""
+        self.onboarding_disabled = True
+        self.save(update_fields=['onboarding_disabled'])
+    
+    def update_milestone(self, milestone_name, completed=True):
+        """Update a specific milestone"""
+        if hasattr(self, milestone_name):
+            setattr(self, milestone_name, completed)
+            self.save(update_fields=[milestone_name])
+    
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        """Get or create onboarding progress for a user"""
+        progress, created = cls.objects.get_or_create(user=user)
+        # Always refresh progress detection to catch recently completed tasks
+        progress._detect_existing_progress()
+        return progress
+    
+    def _detect_existing_progress(self):
+        """Detect progress that user may have already made"""
+        organization = getattr(self.user, 'organization', None)
+        if not organization:
+            return
+        
+        # Check if logo exists
+        if organization.logo:
+            self.profile_logo_added = True
+        
+        # Check if profile is substantially complete (description + at least 2 other key fields)
+        profile_fields_completed = 0
+        
+        # Core field: Description (required)
+        has_description = organization.description and len(organization.description.strip()) > 50
+        
+        # Additional profile fields
+        if has_description:
+            profile_fields_completed += 1
+            
+        if organization.industry_tags and len(organization.industry_tags) > 0:
+            profile_fields_completed += 1
+            
+        if organization.employee_count:
+            profile_fields_completed += 1
+            
+        if organization.headquarters_location:
+            profile_fields_completed += 1
+            
+        if organization.founding_year:
+            profile_fields_completed += 1
+            
+        if organization.linkedin_url or organization.twitter_url:
+            profile_fields_completed += 1
+        
+        # Consider profile complete if they have description + at least 2 other fields
+        if profile_fields_completed >= 3:
+            self.profile_description_added = True
+        
+        # Check if they've posted pilots
+        from apps.pilots.models import Pilot
+        if Pilot.objects.filter(organization=organization).exists():
+            self.first_pilot_posted = True
+        
+        # Check if they've made bids
+        from apps.pilots.models import PilotBid
+        if PilotBid.objects.filter(startup=organization).exists():
+            self.first_bid_made = True
+        
+        # Save detected progress
+        self.save()

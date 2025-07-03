@@ -1,0 +1,101 @@
+{% if onboarding_suggestion and request.ui_state != 'payment' and request.ui_state != 'minimal' %}
+<div class="onboarding-suggestion bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6 shadow-sm" 
+     id="onboarding-card-{{ onboarding_suggestion.id }}">
+    <div class="flex items-start justify-between">
+        <div class="flex items-start space-x-3 flex-1">
+            <div class="flex-shrink-0 mt-1">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span class="text-lg">{{ onboarding_suggestion.title|slice:":2" }}</span>
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-medium text-gray-900 mb-1">
+                    {{ onboarding_suggestion.title }}
+                </h4>
+                <p class="text-sm text-gray-600 mb-3">
+                    {{ onboarding_suggestion.description }}
+                </p>
+                <div class="flex items-center space-x-3">
+                    <a href="{% url onboarding_suggestion.action_url %}" 
+                       onclick="markSuggestionCompleted('{{ onboarding_suggestion.id }}')"
+                       class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 transition-colors">
+                        {{ onboarding_suggestion.action_text }}
+                    </a>
+                    {% if onboarding_suggestion.estimated_time %}
+                    <span class="text-xs text-gray-500">
+                        {{ onboarding_suggestion.estimated_time }}
+                    </span>
+                    {% endif %}
+                    <button onclick="dismissSuggestion('{{ onboarding_suggestion.id }}')" 
+                            class="text-xs text-gray-400 hover:text-gray-600">
+                        Maybe later
+                    </button>
+                </div>
+            </div>
+        </div>
+        <button onclick="dismissSuggestion('{{ onboarding_suggestion.id }}')" 
+                class="flex-shrink-0 text-gray-400 hover:text-gray-600 ml-4">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<script>
+function dismissSuggestion(suggestionId) {
+    // Hide the card immediately for better UX
+    const card = document.getElementById('onboarding-card-' + suggestionId);
+    if (card) {
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        card.style.height = '0';
+        card.style.marginBottom = '0';
+        card.style.paddingTop = '0';
+        card.style.paddingBottom = '0';
+        
+        setTimeout(() => {
+            card.style.display = 'none';
+        }, 300);
+    }
+    
+    // Send dismissal to server
+    fetch('/organizations/dismiss-suggestion/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            'suggestion_id': suggestionId
+        })
+    }).catch(function(error) {
+        console.log('Could not dismiss suggestion:', error);
+    });
+}
+
+function markSuggestionCompleted(suggestionId) {
+    // Hide the card since user is taking action
+    dismissSuggestion(suggestionId);
+}
+
+function disableAllOnboarding() {
+    const cards = document.querySelectorAll('.onboarding-suggestion');
+    cards.forEach(card => {
+        card.style.transition = 'all 0.3s ease';
+        card.style.opacity = '0';
+        setTimeout(() => card.style.display = 'none', 300);
+    });
+    
+    fetch('/organizations/disable-onboarding/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    }).catch(function(error) {
+        console.log('Could not disable onboarding:', error);
+    });
+}
+</script>
+{% endif %}
