@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.notifications',
     'apps.payments',
+    'apps.recommendations',
     'apps.utils',
 ]
 
@@ -95,6 +96,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'apps.payments.context_processors.payment_stats',
                 'apps.payments.context_processors.subscription_warnings',
+                'apps.organizations.context_processors.onboarding_suggestions',
             ],
         },
     },

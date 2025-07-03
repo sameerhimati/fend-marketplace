@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
@@ -50,7 +51,7 @@ urlpatterns = [
     path('admin/orgs/', views.admin_org_dashboard, name='admin_org_dashboard'),
     path('admin/orgs/<int:org_id>/', views.admin_org_detail, name='admin_org_detail'),
     path('admin/orgs/<int:org_id>/edit/', views.admin_org_edit, name='admin_org_edit'),
-    path('admin/pilots/', views.admin_pilot_dashboard, name='admin_pilot_dashboard'),
+    path('admin/pilots/', lambda request: redirect('pilots:admin_verify_pilots'), name='admin_pilot_dashboard'),
     path('admin/search/', views.admin_global_search, name='admin_global_search'),
     path('admin/export/', views.admin_export_csv, name='admin_export_csv'),
     path('admin/', admin.site.urls),
@@ -65,6 +66,7 @@ urlpatterns = [
     path('organizations/', include('apps.organizations.urls')),
     path('notifications/', include('apps.notifications.urls')),
     path('payments/', include('apps.payments.urls')),
+    path('recommendations/', include('apps.recommendations.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
