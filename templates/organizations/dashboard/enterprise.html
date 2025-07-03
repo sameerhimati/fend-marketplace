@@ -110,6 +110,13 @@
         </div>
         {% endif %}
         
+        <!-- Detailed Onboarding Checklist -->
+        {% if onboarding_progress and onboarding_completion < 100 %}
+        <div class="mb-8">
+            {% include 'components/onboarding_checklist.html' %}
+        </div>
+        {% endif %}
+        
         <script>
         // Check if this suggestion was dismissed in this session
         document.addEventListener('DOMContentLoaded', function() {
