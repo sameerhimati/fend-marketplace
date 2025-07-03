@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth.views import LogoutView
 from . import views
 from . import legal_views
+from . import onboarding_views
 
 app_name = 'organizations'
 
@@ -90,4 +91,31 @@ urlpatterns = [
     path('admin/organization/<int:org_id>/reject/', 
          views.admin_reject_organization, 
          name='admin_reject_organization'),
+    
+    # =============================================================================
+    # ONBOARDING AJAX ENDPOINTS
+    # =============================================================================
+    
+    # Onboarding suggestion management
+    path('dismiss-suggestion/', 
+         onboarding_views.dismiss_suggestion, 
+         name='dismiss_suggestion'),
+    
+    path('disable-onboarding/', 
+         onboarding_views.disable_onboarding, 
+         name='disable_onboarding'),
+    
+    path('update-milestone/', 
+         onboarding_views.update_milestone, 
+         name='update_milestone'),
+    
+    # Progress widget dismissal (session-based)
+    path('dismiss-progress-widget/', 
+         onboarding_views.dismiss_progress_widget, 
+         name='dismiss_progress_widget'),
+    
+    # Session progress bar dismissal
+    path('dismiss-session-progress/', 
+         onboarding_views.dismiss_session_progress, 
+         name='dismiss_session_progress'),
 ]

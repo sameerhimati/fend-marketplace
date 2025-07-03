@@ -87,6 +87,12 @@ while ! docker-compose exec -T db pg_isready -U postgres; do
     sleep 2
 done
 
+# Generate new migrations if needed
+echo "🔄 Checking for model changes and creating migrations..."
+docker-compose exec web python manage.py makemigrations --dry-run --verbosity=1
+echo "📝 Creating any needed migrations..."
+docker-compose exec web python manage.py makemigrations
+
 # Run migrations
 echo "🗄️  Running database migrations..."
 docker-compose exec web python manage.py migrate

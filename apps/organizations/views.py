@@ -913,7 +913,7 @@ class DealsView(LoginRequiredMixin, TemplateView):
         
         context.update({
             'deals': deals_page,
-            'featured_deals': featured_deals,
+            'featured_promotions': featured_deals,
             'search_query': search_query,
             'org_type_filter': org_type_filter,
             'deal_type_filter': deal_type_filter,

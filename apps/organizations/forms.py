@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from .models import Organization, PilotDefinition, PartnerPromotion
+from .validators import clean_and_validate_website, validate_industry_tags
 from datetime import datetime
 
 User = get_user_model()
@@ -14,6 +15,17 @@ class OrganizationBasicForm(forms.ModelForm):
     # Add contact fields for all organization types
     primary_contact_name = forms.CharField(max_length=255, required=True)
     primary_contact_phone = forms.CharField(max_length=20, required=True)
+    
+    # Industry tags for better matching
+    industry_tags = forms.CharField(
+        max_length=300,
+        required=False,
+        help_text="Enter industry tags separated by commas (e.g., AI/ML, FinTech, SaaS)",
+        widget=forms.TextInput(attrs={
+            'placeholder': 'e.g., AI/ML, FinTech, SaaS, Cybersecurity',
+            'class': 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
+        })
+    )
     country_code = forms.ChoiceField(choices = [
         ('+1', 'United States (+1)'),
         ('+1', 'Canada (+1)'),
@@ -209,7 +221,7 @@ class OrganizationBasicForm(forms.ModelForm):
     class Meta:
         model = Organization
         fields = [
-            'name', 'type', 'website', 'primary_contact_name', 
+            'name', 'type', 'website', 'industry_tags', 'primary_contact_name', 
             'primary_contact_phone', 'country_code', 'business_type',
             'business_registration_number'
         ]
@@ -237,31 +249,14 @@ class OrganizationBasicForm(forms.ModelForm):
         return cleaned_data
 
     def clean_website(self):
-        """Clean and validate website field"""
-        website = self.cleaned_data.get('website', '').strip().lower()
-        if not website:
-            return website
-            
-        # Remove http:// or https:// if present
-        if website.startswith('http://'):
-            website = website[7:]
-        elif website.startswith('https://'):
-            website = website[8:]
-        
-        # Remove www. if present
-        if website.startswith('www.'):
-            website = website[4:]
-        
-        # Validate website format - must end with .something
-        import re
-        if not re.match(r'.*\.[a-zA-Z]{2,}$', website):
-            raise forms.ValidationError("Website must be a valid domain (e.g., example.com)")
-        
-        # Check max length (50 characters)
-        if len(website) > 50:
-            raise forms.ValidationError("Website must be less than 50 characters")
-        
-        return website
+        """Clean and validate website field using centralized validator"""
+        website = self.cleaned_data.get('website', '')
+        return clean_and_validate_website(website)
+    
+    def clean_industry_tags(self):
+        """Clean and validate industry tags"""
+        tags_string = self.cleaned_data.get('industry_tags', '')
+        return validate_industry_tags(tags_string)
     
     def clean_business_registration_number(self):
         brn = self.cleaned_data.get('business_registration_number')
@@ -401,31 +396,9 @@ class EnhancedOrganizationProfileForm(forms.Form):
                 field.widget.attrs['class'] = 'shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md'
 
     def clean_website(self):
-        """Clean and validate website field"""
-        website = self.cleaned_data.get('website', '').strip().lower()
-        if not website:
-            return website
-            
-        # Remove http:// or https:// if present
-        if website.startswith('http://'):
-            website = website[7:]
-        elif website.startswith('https://'):
-            website = website[8:]
-        
-        # Remove www. if present
-        if website.startswith('www.'):
-            website = website[4:]
-        
-        # Validate website format - must end with .something
-        import re
-        if not re.match(r'.*\.[a-zA-Z]{2,}$', website):
-            raise forms.ValidationError("Website must be a valid domain (e.g., example.com)")
-        
-        # Check max length (50 characters)
-        if len(website) > 50:
-            raise forms.ValidationError("Website must be less than 50 characters")
-        
-        return website
+        """Clean and validate website field using centralized validator"""
+        website = self.cleaned_data.get('website', '')
+        return clean_and_validate_website(website)
 
     def clean_founding_year(self):
         """Validate founding year"""
