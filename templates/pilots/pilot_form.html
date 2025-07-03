@@ -326,7 +326,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
                                 <div>
-                                    <h3 class="text-sm font-medium text-blue-800 mb-1">💡 Save Options</h3>
+                                    <h3 class="text-sm font-medium text-blue-800 mb-1">Save Options</h3>
                                     <div class="text-xs text-blue-700 space-y-1">
                                         <p><strong>Save as Draft:</strong> Save your progress and continue editing later</p>
                                         <p><strong>Submit for Review:</strong> Complete pilot ready for admin approval (all sections required)</p>
@@ -375,6 +375,9 @@
                     </div>
 
                     <script>
+                        // Prevent double form submissions
+                        let isSubmitting = false;
+                        
                         // Store initial field states
                         const fieldStates = {
                             technical_specs: 'file',
@@ -499,6 +502,32 @@
                                     }
                                 });
                             });
+                            
+                            // Prevent double form submissions
+                            const form = document.querySelector('form');
+                            if (form) {
+                                form.addEventListener('submit', function(e) {
+                                    if (isSubmitting) {
+                                        e.preventDefault();
+                                        return false;
+                                    }
+                                    isSubmitting = true;
+                                    
+                                    // Re-enable after a delay in case submission fails
+                                    setTimeout(() => {
+                                        isSubmitting = false;
+                                    }, 5000);
+                                });
+                            }
+                            
+                            // Ensure Cancel button doesn't trigger form submission
+                            const cancelBtn = document.querySelector('a[href*="dashboard"], a[href*="detail"]');
+                            if (cancelBtn) {
+                                cancelBtn.addEventListener('click', function(e) {
+                                    // Prevent any form submission when clicking cancel
+                                    e.stopPropagation();
+                                });
+                            }
                         });
                     </script>
                 </form>

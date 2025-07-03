@@ -1,10 +1,181 @@
 {% extends 'base.html' %}
+{% load url_filters %}
 
 {% block title %}Startup Dashboard - Fend{% endblock %}
 
 {% block content %}
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Enhanced Onboarding Progress -->
+        {% if show_progress_bar %}
+        <div id="session-progress-bar" class="bg-white shadow-sm rounded-lg border border-gray-200 p-5 mb-8">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <!-- Progress Header -->
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-start space-x-3">
+                            <div class="h-6 w-6 rounded bg-indigo-600 flex items-center justify-center mt-0.5">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-lg font-semibold text-gray-900">
+                                    {% if onboarding_suggestion %}
+                                        Onboarding Step ({{ onboarding_completion|floatformat:0 }}%): {{ onboarding_suggestion.title }}
+                                    {% else %}
+                                        Profile Setup Complete
+                                    {% endif %}
+                                </h4>
+                                {% if onboarding_suggestion %}
+                                <p class="text-sm text-gray-600 mt-1 leading-relaxed">
+                                    {{ onboarding_suggestion.description }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <span class="text-xl font-bold text-indigo-600">{{ onboarding_completion|floatformat:0 }}%</span>
+                            <p class="text-xs text-gray-500">Complete</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Progress Bar -->
+                    <div class="ml-9 w-full bg-gray-200 rounded-full h-1.5 mb-4">
+                        <div class="bg-indigo-600 h-1.5 rounded-full transition-all duration-500" 
+                             style="width: {{ onboarding_completion }}%"></div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    {% if onboarding_suggestion %}
+                    <div class="ml-9 flex items-center space-x-4">
+                        <a href="{% url onboarding_suggestion.action_url %}" 
+                           onclick="markSuggestionCompleted('{{ onboarding_suggestion.id }}')"
+                           class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                            {{ onboarding_suggestion.action_text }}
+                        </a>
+                        <button onclick="dismissSuggestion('{{ onboarding_suggestion.id }}')" 
+                                class="text-sm text-gray-500 hover:text-gray-700 transition-colors px-3 py-2 rounded-lg hover:bg-gray-50">
+                            Skip for now
+                        </button>
+                        {% if onboarding_suggestion.estimated_time %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {{ onboarding_suggestion.estimated_time }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <button onclick="dismissSessionProgress()" 
+                        class="flex-shrink-0 text-gray-400 hover:text-gray-600 ml-6 p-1 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <script>
+        // Check if this suggestion was dismissed in this session
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if onboarding_suggestion %}
+            const suggestionId = '{{ onboarding_suggestion.id }}';
+            if (sessionStorage.getItem('dismissed_suggestion_' + suggestionId) === 'true') {
+                const progressBar = document.getElementById('session-progress-bar');
+                if (progressBar) {
+                    progressBar.style.display = 'none';
+                }
+            }
+            {% endif %}
+        });
+        
+        function dismissSessionProgress() {
+            // Hide the progress bar immediately for better UX
+            const progressBar = document.getElementById('session-progress-bar');
+            if (progressBar) {
+                progressBar.style.transition = 'all 0.3s ease';
+                progressBar.style.opacity = '0';
+                progressBar.style.height = '0';
+                progressBar.style.marginBottom = '0';
+                progressBar.style.paddingTop = '0';
+                progressBar.style.paddingBottom = '0';
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 300);
+            }
+            
+            // Send dismissal to server - dismiss entire progress bar
+            fetch('{% url "organizations:dismiss_suggestion" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    'suggestion_id': 'progress_bar'
+                })
+            }).catch(function(error) {
+                console.log('Could not dismiss progress bar:', error);
+            });
+        }
+
+        function markSuggestionCompleted(suggestionId) {
+            // Don't dismiss the progress bar - let the system check if task was actually completed when user returns
+            // Just proceed with the link navigation
+        }
+        
+        function dismissSuggestion(suggestionId) {
+            // Hide the progress bar immediately for better UX
+            const progressBar = document.getElementById('session-progress-bar');
+            if (progressBar) {
+                progressBar.style.transition = 'all 0.3s ease';
+                progressBar.style.opacity = '0';
+                progressBar.style.height = '0';
+                progressBar.style.marginBottom = '0';
+                progressBar.style.paddingTop = '0';
+                progressBar.style.paddingBottom = '0';
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 300);
+            }
+            
+            // Store session-only dismissal in sessionStorage (not permanent)
+            sessionStorage.setItem('dismissed_suggestion_' + suggestionId, 'true');
+        }
+
+        function toggleStartupInfo() {
+            const modal = document.getElementById('startup-info-popup');
+            if (modal) {
+                if (modal.style.display === 'none' || modal.style.display === '') {
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        }
+
+        // Close modal when clicking outside the content
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('startup-info-popup');
+            const modalContent = modal?.querySelector('.bg-white');
+            const infoButton = event.target.closest('button[onclick="toggleStartupInfo()"]');
+            
+            if (modal && modal.style.display === 'flex' && !infoButton && !modalContent?.contains(event.target)) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+        </script>
+        
         <!-- Pending Approval Banner -->
         {% if request.ui_state == 'pending_approval' %}
         <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
@@ -29,11 +200,126 @@
                     Welcome to Fend Marketplace, {{ request.user.organization.name }}
                 </h2>
                 <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-                    <div class="mt-2 flex items-center text-sm text-gray-500">
+                    <div class="mt-2 flex items-center text-sm text-gray-500 relative">
                         <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Startup Partner
+                        <button class="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none" 
+                                onclick="toggleStartupInfo()"
+                                title="Learn about startup partnership benefits">
+                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- Startup Welcome Modal -->
+                        <div id="startup-info-popup" 
+                             class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+                             style="display: none;">
+                            <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+                                <!-- Modal Header -->
+                                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+                                            <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-900">Welcome to Fend Marketplace!</h3>
+                                            <p class="text-sm text-gray-600">Your account has been approved. Here's how to get started:</p>
+                                        </div>
+                                    </div>
+                                    <button onclick="toggleStartupInfo()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal Content -->
+                                <div class="p-8">
+                                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        <!-- Step 1: Browse Opportunities -->
+                                        <div class="text-center">
+                                            <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                                <span class="text-lg font-semibold text-gray-700">1</span>
+                                            </div>
+                                            <h4 class="text-lg font-semibold text-gray-900 mb-3">Browse Opportunities</h4>
+                                            <p class="text-sm text-gray-600 mb-6">Discover pilot projects from leading enterprises looking for innovative solutions.</p>
+                                            <a href="{% url 'pilots:list' %}" 
+                                               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6"/>
+                                                </svg>
+                                                Browse Pilots
+                                            </a>
+                                        </div>
+                                        
+                                        <!-- Step 2: Submit Bids -->
+                                        <div class="text-center">
+                                            <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                                <span class="text-lg font-semibold text-gray-700">2</span>
+                                            </div>
+                                            <h4 class="text-lg font-semibold text-gray-900 mb-3">Submit Competitive Bids</h4>
+                                            <p class="text-sm text-gray-600 mb-6">Create compelling proposals that showcase your expertise and win enterprise contracts.</p>
+                                            <a href="{% url 'pilots:list' %}" 
+                                               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                                Start Bidding
+                                            </a>
+                                        </div>
+                                        
+                                        <!-- Step 3: Access Deals -->
+                                        <div class="text-center">
+                                            <div class="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                                <span class="text-lg font-semibold text-gray-700">3</span>
+                                            </div>
+                                            <h4 class="text-lg font-semibold text-gray-900 mb-3">Access Exclusive Deals</h4>
+                                            <p class="text-sm text-gray-600 mb-6">Unlock special offers and discounts from enterprise partners to grow your startup.</p>
+                                            <a href="{% url 'organizations:deals' %}" 
+                                               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                                </svg>
+                                                Explore Deals
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Bottom Message -->
+                                    <div class="mt-8 p-4 bg-gray-50 rounded-xl">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="text-2xl">🚀</div>
+                                            <p class="text-sm text-gray-700 font-medium">
+                                                <strong>Ready to grow!</strong> Your startup account gives you access to high-value pilot projects, exclusive partner deals, and a network of enterprise clients.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Modal Footer -->
+                                    <div class="mt-8 flex items-center justify-between">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                            <span class="text-sm text-gray-600">Don't show this again</span>
+                                        </label>
+                                        <div class="flex space-x-3">
+                                            <button onclick="toggleStartupInfo()" 
+                                                    class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                                Got it, thanks!
+                                            </button>
+                                            <a href="{% url 'pilots:list' %}" 
+                                               class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                                                Browse Opportunities
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -41,9 +327,6 @@
                 <span class="sm:ml-3">
                     <a href="{% url 'pilots:list' %}"
                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6"/>
-                        </svg>
                         Browse Opportunities
                     </a>
                 </span>
@@ -52,31 +335,31 @@
 
         <!-- Quick Stats -->
         <div class="mt-8">
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 <!-- Available Opportunities -->
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-4">
+                <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                    <div class="p-5">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6"/>
+                                <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6"/>
                                 </svg>
                             </div>
-                            <div class="ml-3 w-0 flex-1">
+                            <div class="ml-4 w-0 flex-1">
                                 <dl>
-                                    <dt class="text-xs font-medium text-gray-500 truncate">
+                                    <dt class="text-xs font-medium text-gray-600 truncate">
                                         Available Opportunities
                                     </dt>
-                                    <dd class="text-lg font-medium text-gray-900">
+                                    <dd class="text-lg font-semibold text-gray-900 mt-1">
                                         {{ pilots|length }}
                                     </dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-2">
+                    <div class="bg-gray-50 px-5 py-3 border-t border-gray-200">
                         <div class="text-xs">
-                            <a href="{% url 'pilots:list' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                            <a href="{% url 'pilots:list' %}" class="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
                                 Browse all
                             </a>
                         </div>
@@ -84,178 +367,112 @@
                 </div>
 
                 <!-- Active Work -->
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-4">
+                <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+                    <div class="p-5">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
                             </div>
-                            <div class="ml-3 w-0 flex-1">
+                            <div class="ml-4 w-0 flex-1">
                                 <dl>
-                                    <dt class="text-xs font-medium text-gray-500 truncate">
+                                    <dt class="text-xs font-medium text-gray-600 truncate">
                                         Your Active Work
                                     </dt>
-                                    <dd class="text-lg font-medium text-gray-900">
-                                        <!-- This would need to be calculated in the view -->
+                                    <dd class="text-lg font-semibold text-gray-900 mt-1">
                                         0
                                     </dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-2">
+                    <div class="bg-gray-50 px-5 py-3 border-t border-gray-200">
                         <div class="text-xs">
-                            <a href="{% url 'pilots:list' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
+                            <a href="{% url 'pilots:list' %}" class="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
                                 View work
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Enterprise Network -->
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-4">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
-                            </div>
-                            <div class="ml-3 w-0 flex-1">
-                                <dl>
-                                    <dt class="text-xs font-medium text-gray-500 truncate">
-                                        Enterprise Partners
-                                    </dt>
-                                    <dd class="text-lg font-medium text-gray-900">
-                                        {{ enterprises|length }}+
-                                    </dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-2">
-                        <div class="text-xs">
-                            <a href="{% url 'organizations:directory' %}?type=enterprise" class="font-medium text-indigo-600 hover:text-indigo-500">
-                                Browse
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fellow Startups -->
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-4">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                </svg>
-                            </div>
-                            <div class="ml-3 w-0 flex-1">
-                                <dl>
-                                    <dt class="text-xs font-medium text-gray-500 truncate">
-                                        Fellow Startups
-                                    </dt>
-                                    <dd class="text-lg font-medium text-gray-900">
-                                        {{ startup_count }}+
-                                    </dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-2">
-                        <div class="text-xs">
-                            <a href="{% url 'organizations:directory' %}?type=startup" class="font-medium text-indigo-600 hover:text-indigo-500">
-                                Browse
-                            </a>
-                        </div>
-                    </div>
-                </div>
 
             </div>
         </div>
 
-        <!-- Enterprise Partner Showcase -->
+        <!-- Enhanced Enterprise Partner Showcase -->
         {% if enterprises %}
         <div class="mt-8">
             <div class="bg-white shadow rounded-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">
-                                    🏢 Featured Enterprise Partners
-                                </h3>
-                                <p class="text-sm text-gray-600">
-                                    Industry leaders looking for innovative startup solutions
-                                </p>
-                            </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Featured Enterprise Partners
+                            </h3>
+                            <p class="text-sm text-gray-600">
+                                Industry leaders looking for innovative startup solutions
+                            </p>
                         </div>
                         <a href="{% url 'organizations:directory' %}?type=enterprise" 
-                           class="text-sm font-medium text-blue-600 hover:text-blue-700">
+                           class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
                             View All Enterprises →
                         </a>
                     </div>
                 </div>
                 
                 <div class="p-6">
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {% for enterprise in enterprises %}
                         <div class="group cursor-pointer" onclick="window.location.href='{% url 'organizations:profile' enterprise.id %}'">
-                            <div class="bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-lg transition-all duration-200 text-center">
-                                {% if enterprise.logo %}
-                                    <img src="{{ enterprise.logo.url }}" 
-                                         alt="{{ enterprise.name }}" 
-                                         class="w-12 h-12 mx-auto rounded-lg object-cover bg-gray-100 p-1">
-                                {% else %}
-                                    <div class="w-12 h-12 mx-auto bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center">
-                                        <span class="text-white font-bold text-lg">{{ enterprise.name|slice:":1"|upper }}</span>
+                            <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:border-gray-300 transition-colors duration-200">
+                                <div class="p-5">
+                                    <div class="flex items-center">
+                                        <!-- Company Avatar/Logo -->
+                                        <div class="flex-shrink-0">
+                                            {% if enterprise.logo %}
+                                                <img src="{{ enterprise.logo.url }}" 
+                                                     alt="{{ enterprise.name }} logo" 
+                                                     class="h-12 w-12 rounded-lg object-cover border border-gray-200">
+                                            {% else %}
+                                                <div class="h-12 w-12 rounded-lg bg-indigo-600 flex items-center justify-center">
+                                                    <span class="text-lg font-semibold text-white">
+                                                        {{ enterprise.name|slice:":1"|upper }}
+                                                    </span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Company Info -->
+                                        <div class="ml-4 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-xs font-medium text-gray-600 truncate">
+                                                    Fend Member since {{ enterprise.created_at|date:"M Y" }}
+                                                </dt>
+                                                <dd class="text-lg font-semibold text-gray-900 truncate mt-1">
+                                                    {{ enterprise.name }}
+                                                </dd>
+                                            </dl>
+                                        </div>
                                     </div>
-                                {% endif %}
-                                <h4 class="mt-3 text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                                    {{ enterprise.name }}
-                                </h4>
-                                {% if enterprise.website %}
-                                <p class="text-xs text-gray-500 truncate mt-1">
-                                    {% if enterprise.website|length > 15 %}
-                                        {{ enterprise.website|slice:"8:" }}
-                                    {% else %}
-                                        {{ enterprise.website }}
-                                    {% endif %}
-                                </p>
-                                {% endif %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
-                                    Looking for Solutions
-                                </span>
+                                </div>
+                                <div class="bg-gray-50 px-5 py-3 border-t border-gray-200">
+                                    <div class="flex items-center justify-start">
+                                        <a href="{% url 'organizations:profile' enterprise.id %}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors" onclick="event.stopPropagation()">
+                                            View Profile
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     
-                    <div class="mt-6 text-center">
-                        <a href="{% url 'pilots:list' %}" 
-                           class="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2V6"/>
-                            </svg>
-                            Browse Active Pilot Opportunities
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
         {% endif %}
 
-        {% if featured_promotions and request.ui_state != 'pending_approval' %}
-            {% include "components/featured_partners.html" %}
-        {% endif %}
 
         <!-- Recent Opportunities -->
         {% if pilots %}
@@ -381,7 +598,7 @@
                 <!-- Footer -->
                 <div class="mt-8 pt-6 border-t border-gray-200 text-center">
                     <p class="text-sm text-gray-600 mb-4">
-                        🚀 <strong>Ready to grow!</strong> Your startup account gives you access to high-value pilot projects, exclusive partner deals, and a network of enterprise clients.
+                        <strong>Ready to grow!</strong> Your startup account gives you access to high-value pilot projects, exclusive partner deals, and a network of enterprise clients.
                     </p>
                     <div class="text-center">
                         <label class="inline-flex items-center mb-4">

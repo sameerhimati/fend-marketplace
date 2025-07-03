@@ -16,7 +16,7 @@
                         </p>
                     </div>
                     <div class="flex space-x-3">
-                        <a href="{% url 'organizations:profile' user.organization.id %}" 
+                        <a href="{% url 'organizations:deals' %}" 
                            class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             <svg class="-ml-1 mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -29,7 +29,7 @@
                             <svg class="-ml-1 mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            Add Deal
+                            Add Promotion
                         </a>
                         {% endif %}
                     </div>
@@ -60,7 +60,7 @@
         {% if promotions %}
         <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:px-6">
-                <h2 class="text-lg font-medium text-gray-900">Your Deals & Offers</h2>
+                <h2 class="text-lg font-medium text-gray-900">Your Promotions & Offers</h2>
                 <p class="mt-1 text-sm text-gray-500">
                     These deals appear on your organization profile for other Fend members to discover
                 </p>
@@ -131,7 +131,7 @@
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
                 </svg>
-                <h3 class="mt-2 text-lg font-medium text-gray-900">No deals yet</h3>
+                <h3 class="mt-2 text-lg font-medium text-gray-900">No promotions yet</h3>
                 <p class="mt-1 text-sm text-gray-500">
                     Get started by creating your first exclusive offer or partnership deal.
                 </p>
@@ -141,7 +141,7 @@
                         <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
-                        Create Your First Deal
+                        Create Your First Promotion
                     </a>
                 </div>
             </div>
