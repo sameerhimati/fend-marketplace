@@ -52,13 +52,18 @@ def payment_stats(request):
 
 def subscription_warnings(request):
     """
-    Add subscription warning context to all templates
+    Add subscription warning context - ONLY for actual payment issues
     """
     if not request.user.is_authenticated:
         return {}
     
     organization = getattr(request.user, 'organization', None)
     if not organization:
+        return {}
+    
+    # Check if user dismissed warning for this session
+    session_key = f'dismissed_subscription_warning_{organization.id}'
+    if request.session.get(session_key):
         return {}
     
     try:
@@ -74,44 +79,95 @@ def subscription_warnings(request):
             return {}
         
         is_free_trial = subscription.free_account_code is not None
+        has_payment_method = organization.has_payment_method
         
-        # Determine warning level and message
+        # SMART LOGIC: Only warn if there's actually a payment issue
+        should_warn = False
+        warning_reason = None
+        
+        if is_free_trial:
+            # Free trial users always need to add payment method
+            should_warn = True
+            warning_reason = "free_trial_ending"
+        elif not has_payment_method:
+            # Paid users without payment method
+            should_warn = True  
+            warning_reason = "no_payment_method"
+        elif subscription.status in ['past_due', 'incomplete', 'incomplete_expired']:
+            # Payment issues with existing method
+            should_warn = True
+            warning_reason = "payment_failed"
+        else:
+            # Has payment method and subscription is healthy - no warning needed
+            should_warn = False
+        
+        if not should_warn:
+            return {}
+        
+        # Generate appropriate warning based on urgency and reason
         warning_data = None
+        
         if days_until_expiry <= 1:
-            warning_data = {
-                'level': 'danger',
-                'urgency': 'critical',
-                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires {"today" if days_until_expiry == 0 else "tomorrow"}!',
-                'action': 'Add payment method now' if is_free_trial else 'Update payment method',
-                'days_left': days_until_expiry,
-                'is_free_trial': is_free_trial
-            }
+            if warning_reason == "free_trial_ending":
+                warning_data = {
+                    'level': 'danger',
+                    'urgency': 'critical', 
+                    'message': f'Your free trial expires {"today" if days_until_expiry == 0 else "tomorrow"}!',
+                    'action': 'Add payment method now',
+                    'days_left': days_until_expiry,
+                    'is_free_trial': True,
+                    'reason': warning_reason
+                }
+            else:
+                warning_data = {
+                    'level': 'danger',
+                    'urgency': 'critical',
+                    'message': f'Payment issue - subscription expires {"today" if days_until_expiry == 0 else "tomorrow"}!',
+                    'action': 'Fix payment method now',
+                    'days_left': days_until_expiry, 
+                    'is_free_trial': False,
+                    'reason': warning_reason
+                }
         elif days_until_expiry <= 7:
-            warning_data = {
-                'level': 'warning',
-                'urgency': 'high',
-                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires in {days_until_expiry} day{"s" if days_until_expiry != 1 else ""}',
-                'action': 'Add payment method' if is_free_trial else 'Verify payment method',
-                'days_left': days_until_expiry,
-                'is_free_trial': is_free_trial
-            }
-        elif days_until_expiry <= 14:
+            if warning_reason == "free_trial_ending":
+                warning_data = {
+                    'level': 'warning',
+                    'urgency': 'high',
+                    'message': f'Your free trial expires in {days_until_expiry} day{"s" if days_until_expiry != 1 else ""}',
+                    'action': 'Add payment method',
+                    'days_left': days_until_expiry,
+                    'is_free_trial': True,
+                    'reason': warning_reason
+                }
+            else:
+                warning_data = {
+                    'level': 'warning', 
+                    'urgency': 'high',
+                    'message': f'Payment issue - subscription expires in {days_until_expiry} day{"s" if days_until_expiry != 1 else ""}',
+                    'action': 'Update payment method',
+                    'days_left': days_until_expiry,
+                    'is_free_trial': False,
+                    'reason': warning_reason
+                }
+        elif days_until_expiry <= 14 and warning_reason == "free_trial_ending":
             warning_data = {
                 'level': 'info',
                 'urgency': 'medium',
-                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires in {days_until_expiry} days',
-                'action': 'Setup payment method' if is_free_trial else 'Check payment method',
+                'message': f'Your free trial expires in {days_until_expiry} days',
+                'action': 'Setup payment method',
                 'days_left': days_until_expiry,
-                'is_free_trial': is_free_trial
+                'is_free_trial': True,
+                'reason': warning_reason
             }
-        elif days_until_expiry <= 30:
+        elif days_until_expiry <= 30 and warning_reason == "free_trial_ending":
             warning_data = {
                 'level': 'info',
-                'urgency': 'low',
-                'message': f'Your {"free trial" if is_free_trial else "subscription"} expires in {days_until_expiry} days',
-                'action': 'Consider setting up payment' if is_free_trial else 'Review subscription',
+                'urgency': 'low', 
+                'message': f'Your free trial expires in {days_until_expiry} days',
+                'action': 'Consider setting up payment',
                 'days_left': days_until_expiry,
-                'is_free_trial': is_free_trial
+                'is_free_trial': True,
+                'reason': warning_reason
             }
         
         return {

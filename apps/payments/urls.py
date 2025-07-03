@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_ajax
 
 app_name = 'payments'
 
@@ -125,4 +126,13 @@ urlpatterns = [
     path('admin/free-codes/bulk-delete/', 
          views.admin_bulk_delete_free_codes, 
          name='admin_bulk_delete_free_codes'),
+    
+    # =============================================================================
+    # AJAX ENDPOINTS
+    # =============================================================================
+    
+    # Dismiss subscription warning for session
+    path('ajax/dismiss-warning/', 
+         views_ajax.dismiss_subscription_warning, 
+         name='dismiss_subscription_warning'),
 ]

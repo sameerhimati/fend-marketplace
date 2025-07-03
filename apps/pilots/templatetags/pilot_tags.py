@@ -22,3 +22,21 @@ def calculate_total(amount, fee_amount):
         return total
     except (ValueError, TypeError, DecimalException):
         return amount
+
+@register.filter
+def pilot_completion_count(pilot):
+    """Calculate the number of completed requirements for a pilot"""
+    count = 0
+    
+    if pilot.technical_specs_doc or pilot.technical_specs_text:
+        count += 1
+    if pilot.performance_metrics or pilot.performance_metrics_doc:
+        count += 1
+    if pilot.compliance_requirements or pilot.compliance_requirements_doc:
+        count += 1
+    if pilot.legal_agreement_accepted:
+        count += 1
+    if pilot.price and pilot.price > 0:
+        count += 1
+        
+    return count

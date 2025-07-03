@@ -137,16 +137,18 @@ class Pilot(models.Model):
         
         # If new publication, validate and increment pilot count
         if is_new_publication:
-            # Check if organization can publish a pilot
-            if not self.organization.can_publish_pilot():
-                if self.organization.get_remaining_pilots() == 0:
-                    raise ValidationError(
-                        "You've reached your plan's pilot limit. Please upgrade to publish more pilots."
-                    )
-                else:
-                    raise ValidationError(
-                        "Your organization doesn't have an active subscription. Please subscribe to publish pilots."
-                    )
+            # Skip validation if this is an admin approval
+            if not getattr(self, '_admin_approval', False):
+                # Check if organization can publish a pilot
+                if not self.organization.can_publish_pilot():
+                    if self.organization.get_remaining_pilots() == 0:
+                        raise ValidationError(
+                            "You've reached your plan's pilot limit. Please upgrade to publish more pilots."
+                        )
+                    else:
+                        raise ValidationError(
+                            "Your organization doesn't have an active subscription. Please subscribe to publish pilots."
+                        )
             
             # Set published_at timestamp
             self.published_at = timezone.now()
@@ -177,7 +179,9 @@ class Pilot(models.Model):
         if user_org.type == 'enterprise':
             return self.organization == user_org
         elif user_org.type == 'startup':
-            return (not self.is_private and self.status == 'published')
+            # Startups can view published pilots (including private ones via direct link)
+            # Private pilots don't show in listings but are accessible via direct URL
+            return self.status == 'published'
         return False
 
     def can_be_edited_by(self, user):

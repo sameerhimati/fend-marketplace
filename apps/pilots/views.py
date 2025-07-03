@@ -39,7 +39,7 @@ class UnifiedPilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListVi
             ).prefetch_related(
                 'bids__startup',
                 'organization'
-            ).order_by('-created_at')
+            )
             
         elif user_org.type == 'startup':
             # Startups see:
@@ -71,11 +71,45 @@ class UnifiedPilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListVi
                 'organization'
             )
             
-            # Combine and order by relevance
-            pilots = available_pilots.union(bid_pilots).order_by('-created_at')
+            # Combine querysets
+            pilots = available_pilots.union(bid_pilots)
             
         else:
             return Pilot.objects.none()
+        
+        # Apply search filters
+        search_query = self.request.GET.get('search', '').strip()
+        status_filter = self.request.GET.get('status', '').strip()
+        
+        if search_query:
+            # Search across title, description, and organization name
+            pilots = pilots.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(organization__name__icontains=search_query)
+            )
+        
+        if status_filter and status_filter != 'all':
+            pilots = pilots.filter(status=status_filter)
+        
+        # Order by relevance (search match) then by creation date
+        if search_query:
+            # Boost exact title matches, then partial title matches, then description matches
+            pilots = pilots.extra(
+                select={
+                    'relevance': """
+                        CASE 
+                            WHEN LOWER(title) = LOWER(%s) THEN 3
+                            WHEN LOWER(title) LIKE LOWER(%s) THEN 2
+                            WHEN LOWER(description) LIKE LOWER(%s) THEN 1
+                            ELSE 0
+                        END
+                    """
+                },
+                select_params=[search_query, f'%{search_query}%', f'%{search_query}%']
+            ).order_by('-relevance', '-created_at')
+        else:
+            pilots = pilots.order_by('-created_at')
             
         return pilots
 
@@ -98,6 +132,11 @@ class UnifiedPilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListVi
         context['is_enterprise'] = user_org.type == 'enterprise'
         context['is_startup'] = user_org.type == 'startup'
         context['user_org'] = user_org
+        
+        # Add search context
+        context['search_query'] = self.request.GET.get('search', '')
+        context['status_filter'] = self.request.GET.get('status', '')
+        context['has_filters'] = bool(context['search_query'] or context['status_filter'])
         
         # Add counts for enterprise dashboard
         if user_org.type == 'enterprise':
@@ -315,48 +354,20 @@ class PilotCreateView(LoginRequiredMixin, CreateView):
             response = super().form_valid(form)
             messages.success(
                 self.request, 
-                f'✅ Pilot "{form.instance.title}" has been saved as a draft. You can continue editing anytime.'
+                f'Pilot "{form.instance.title}" has been saved as a draft. You can continue editing anytime.'
             )
             return response
         else:
-            # Try to submit for review
+            # Regular save or attempt submission
             response = super().form_valid(form)
             pilot = form.instance
             
-            # Check if pilot is complete enough for submission
-            missing_fields = []
-            if not (pilot.technical_specs_doc or pilot.technical_specs_text):
-                missing_fields.append("Technical Specifications")
-            if not (pilot.performance_metrics_doc or pilot.performance_metrics):
-                missing_fields.append("Performance Metrics")
-            if not (pilot.compliance_requirements_doc or pilot.compliance_requirements):
-                missing_fields.append("Compliance Requirements")
-            
-            if missing_fields:
-                messages.warning(
-                    self.request,
-                    f'⚠️ Pilot "{pilot.title}" has been saved as a draft. To submit for review, please complete: {", ".join(missing_fields)}'
-                )
-            else:
-                # Attempt to publish (this will handle all validation)
-                try:
-                    from .models import publish_pilot
-                    success = publish_pilot(pilot, self.request.user)
-                    if success:
-                        messages.success(
-                            self.request,
-                            f'🎉 Pilot "{pilot.title}" has been submitted for review! You\'ll be notified when it\'s approved (usually within 24 hours).'
-                        )
-                    else:
-                        messages.info(
-                            self.request,
-                            f'📝 Pilot "{pilot.title}" has been saved. Please check the pilot details page for next steps.'
-                        )
-                except Exception as e:
-                    messages.warning(
-                        self.request,
-                        f'⚠️ Pilot "{pilot.title}" has been created but could not be submitted for review. Please check the pilot details for requirements.'
-                    )
+            # For new pilot creation, just save as draft without confusing validation notifications
+            # The user will see proper validation on the pilot detail page if they want to submit later
+            messages.success(
+                self.request,
+                f'Pilot "{pilot.title}" has been created successfully. You can continue editing and submit for review when ready.'
+            )
             
             return response
     
@@ -374,7 +385,7 @@ class PilotUpdateView(LoginRequiredMixin, UpdateView):
         if not pilot.can_be_edited_by(request.user):
             messages.error(
                 request, 
-                f"⚠️ You don't have permission to edit this pilot. Only the pilot owner can make changes while it's in {pilot.get_status_display()} status."
+                f"You don't have permission to edit this pilot. Only the pilot owner can make changes while it's in {pilot.get_status_display()} status."
             )
             return redirect('pilots:detail', pk=pilot.pk)
         return super().dispatch(request, *args, **kwargs)
@@ -849,11 +860,19 @@ def delete_pilot(request, pk):
 @login_required
 @staff_member_required
 def admin_verify_pilots(request):
-    """Enhanced admin view for pilot verification dashboard"""
-    # Get all pilots pending approval with optimized queries
+    """Enhanced admin view for pilot verification dashboard - shows all pilots"""
+    # Get pilots that need attention first (pending approval)
     pending_pilots = Pilot.objects.filter(
-        status='pending_approval', 
-        verified=False
+        status='pending_approval'
+    ).select_related(
+        'organization'
+    ).prefetch_related(
+        'organization__users'
+    ).order_by('-updated_at')
+    
+    # Get all other pilots (published, draft, in_progress, completed, cancelled)
+    other_pilots = Pilot.objects.exclude(
+        status='pending_approval'
     ).select_related(
         'organization'
     ).prefetch_related(
@@ -862,11 +881,11 @@ def admin_verify_pilots(request):
     
     # Get stats for the dashboard
     verified_today = Pilot.objects.filter(
-        verified=True, 
-        admin_verified_at__date=timezone.now().date()
+        status='published', 
+        published_at__date=timezone.now().date()
     ).count()
     
-    total_verified = Pilot.objects.filter(verified=True).count()
+    total_verified = Pilot.objects.filter(status='published').count()
     
     # Handle bulk actions
     if request.method == 'POST':
@@ -875,19 +894,51 @@ def admin_verify_pilots(request):
         
         if action == 'bulk_approve' and pilot_ids:
             pilots = Pilot.objects.filter(id__in=pilot_ids, status='pending_approval')
+            approved_count = 0
             for pilot in pilots:
-                _approve_pilot(request, pilot)
-            messages.success(request, f"{len(pilot_ids)} pilots approved successfully.")
+                if _approve_pilot(request, pilot):
+                    approved_count += 1
+            messages.success(request, f"{approved_count} pilots approved successfully.")
+        elif action == 'export' and pilot_ids:
+            # Simple CSV export functionality
+            import csv
+            from django.http import HttpResponse
+            
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="pilots_export.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Title', 'Organization', 'Status', 'Price', 'Created', 'Updated'])
+            
+            pilots = Pilot.objects.filter(id__in=pilot_ids).select_related('organization')
+            for pilot in pilots:
+                writer.writerow([
+                    pilot.id,
+                    pilot.title,
+                    pilot.organization.name,
+                    pilot.get_status_display(),
+                    pilot.price,
+                    pilot.created_at.strftime('%Y-%m-%d %H:%M'),
+                    pilot.updated_at.strftime('%Y-%m-%d %H:%M')
+                ])
+            return response
+        elif not action:
+            messages.error(request, "Please select an action.")
+        elif not pilot_ids:
+            messages.error(request, "Please select at least one pilot.")
         
-        # Refresh queryset after actions
+        # Refresh querysets after actions
         pending_pilots = Pilot.objects.filter(
-            status='pending_approval', 
-            verified=False
+            status='pending_approval'
+        ).select_related('organization').order_by('-updated_at')
+        other_pilots = Pilot.objects.exclude(
+            status='pending_approval'
         ).select_related('organization').order_by('-updated_at')
     
     context = {
-        'title': 'Pilot Verification',
+        'title': 'Pilot Verification - All Pilots',
         'pending_pilots': pending_pilots,
+        'other_pilots': other_pilots,
         'verified_today': verified_today,
         'total_verified': total_verified,
     }
@@ -997,9 +1048,11 @@ def admin_reject_pilot(request, pk):
 def _approve_pilot(request, pilot):
     """Helper function to approve a pilot with all necessary steps"""
     try:
-        # Update pilot status (verification is handled by status = 'published')
+        # Update pilot status (admin approval bypasses subscription limits)
         pilot.status = 'published'
         pilot.published_at = timezone.now()
+        # Set flag to bypass subscription validation for admin approval
+        pilot._admin_approval = True
         pilot.save()
         
         # Create notification for enterprise
