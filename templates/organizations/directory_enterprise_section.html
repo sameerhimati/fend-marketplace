@@ -1,0 +1,102 @@
+<!-- Enterprises Section -->
+<div class="bg-white shadow rounded-lg border-2 border-blue-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-medium text-gray-900">
+                    Enterprise Partners
+                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700">
+                        {{ total_enterprises }}+
+                    </span>
+                </h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Companies seeking innovative solutions through pilot programs
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    {% if enterprises %}
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for enterprise in enterprises %}
+            <!-- Enterprise Card - Enhanced Visibility -->
+            <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:border-gray-300 transition-colors duration-200">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <!-- Company Avatar/Logo -->
+                        <div class="flex-shrink-0">
+                            {% if enterprise.logo %}
+                                <img src="{{ enterprise.logo.url }}" 
+                                     alt="{{ enterprise.name }} logo" 
+                                     class="h-12 w-12 rounded-lg object-cover border border-gray-200">
+                            {% else %}
+                                <div class="h-12 w-12 rounded-lg bg-indigo-600 flex items-center justify-center">
+                                    <span class="text-lg font-semibold text-white">
+                                        {{ enterprise.name|slice:":1"|upper }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Company Info -->
+                        <div class="ml-4 w-0 flex-1">
+                            <dl>
+                                <dt class="text-xs font-medium text-gray-600 truncate">
+                                    Fend Member since {{ enterprise.created_at|date:"M Y" }}
+                                </dt>
+                                <dd class="text-lg font-semibold text-gray-900 truncate mt-1">
+                                    {{ enterprise.name }}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-5 py-3 border-t border-gray-200">
+                    <div class="flex items-center justify-start">
+                        <a href="{% url 'organizations:profile' enterprise.id %}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors">
+                            View Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Enterprise Pagination -->
+        {% if enterprises.has_other_pages %}
+        <div class="mt-6 flex justify-center">
+            <nav class="flex items-center space-x-1">
+                {% if enterprises.has_previous %}
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if org_type_filter %}type={{ org_type_filter }}&{% endif %}enterprise_page={{ enterprises.previous_page_number }}"
+                   class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Previous
+                </a>
+                {% endif %}
+                
+                <span class="px-3 py-2 text-sm text-gray-700">
+                    Page {{ enterprises.number }} of {{ enterprises.paginator.num_pages }}
+                </span>
+                
+                {% if enterprises.has_next %}
+                <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if org_type_filter %}type={{ org_type_filter }}&{% endif %}enterprise_page={{ enterprises.next_page_number }}"
+                   class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Next
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="p-6 text-center text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        <p class="mt-2">No enterprises found</p>
+        {% if search_query %}
+        <p class="text-sm">Try adjusting your search terms</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

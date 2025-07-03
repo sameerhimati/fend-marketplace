@@ -19,9 +19,9 @@
                     <h3 class="text-sm font-medium text-yellow-800">Account Pending Approval</h3>
                     <div class="mt-2 text-sm text-yellow-700">
                         {% if is_enterprise %}
-                            <p>You can browse available pilots, but you'll need to wait for approval before you can create or publish new pilots.</p>
+                            <p>You can browse available Pilots, but you'll need to wait for approval before you can create or publish new Pilots.</p>
                         {% else %}
-                            <p>You can browse available opportunities, but you'll need to wait for approval before you can submit bids on pilots.</p>
+                            <p>You can browse available opportunities, but you'll need to wait for approval before you can submit bids on Pilots.</p>
                         {% endif %}
                     </div>
                 </div>
@@ -44,9 +44,9 @@
             <div class="flex items-center space-x-4">
                 <div class="text-sm text-gray-600">
                     {% if user_org.subscription.plan.pilot_limit %}
-                        <span class="font-medium text-indigo-600">{{ user_org.get_remaining_pilots }}</span> pilots remaining
+                        <span class="font-medium text-indigo-600">{{ user_org.get_remaining_pilots }}</span> Pilots remaining
                     {% else %}
-                        <span class="font-medium text-indigo-600">Unlimited</span> pilots available
+                        <span class="font-medium text-indigo-600">Unlimited</span> Pilots available
                     {% endif %}
                 </div>
                 <a href="{% url 'pilots:create' %}" 
@@ -202,9 +202,9 @@
                 <div class="ml-3">
                     <h3 class="text-sm font-medium text-yellow-800">Pilot limit reached</h3>
                     <div class="mt-1 text-sm text-yellow-700">
-                        <p>You have reached your monthly plan limit of {{ user_org.subscription.plan.pilot_limit }} pilots. You can create draft pilots, but you'll need to upgrade to publish more.</p>
+                        <p>You have reached your monthly plan limit of {{ user_org.subscription.plan.pilot_limit }} Pilots. You can create draft Pilots, but you'll need to upgrade to publish more.</p>
                         <p class="mt-2">
-                            <a href="{% url 'payments:upgrade_subscription' %}" class="text-yellow-800 font-medium underline">Upgrade to yearly</a> for unlimited pilots.
+                            <a href="{% url 'payments:upgrade_subscription' %}" class="text-yellow-800 font-medium underline">Upgrade to yearly</a> for unlimited Pilots.
                         </p>
                     </div>
                 </div>

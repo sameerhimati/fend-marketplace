@@ -300,11 +300,11 @@
         {% if original.status == 'approved' %}
         <div class="help-text">
             <strong>Payment Processing Status:</strong> This bid has been approved by the enterprise. 
-            {% if original.escrow_payment %}
-                An escrow payment record exists ({{ original.escrow_payment.reference_code }}). 
+            {% if original.payment_holding_service %}
+                A payment holding service record exists ({{ original.payment_holding_service.reference_code }}). 
                 Once payment is verified, you can mark this bid as "Live" to allow work to begin.
             {% else %}
-                No escrow payment record found - this may need investigation.
+                No payment holding service record found - this may need investigation.
             {% endif %}
         </div>
         
@@ -333,9 +333,9 @@
         {% elif original.status == 'completed' %}
         <div class="help-text">
             <strong>Work Completed:</strong> The enterprise has verified completion. 
-            {% if original.escrow_payment and original.escrow_payment.status == 'received' %}
-                The escrow payment is ready to be released to the startup.
-            {% elif original.escrow_payment and original.escrow_payment.status == 'released' %}
+            {% if original.payment_holding_service and original.payment_holding_service.status == 'received' %}
+                The payment holding service is ready to be released to the startup.
+            {% elif original.payment_holding_service and original.payment_holding_service.status == 'released' %}
                 Payment has been released to the startup.
             {% endif %}
         </div>
@@ -352,10 +352,10 @@
         {% endif %}
         
         <!-- Payment Link -->
-        {% if original.escrow_payment %}
-        <a href="{% url 'payments:admin_payment_holding_detail' original.escrow_payment.id %}" 
+        {% if original.payment_holding_service %}
+        <a href="{% url 'payments:admin_payment_holding_detail' original.payment_holding_service.id %}" 
            class="action-button info">
-            💳 View Payment Details ({{ original.escrow_payment.reference_code }})
+            💳 View Payment Details ({{ original.payment_holding_service.reference_code }})
         </a>
         {% endif %}
         

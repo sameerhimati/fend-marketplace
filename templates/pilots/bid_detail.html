@@ -153,29 +153,29 @@
             </div>
 
             <!-- Payment Information Section -->
-            {% if escrow_payment %}
+            {% if payment_holding_service %}
             <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Payment Tracking</h3>
                 
                 <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-3">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Reference Code</dt>
-                        <dd class="mt-1 text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded">{{ escrow_payment.reference_code }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded">{{ payment_holding_service.reference_code }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Payment Status</dt>
-                        <dd class="mt-1 text-sm text-gray-900">{{ escrow_payment.get_status_display }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900">{{ payment_holding_service.get_status_display }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Total Amount</dt>
-                        <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ escrow_payment.total_amount|format_currency }}</dd>
+                        <dd class="mt-1 text-sm text-gray-900 font-semibold">${{ payment_holding_service.total_amount|format_currency }}</dd>
                     </div>
                 </dl>
 
                 <!-- Admin Payment Link -->
                 {% if is_admin %}
                 <div class="mt-4">
-                    <a href="{% url 'payments:admin_payment_holding_detail' escrow_payment.id %}" 
+                    <a href="{% url 'payments:admin_payment_holding_detail' payment_holding_service.id %}" 
                        class="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
                         <i class="fas fa-credit-card mr-2"></i>
                         Manage Payment
@@ -184,12 +184,12 @@
                 {% endif %}
 
                 <!-- Payment Status Information -->
-                {% if escrow_payment.status == 'instructions_sent' and is_enterprise %}
+                {% if payment_holding_service.status == 'instructions_sent' and is_enterprise %}
                 <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <h4 class="text-sm font-medium text-blue-800 mb-3">Payment Required</h4>
                     <div class="text-sm">
-                        <div><span class="font-medium">Reference Code:</span> {{ escrow_payment.reference_code }}</div>
-                        <div><span class="font-medium">Amount Due:</span> ${{ escrow_payment.total_amount|format_currency }}</div>
+                        <div><span class="font-medium">Reference Code:</span> {{ payment_holding_service.reference_code }}</div>
+                        <div><span class="font-medium">Amount Due:</span> ${{ payment_holding_service.total_amount|format_currency }}</div>
                         <div class="mt-2 p-2 bg-blue-100 rounded">
                             <span class="font-medium">Note:</span> You will receive an invoice from Fend with payment instructions.
                         </div>
@@ -198,21 +198,21 @@
                 {% endif %}
 
                 <!-- Payment Timeline -->
-                {% if escrow_payment.status != 'pending' %}
+                {% if payment_holding_service.status != 'pending' %}
                 <div class="mt-4">
                     <h4 class="text-sm font-medium text-gray-700 mb-2">Payment Timeline</h4>
                     <div class="space-y-2 text-sm text-gray-600">
-                        {% if escrow_payment.instructions_sent_at %}
-                        <div>✓ Invoice generated: {{ escrow_payment.instructions_sent_at|date:"M j, Y g:i A" }}</div>
+                        {% if payment_holding_service.instructions_sent_at %}
+                        <div>✓ Invoice generated: {{ payment_holding_service.instructions_sent_at|date:"M j, Y g:i A" }}</div>
                         {% endif %}
-                        {% if escrow_payment.payment_initiated_at %}
-                        <div>✓ Payment initiated: {{ escrow_payment.payment_initiated_at|date:"M j, Y g:i A" }}</div>
+                        {% if payment_holding_service.payment_initiated_at %}
+                        <div>✓ Payment initiated: {{ payment_holding_service.payment_initiated_at|date:"M j, Y g:i A" }}</div>
                         {% endif %}
-                        {% if escrow_payment.received_at %}
-                        <div>✓ Payment received: {{ escrow_payment.received_at|date:"M j, Y g:i A" }}</div>
+                        {% if payment_holding_service.received_at %}
+                        <div>✓ Payment received: {{ payment_holding_service.received_at|date:"M j, Y g:i A" }}</div>
                         {% endif %}
-                        {% if escrow_payment.released_at %}
-                        <div>✓ Payment released: {{ escrow_payment.released_at|date:"M j, Y g:i A" }}</div>
+                        {% if payment_holding_service.released_at %}
+                        <div>✓ Payment released: {{ payment_holding_service.released_at|date:"M j, Y g:i A" }}</div>
                         {% endif %}
                     </div>
                 </div>
@@ -237,8 +237,8 @@
                 
                 <!-- Admin Actions -->
                 <div class="flex space-x-3">
-                    {% if escrow_payment %}
-                    <a href="{% url 'payments:admin_payment_holding_detail' escrow_payment.id %}" 
+                    {% if payment_holding_service %}
+                    <a href="{% url 'payments:admin_payment_holding_detail' payment_holding_service.id %}" 
                        class="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100">
                         Manage Payment
                     </a>
