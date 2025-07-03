@@ -36,12 +36,8 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-900">Submission Completeness</h2>
-            {% with req_count=0 %}
-                {% if pilot.technical_specs_doc or pilot.technical_specs_text %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                {% if pilot.performance_metrics or pilot.performance_metrics_doc %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                {% if pilot.legal_agreement_accepted %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                {% if pilot.price and pilot.price > 0 %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+            {% load pilot_tags %}
+            {% with req_count=pilot|pilot_completion_count %}
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
                     {% if req_count == 5 %}bg-green-100 text-green-800{% elif req_count >= 3 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
                     {{ req_count }}/5 Requirements Complete

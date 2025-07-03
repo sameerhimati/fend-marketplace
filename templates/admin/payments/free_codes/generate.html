@@ -48,7 +48,7 @@
                                 {% for plan in plans %}
                                 <option value="{{ plan.id }}">
                                     {{ plan.name }} - ${{ plan.price }}/{{ plan.billing_frequency }}
-                                    {% if plan.pilot_limit %}({{ plan.pilot_limit }} pilots){% else %}(Unlimited pilots){% endif %}
+                                    {% if plan.pilot_limit %}({{ plan.pilot_limit }} pilots){% else %}(Unlimited Pilots){% endif %}
                                 </option>
                                 {% endfor %}
                             </select>

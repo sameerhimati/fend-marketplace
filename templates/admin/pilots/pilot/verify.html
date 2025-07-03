@@ -7,8 +7,8 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Pilot Verification</h1>
-            <p class="mt-1 text-gray-600">Review and approve pilots submitted by enterprises</p>
+            <h1 class="text-3xl font-bold text-gray-900">All Pilots</h1>
+            <p class="mt-1 text-gray-600">Review and manage all pilots - prioritizing those needing approval</p>
         </div>
         {% if pending_pilots %}
         <div class="flex items-center space-x-3">
@@ -62,18 +62,18 @@
     {% if pending_pilots %}
     <!-- Bulk Actions Bar -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <form method="post" action="{% url 'admin_export_csv' %}" onsubmit="return handleBulkAction(this)">
+        <form method="post" action="{% url 'pilots:admin_verify_pilots' %}" onsubmit="return handleBulkAction(this)">
             {% csrf_token %}
             <input type="hidden" name="model_type" value="pilot">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <label class="flex items-center">
-                        <input type="checkbox" data-select-all="item_ids" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <input type="checkbox" data-select-all="pilot_ids" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                         <span class="ml-2 text-sm font-medium text-gray-700">Select All</span>
                     </label>
                     <select name="action" class="border border-gray-300 rounded-md text-sm">
                         <option value="">Choose Action...</option>
-                        <option value="verify">Bulk Approve Selected</option>
+                        <option value="bulk_approve">Bulk Approve Selected</option>
                         <option value="export">Export Selected</option>
                     </select>
                     <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
@@ -103,7 +103,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <div class="flex items-center">
-                            <input type="checkbox" name="item_ids" value="{{ pilot.id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3">
+                            <input type="checkbox" name="pilot_ids" value="{{ pilot.id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3">
                             <h3 class="text-lg font-semibold text-gray-900">{{ pilot.title }}</h3>
                             <span class="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                 <i class="fas fa-clock mr-1"></i>
@@ -241,12 +241,8 @@
                     
                     <div class="flex items-center space-x-2">
                         <div class="text-xs text-gray-500">Total Requirements:</div>
-                        {% with req_count=0 %}
-                            {% if pilot.technical_specs_doc or pilot.technical_specs_text %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                            {% if pilot.performance_metrics or pilot.performance_metrics_doc %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                            {% if pilot.compliance_requirements or pilot.compliance_requirements_doc %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                            {% if pilot.legal_agreement_accepted %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
-                            {% if pilot.price and pilot.price > 0 %}{% with req_count=req_count|add:1 %}{% endwith %}{% endif %}
+                        {% load pilot_tags %}
+                        {% with req_count=pilot|pilot_completion_count %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
                                 {% if req_count == 5 %}bg-green-100 text-green-800{% elif req_count >= 3 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
                                 {{ req_count }}/5 Complete
@@ -273,6 +269,88 @@
                 <i class="fas fa-arrow-left mr-2"></i>
                 Back to Dashboard
             </a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Other Pilots Section -->
+    {% if other_pilots %}
+    <div class="mt-8">
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-2">All Other Pilots</h2>
+            <p class="text-sm text-gray-600">Published, draft, and completed pilots ({{ other_pilots|length }} total)</p>
+        </div>
+        
+        <!-- Other Pilots List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pilot</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for pilot in other_pilots %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ pilot.title }}</div>
+                                <div class="text-sm text-gray-500">{{ pilot.description|truncatewords:8 }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ pilot.organization.name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if pilot.status == 'published' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Published
+                                    </span>
+                                {% elif pilot.status == 'draft' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-edit mr-1"></i>
+                                        Draft
+                                    </span>
+                                {% elif pilot.status == 'in_progress' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        <i class="fas fa-play mr-1"></i>
+                                        In Progress
+                                    </span>
+                                {% elif pilot.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                        <i class="fas fa-trophy mr-1"></i>
+                                        Completed
+                                    </span>
+                                {% elif pilot.status == 'cancelled' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i>
+                                        Cancelled
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ pilot.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                ${{ pilot.price|floatformat:0 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ pilot.updated_at|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'pilots:admin_verify_pilot_detail' pilot.pk %}" class="text-indigo-600 hover:text-indigo-900">View Details</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -330,7 +408,7 @@
 function showRejectModal(pilotId, pilotName) {
     document.getElementById('reject-pilot-id').value = pilotId;
     document.getElementById('reject-pilot-name').textContent = pilotName;
-    document.getElementById('reject-form').action = `/admin/pilots/pilot/${pilotId}/reject/`;
+    document.getElementById('reject-form').action = "{% url 'pilots:admin_reject_pilot' 0 %}".replace('0', pilotId);
     document.getElementById('rejection-modal').classList.remove('hidden');
 }
 
@@ -348,12 +426,12 @@ document.querySelectorAll('.reject-pilot-btn').forEach(button => {
 
 // Update selected count
 function updateSelectedCount() {
-    const checkedBoxes = document.querySelectorAll('input[name="item_ids"]:checked');
+    const checkedBoxes = document.querySelectorAll('input[name="pilot_ids"]:checked');
     document.getElementById('selected-count').textContent = checkedBoxes.length;
 }
 
 // Add event listeners to checkboxes
-document.querySelectorAll('input[name="item_ids"]').forEach(checkbox => {
+document.querySelectorAll('input[name="pilot_ids"]').forEach(checkbox => {
     checkbox.addEventListener('change', updateSelectedCount);
 });
 

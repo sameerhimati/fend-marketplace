@@ -117,7 +117,7 @@
                                 class="px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700">
                             Reject
                         </button>
-                        <a href="{% url 'pilots:detail' pilot.pk %}" class="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50">
+                        <a href="{% url 'pilots:admin_verify_pilot_detail' pilot.pk %}" class="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50">
                             View Details
                         </a>
                     </div>
@@ -206,7 +206,7 @@
                             {{ pilot.created_at|date:"M d, Y" }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{% url 'pilots:detail' pilot.pk %}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
+                            <a href="{% url 'pilots:admin_verify_pilot_detail' pilot.pk %}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
                             {% if pilot.status == 'pending_approval' and not pilot.verified %}
                             <form method="post" action="{% url 'pilots:admin_approve_pilot' pilot.pk %}" class="inline">
                                 {% csrf_token %}
