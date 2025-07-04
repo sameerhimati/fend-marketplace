@@ -64,6 +64,7 @@ urlpatterns = [
     
     path('pilots/', include('apps.pilots.urls')),
     path('organizations/', include('apps.organizations.urls')),
+    path('users/', include('apps.users.urls')),
     path('notifications/', include('apps.notifications.urls')),
     path('payments/', include('apps.payments.urls')),
     path('recommendations/', include('apps.recommendations.urls')),
