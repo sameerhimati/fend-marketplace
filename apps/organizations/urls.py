@@ -123,4 +123,9 @@ urlpatterns = [
     path('dismiss-session-progress/', 
          onboarding_views.dismiss_session_progress, 
          name='dismiss_session_progress'),
+    
+    # Password reset popup management
+    path('clear-password-reset-popup/', 
+         views.clear_password_reset_popup, 
+         name='clear_password_reset_popup'),
 ]

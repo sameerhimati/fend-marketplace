@@ -63,6 +63,10 @@ class PasswordReset(models.Model):
         blank=True,
         help_text="When the user first logged in with temp password"
     )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this password reset is still valid/active"
+    )
     
     class Meta:
         ordering = ['-created_at']

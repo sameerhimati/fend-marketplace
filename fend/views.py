@@ -10,7 +10,7 @@ import csv
 from apps.pilots.models import Pilot, PilotBid
 from apps.organizations.models import Organization
 from apps.payments.models import PaymentHoldingService, Subscription, Payment
-from apps.users.models import User
+from apps.users.models import User, PasswordReset
 
 class LandingPageView(TemplateView):
     template_name = 'landing.html'
@@ -155,6 +155,23 @@ def admin_org_dashboard(request):
     
     all_orgs = all_orgs.order_by('-created_at')
     
+    # Recent password resets (last 24 hours, only most recent per user)
+    from datetime import timedelta
+    from django.db.models import Max
+    
+    # Get the most recent reset ID for each user in the last 24 hours
+    recent_reset_ids = PasswordReset.objects.filter(
+        created_at__gte=timezone.now() - timedelta(hours=24),
+        is_active=True
+    ).values('user').annotate(
+        latest_reset_id=Max('id')
+    ).values_list('latest_reset_id', flat=True)
+    
+    # Get the actual reset objects
+    recent_resets = PasswordReset.objects.filter(
+        id__in=recent_reset_ids
+    ).select_related('user', 'user__organization', 'admin').order_by('-created_at')
+    
     # Stats
     total_orgs = Organization.objects.count()
     enterprises = Organization.objects.filter(type='enterprise').count()
@@ -170,6 +187,7 @@ def admin_org_dashboard(request):
         'enterprises': enterprises,
         'startups': startups,
         'pending_count': pending_count,
+        'recent_resets': recent_resets,
     }
     
     return render(request, 'admin/org_dashboard.html', context)
@@ -604,3 +622,48 @@ def _export_pilots_csv():
         ])
     
     return response
+
+
+@staff_member_required
+def admin_reset_user_password(request):
+    """Reset user password from admin interface"""
+    from django.contrib import messages
+    
+    if request.method == "POST":
+        user_id = request.POST.get("user_id")
+        
+        try:
+            user = User.objects.get(id=user_id)
+            
+            # Invalidate all previous password resets for this user
+            PasswordReset.objects.filter(user=user, is_active=True).update(is_active=False)
+            
+            # Generate temporary password
+            from django.utils.crypto import get_random_string
+            temp_password = get_random_string(12)
+            
+            # Set the password
+            user.set_password(temp_password)
+            user.must_change_password = True
+            user.save()
+            
+            # Create reset record
+            PasswordReset.objects.create(
+                user=user,
+                admin=request.user,
+                temporary_password=temp_password,
+                is_active=True
+            )
+            
+            # Success message without temp password (will be shown in dedicated section)
+            messages.success(
+                request,
+                f"Password reset successfully for {user.username}. Check the 'Recent Password Resets' section below for the temporary password."
+            )
+            
+        except User.DoesNotExist:
+            messages.error(request, "User not found.")
+        except Exception as e:
+            messages.error(request, f"Error resetting password: {str(e)}")
+    
+    return redirect("admin_org_dashboard")

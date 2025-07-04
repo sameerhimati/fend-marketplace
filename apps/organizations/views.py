@@ -428,8 +428,38 @@ class StartupDashboardView(LoginRequiredMixin, TemplateView):
 class CustomLoginView(LoginView):
     template_name = 'organizations/auth/login.html'
     
+    def form_valid(self, form):
+        """Handle successful login and check for temporary password"""
+        user = form.get_user()
+        
+        # Check if user must change password (temporary password login)
+        if user.must_change_password:
+            # Mark that we should show the password reset popup
+            self.request.session['show_password_reset_popup'] = True
+            
+            # Also mark the password reset as used
+            from apps.users.models import PasswordReset
+            recent_reset = PasswordReset.objects.filter(
+                user=user,
+                is_active=True
+            ).order_by('-created_at').first()
+            
+            if recent_reset and not recent_reset.used_at:
+                recent_reset.used_at = timezone.now()
+                recent_reset.save()
+        
+        return super().form_valid(form)
+    
     def get_success_url(self):
         return reverse_lazy('organizations:dashboard')
+
+@login_required 
+def clear_password_reset_popup(request):
+    """Clear the password reset popup session flag"""
+    if request.method == 'POST':
+        request.session.pop('show_password_reset_popup', None)
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)
 
 class OrganizationProfileView(LoginRequiredMixin, DetailView):
     model = Organization

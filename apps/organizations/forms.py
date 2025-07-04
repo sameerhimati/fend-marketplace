@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
 from .models import Organization, PilotDefinition, PartnerPromotion
 from .validators import clean_and_validate_website, validate_industry_tags
 from datetime import datetime
@@ -241,6 +241,13 @@ class OrganizationBasicForm(forms.ModelForm):
 
         if password and confirm_password and password != confirm_password:
             raise forms.ValidationError("Passwords don't match")
+        
+        # Validate password strength (same as password reset)
+        if password:
+            try:
+                password_validation.validate_password(password)
+            except forms.ValidationError as e:
+                raise forms.ValidationError(f"Password: {', '.join(e.messages)}")
         
         # Check if email is already in use
         if email and User.objects.filter(email=email).exists():
