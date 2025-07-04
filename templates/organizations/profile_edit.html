@@ -174,7 +174,8 @@
                             {% if form.logo.errors %}
                             <p class="mt-2 text-sm text-red-600">{{ form.logo.errors.0 }}</p>
                             {% endif %}
-                            <p class="mt-1 text-sm text-gray-500">Recommended size: 400x400 pixels. Supported formats: JPG, PNG, GIF (max 5MB)</p>
+                            <p class="mt-1 text-sm text-gray-500">Recommended size: 400x400 pixels. Supported formats: JPG, PNG, GIF (max 10MB)</p>
+                            <p id="file-size-error" class="mt-2 text-sm text-red-600 hidden"></p>
                         </div>
                     </div>
                     
@@ -194,4 +195,40 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // File size validation
+    const logoInput = document.getElementById('{{ form.logo.id_for_label }}');
+    const fileSizeError = document.getElementById('file-size-error');
+    const submitButton = document.querySelector('button[type="submit"]');
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    
+    if (logoInput) {
+        logoInput.addEventListener('change', function() {
+            const file = this.files[0];
+            
+            if (file) {
+                if (file.size > maxSize) {
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    fileSizeError.textContent = `File size (${sizeMB}MB) exceeds the maximum allowed size of 10MB. Please choose a smaller file.`;
+                    fileSizeError.classList.remove('hidden');
+                    submitButton.disabled = true;
+                    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    fileSizeError.classList.add('hidden');
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    // Show file info
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    fileSizeError.textContent = `File size: ${sizeMB}MB ✓`;
+                    fileSizeError.classList.remove('hidden', 'text-red-600');
+                    fileSizeError.classList.add('text-green-600');
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

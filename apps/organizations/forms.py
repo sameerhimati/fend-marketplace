@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
+from django.conf import settings
 from .models import Organization, PilotDefinition, PartnerPromotion
 from .validators import clean_and_validate_website, validate_industry_tags
 from datetime import datetime
@@ -435,6 +436,19 @@ class EnhancedOrganizationProfileForm(forms.Form):
         if url and not any(domain in url.lower() for domain in ['twitter.com', 'x.com']):
             raise forms.ValidationError("Please enter a valid Twitter/X URL")
         return url
+    
+    def clean_logo(self):
+        """Validate logo file size"""
+        logo = self.cleaned_data.get('logo')
+        if logo:
+            max_size = getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024)  # Default 10MB
+            if logo.size > max_size:
+                max_size_mb = max_size / (1024 * 1024)
+                raise forms.ValidationError(
+                    f"File size must not exceed {max_size_mb:.0f}MB. "
+                    f"Your file is {logo.size / (1024 * 1024):.1f}MB."
+                )
+        return logo
 
 class PartnerPromotionForm(forms.ModelForm):
     """Form for managing partner promotions and exclusive deals"""
@@ -516,3 +530,16 @@ class OrganizationProfileForm(forms.ModelForm):
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
         }
+    
+    def clean_logo(self):
+        """Validate logo file size"""
+        logo = self.cleaned_data.get('logo')
+        if logo:
+            max_size = getattr(settings, 'MAX_UPLOAD_SIZE', 10 * 1024 * 1024)  # Default 10MB
+            if logo.size > max_size:
+                max_size_mb = max_size / (1024 * 1024)
+                raise forms.ValidationError(
+                    f"File size must not exceed {max_size_mb:.0f}MB. "
+                    f"Your file is {logo.size / (1024 * 1024):.1f}MB."
+                )
+        return logo

@@ -143,6 +143,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB (used in forms)
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
