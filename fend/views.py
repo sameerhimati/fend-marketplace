@@ -135,13 +135,13 @@ def admin_org_dashboard(request):
     # Pending approvals (top priority)
     pending_orgs = Organization.objects.filter(
         approval_status='pending'
-    ).order_by('-created_at')
+    ).prefetch_related('users').order_by('-created_at')
     
     # All organizations with search functionality
     search = request.GET.get('search', '')
     org_type_filter = request.GET.get('type', 'all')
     
-    all_orgs = Organization.objects.all()
+    all_orgs = Organization.objects.all().prefetch_related('users')
     
     if search:
         all_orgs = all_orgs.filter(
