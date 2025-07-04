@@ -171,7 +171,6 @@ class Organization(models.Model):
             required_fields = [
                 'business_type',
                 'business_registration_number',
-                'tax_identification_number',
                 'primary_contact_name',
                 'primary_contact_phone'
             ]
