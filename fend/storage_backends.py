@@ -61,3 +61,14 @@ class PilotDocumentStorage(S3Boto3Storage):
         params['ACL'] = 'public-read'  # Ensure ACL is set for each file
         params['CacheControl'] = 'max-age=604800'  # 7 days for documents
         return params
+
+
+# Callable classes to replace lambda functions
+class PilotDocumentStorageCallable:
+    def __call__(self):
+        return PilotDocumentStorage()
+
+
+class OrganizationLogoStorageCallable:
+    def __call__(self):
+        return OrganizationLogoStorage()

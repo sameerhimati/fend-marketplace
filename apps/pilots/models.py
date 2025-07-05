@@ -103,7 +103,7 @@ class Pilot(models.Model):
     
     technical_specs_doc = models.FileField(
         upload_to=pilot_technical_doc_path,
-        storage=lambda: __import__('fend.storage_backends', fromlist=['PilotDocumentStorage']).PilotDocumentStorage(),
+        storage='fend.storage_backends.PilotDocumentStorageCallable',
         null=True,
         blank=True
     )
@@ -112,7 +112,7 @@ class Pilot(models.Model):
 
     performance_metrics_doc = models.FileField(
         upload_to=pilot_performance_doc_path,
-        storage=lambda: __import__('fend.storage_backends', fromlist=['PilotDocumentStorage']).PilotDocumentStorage(),
+        storage='fend.storage_backends.PilotDocumentStorageCallable',
         null=True,
         blank=True
     )
@@ -121,7 +121,7 @@ class Pilot(models.Model):
 
     compliance_requirements_doc = models.FileField(
         upload_to=pilot_compliance_doc_path,
-        storage=lambda: __import__('fend.storage_backends', fromlist=['PilotDocumentStorage']).PilotDocumentStorage(),
+        storage='fend.storage_backends.PilotDocumentStorageCallable',
         null=True,
         blank=True
     )
@@ -426,7 +426,7 @@ class PilotBid(models.Model):
     proposal = models.TextField()
     proposal_doc = models.FileField(
         upload_to=pilot_bid_doc_path,
-        storage=lambda: __import__('fend.storage_backends', fromlist=['PilotDocumentStorage']).PilotDocumentStorage(),
+        storage='fend.storage_backends.PilotDocumentStorageCallable',
         null=True,
         blank=True,
         help_text="Optional: Upload a document to supplement your proposal"

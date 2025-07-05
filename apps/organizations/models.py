@@ -69,7 +69,7 @@ class Organization(models.Model):
     description = models.TextField(blank=True, null=True, help_text="Company description")
     logo = models.ImageField(
         upload_to='logos/', 
-        storage=lambda: __import__('fend.storage_backends', fromlist=['OrganizationLogoStorage']).OrganizationLogoStorage(),
+        storage='fend.storage_backends.OrganizationLogoStorageCallable',
         blank=True, 
         null=True
     )
