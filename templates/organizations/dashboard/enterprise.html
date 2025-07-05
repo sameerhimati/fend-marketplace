@@ -195,6 +195,103 @@
             const modal = document.getElementById('howFendWorksModal');
             if (modal) {
                 modal.style.display = 'block';
+            } else {
+                // If modal doesn't exist, create and show a temporary modal
+                showEnterpriseInfoModal();
+            }
+        }
+        
+        function showEnterpriseInfoModal() {
+            // Create a simple modal dynamically
+            const modalHTML = `
+                <div id="enterpriseInfoModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-lg bg-white">
+                        <div class="mt-3">
+                            <div class="flex items-center justify-between pb-4 border-b">
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-900">Enterprise Partnership Benefits</h3>
+                                        <p class="text-sm text-gray-600">How Fend helps your enterprise innovate</p>
+                                    </div>
+                                </div>
+                                <button onclick="closeEnterpriseInfoModal()" class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="py-6">
+                                <div class="space-y-4">
+                                    <div class="flex items-start space-x-3">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-base font-semibold text-gray-900">Create Innovation Pilots</h4>
+                                            <p class="text-sm text-gray-600">Post pilot projects to connect with innovative startups and test new solutions.</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start space-x-3">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-base font-semibold text-gray-900">Access Vetted Startups</h4>
+                                            <p class="text-sm text-gray-600">Browse our curated network of innovative startups ready to collaborate.</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start space-x-3">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-base font-semibold text-gray-900">Managed Partnerships</h4>
+                                            <p class="text-sm text-gray-600">Professional project management and secure collaboration tools.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-gray-200">
+                                    <div class="flex justify-end space-x-3">
+                                        <button onclick="closeEnterpriseInfoModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200">
+                                            Got it
+                                        </button>
+                                        <a href="${createPilotUrl}" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+                                            Create Pilot
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert the modal into the DOM
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Fix the URL for the Create Pilot link
+            const modal = document.getElementById('enterpriseInfoModal');
+            const createPilotLink = modal.querySelector('a[href="${createPilotUrl}"]');
+            if (createPilotLink) {
+                createPilotLink.href = "{% url 'pilots:create' %}";
+            }
+        }
+        
+        function closeEnterpriseInfoModal() {
+            const modal = document.getElementById('enterpriseInfoModal');
+            if (modal) {
+                modal.remove();
             }
         }
         
