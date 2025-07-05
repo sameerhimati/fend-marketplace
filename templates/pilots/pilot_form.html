@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load pilot_tags %}
 
 {% block title %}{% if pilot.id %}Edit{% else %}Create{% endif %} Pilot - Fend{% endblock %}
 
@@ -114,7 +115,7 @@
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    <a href="{{ pilot.technical_specs_doc.url }}" target="_blank">{{ pilot.technical_specs_doc.name|default:"Document" }}</a>
+                                    <a href="{{ pilot.technical_specs_doc.url }}" target="_blank">{{ pilot.technical_specs_doc.name|friendly_filename|default:"Technical Specifications" }}</a>
                                 </div>
                                 <button type="button" onclick="clearFile('technical_specs')" class="text-red-600 hover:text-red-800 text-sm">
                                     Remove
@@ -170,7 +171,7 @@
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    <a href="{{ pilot.performance_metrics_doc.url }}" target="_blank">{{ pilot.performance_metrics_doc.name|default:"Document" }}</a>
+                                    <a href="{{ pilot.performance_metrics_doc.url }}" target="_blank">{{ pilot.performance_metrics_doc.name|friendly_filename|default:"Performance Metrics" }}</a>
                                 </div>
                                 <button type="button" onclick="clearFile('performance_metrics')" class="text-red-600 hover:text-red-800 text-sm">
                                     Remove
@@ -226,7 +227,7 @@
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    <a href="{{ pilot.compliance_requirements_doc.url }}" target="_blank">{{ pilot.compliance_requirements_doc.name|default:"Document" }}</a>
+                                    <a href="{{ pilot.compliance_requirements_doc.url }}" target="_blank">{{ pilot.compliance_requirements_doc.name|friendly_filename|default:"Compliance Requirements" }}</a>
                                 </div>
                                 <button type="button" onclick="clearFile('compliance_requirements')" class="text-red-600 hover:text-red-800 text-sm">
                                     Remove

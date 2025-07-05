@@ -13,24 +13,42 @@ def pilot_technical_doc_path(instance, filename):
     """Generate path for technical specs documents"""
     org_slug = slugify(instance.organization.name)
     pilot_id = instance.pk or 'temp'
-    ext = os.path.splitext(filename)[1]
-    safe_filename = f"technical_{slugify(instance.title[:30])}{ext}"
+    
+    # Store original filename for later retrieval
+    instance._original_technical_filename = filename
+    
+    # Create a clean filename that preserves original name
+    name, ext = os.path.splitext(filename)
+    safe_name = slugify(name[:50])  # Keep more of the original name
+    safe_filename = f"technical_{safe_name}{ext}"
     return f'documents/pilots/{org_slug}/{pilot_id}/technical/{safe_filename}'
 
 def pilot_performance_doc_path(instance, filename):
     """Generate path for performance metrics documents"""
     org_slug = slugify(instance.organization.name)
     pilot_id = instance.pk or 'temp'
-    ext = os.path.splitext(filename)[1]
-    safe_filename = f"performance_{slugify(instance.title[:30])}{ext}"
+    
+    # Store original filename for later retrieval
+    instance._original_performance_filename = filename
+    
+    # Create a clean filename that preserves original name
+    name, ext = os.path.splitext(filename)
+    safe_name = slugify(name[:50])  # Keep more of the original name
+    safe_filename = f"performance_{safe_name}{ext}"
     return f'documents/pilots/{org_slug}/{pilot_id}/performance/{safe_filename}'
 
 def pilot_compliance_doc_path(instance, filename):
     """Generate path for compliance requirements documents"""
     org_slug = slugify(instance.organization.name)
     pilot_id = instance.pk or 'temp'
-    ext = os.path.splitext(filename)[1]
-    safe_filename = f"compliance_{slugify(instance.title[:30])}{ext}"
+    
+    # Store original filename for later retrieval
+    instance._original_compliance_filename = filename
+    
+    # Create a clean filename that preserves original name
+    name, ext = os.path.splitext(filename)
+    safe_name = slugify(name[:50])  # Keep more of the original name
+    safe_filename = f"compliance_{safe_name}{ext}"
     return f'documents/pilots/{org_slug}/{pilot_id}/compliance/{safe_filename}'
 
 def pilot_bid_doc_path(instance, filename):
@@ -38,8 +56,14 @@ def pilot_bid_doc_path(instance, filename):
     org_slug = slugify(instance.startup.name)
     pilot_slug = slugify(instance.pilot.title)
     bid_id = instance.pk or 'temp'
-    ext = os.path.splitext(filename)[1]
-    safe_filename = f"proposal_{bid_id}{ext}"
+    
+    # Store original filename for later retrieval
+    instance._original_proposal_filename = filename
+    
+    # Create a clean filename that preserves original name
+    name, ext = os.path.splitext(filename)
+    safe_name = slugify(name[:50])  # Keep more of the original name
+    safe_filename = f"proposal_{safe_name}_{bid_id}{ext}"
     return f'documents/bids/{org_slug}/{pilot_slug}/{safe_filename}'
 
 class Pilot(models.Model):

@@ -1,3 +1,4 @@
+{% load pilot_tags %}
 <!-- Reusable file upload toggle component -->
 <!-- Usage: {% include "components/forms/file_upload_toggle.html" with field_name="technical_specs" label="Technical Specifications" required=True text_value=pilot.technical_specs_text placeholder="Enter technical specifications..." %} -->
 
@@ -26,7 +27,7 @@
             </div>
             {% if current_file %}
                 <div class="current-file">
-                    <span>Current file: {{ current_file.name }}</span>
+                    <span>Current file: {{ current_file.name|friendly_filename }}</span>
                     <a href="{{ current_file.url }}" target="_blank" class="view-file">View</a>
                 </div>
             {% endif %}
