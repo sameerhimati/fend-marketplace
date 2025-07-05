@@ -75,3 +75,60 @@ class PasswordReset(models.Model):
         return f"Password reset for {self.user} on {self.created_at}"
 
 
+class PasswordResetRequest(models.Model):
+    """Model to track forgot password requests from users"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    email = models.EmailField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="User found with this email (if exists)"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    # Admin handling
+    handled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='handled_password_requests',
+        help_text="Admin who handled this request"
+    )
+    handled_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(
+        blank=True,
+        help_text="Admin notes about this request"
+    )
+    
+    class Meta:
+        ordering = ['-requested_at']
+        verbose_name = "Password Reset Request"
+        verbose_name_plural = "Password Reset Requests"
+    
+    def __str__(self):
+        return f"Password reset request for {self.email} - {self.status}"
+    
+    @property
+    def is_pending(self):
+        return self.status == 'pending'
+    
+    @property
+    def user_exists(self):
+        return self.user is not None
+
+

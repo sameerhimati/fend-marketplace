@@ -52,6 +52,7 @@ urlpatterns = [
     path('admin/orgs/<int:org_id>/', views.admin_org_detail, name='admin_org_detail'),
     path('admin/orgs/<int:org_id>/edit/', views.admin_org_edit, name='admin_org_edit'),
     path('admin/reset-password/', views.admin_reset_user_password, name='admin_reset_user_password'),
+    path('admin/mark-password-request-handled/<int:request_id>/', views.mark_password_request_handled, name='mark_password_request_handled'),
     path('admin/pilots/', lambda request: redirect('pilots:admin_verify_pilots'), name='admin_pilot_dashboard'),
     path('admin/search/', views.admin_global_search, name='admin_global_search'),
     path('admin/export/', views.admin_export_csv, name='admin_export_csv'),

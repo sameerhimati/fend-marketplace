@@ -298,6 +298,64 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Pending Password Reset Requests -->
+    {% if pending_reset_requests %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-yellow-50">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900">📧 Pending Password Reset Requests</h2>
+                <span class="bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full">{{ pending_reset_requests|length }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-1">Users who have requested password resets via "Forgot Password" feature</p>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% for request in pending_reset_requests %}
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center">
+                            <h3 class="font-semibold text-gray-900">{{ request.email }}</h3>
+                            {% if request.user %}
+                            <span class="ml-2 text-sm text-gray-500">from</span>
+                            <span class="ml-1 font-medium text-indigo-600">{{ request.user.organization.name }}</span>
+                            {% else %}
+                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                No Account Found
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center mt-2 text-xs text-gray-500 space-x-4">
+                            <span><i class="fas fa-clock mr-1"></i>{{ request.requested_at|date:"M d, Y g:i A" }}</span>
+                            {% if request.ip_address %}
+                            <span><i class="fas fa-globe mr-1"></i>{{ request.ip_address }}</span>
+                            {% endif %}
+                        </div>
+                        {% if request.user_agent %}
+                        <div class="mt-1 text-xs text-gray-400 truncate">
+                            <i class="fas fa-desktop mr-1"></i>{{ request.user_agent|slice:":100" }}...
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="ml-4 flex flex-col space-y-2">
+                        {% if request.user %}
+                        <button onclick="showPasswordResetModal('{{ request.user.id }}', '{{ request.user.username|escapejs }}', '{{ request.user.organization.name|escapejs }}')"
+                                class="px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 flex items-center">
+                            <i class="fas fa-key mr-1"></i> Reset Password
+                        </button>
+                        {% endif %}
+                        <button onclick="markRequestHandled('{{ request.id }}')"
+                                class="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 text-center">
+                            Mark as Handled
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Quick Rejection Modal -->
@@ -605,5 +663,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function markRequestHandled(requestId) {
+    if (confirm('Mark this password reset request as handled?')) {
+        fetch(`/admin/mark-password-request-handled/${requestId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the request from the page
+                location.reload();
+            } else {
+                alert('Error marking request as handled');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error marking request as handled');
+        });
+    }
+}
 </script>
 {% endblock %}

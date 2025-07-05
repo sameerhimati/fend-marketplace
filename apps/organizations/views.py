@@ -1041,3 +1041,45 @@ def admin_manage_featured_content(request):
     }
     
     return render(request, 'admin/organizations/manage_featured_content.html', context)
+
+
+def forgot_password(request):
+    """Handle forgot password requests from login page"""
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        
+        if not email:
+            messages.error(request, 'Please enter an email address.')
+            return redirect('organizations:login')
+        
+        # Import here to avoid circular imports
+        from apps.users.models import PasswordResetRequest, User
+        
+        # Try to find the user
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            user = None
+        
+        # Get client information
+        ip_address = request.META.get('REMOTE_ADDR')
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
+        # Create the password reset request
+        reset_request = PasswordResetRequest.objects.create(
+            email=email,
+            user=user,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+        
+        # Success message (same whether user exists or not for security)
+        messages.success(
+            request, 
+            f'Password reset request submitted successfully! The Fend team has been notified and will reset your password for {email}. You should receive an email with your new temporary password within 24 hours.'
+        )
+        
+        return redirect('organizations:login')
+    
+    # GET request - redirect to login
+    return redirect('organizations:login')

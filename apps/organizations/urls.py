@@ -128,4 +128,9 @@ urlpatterns = [
     path('clear-password-reset-popup/', 
          views.clear_password_reset_popup, 
          name='clear_password_reset_popup'),
+    
+    # Forgot password
+    path('forgot-password/', 
+         views.forgot_password, 
+         name='forgot_password'),
 ]

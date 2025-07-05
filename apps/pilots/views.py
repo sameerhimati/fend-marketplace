@@ -8,13 +8,14 @@ from .forms import PilotForm, PilotBidForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.admin.views.decorators import staff_member_required
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse, Http404
 from apps.notifications.services import create_bid_notification, create_pilot_notification, create_notification
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models import Q, Count, Prefetch
 from django.core.paginator import Paginator
 from apps.organizations.mixins import OrganizationRequiredMixin
+from django.conf import settings
 
 class UnifiedPilotListView(OrganizationRequiredMixin, LoginRequiredMixin, ListView):
     """

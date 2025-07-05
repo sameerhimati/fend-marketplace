@@ -172,6 +172,12 @@ def admin_org_dashboard(request):
         id__in=recent_reset_ids
     ).select_related('user', 'user__organization', 'admin').order_by('-created_at')
     
+    # Get pending password reset requests
+    from apps.users.models import PasswordResetRequest
+    pending_reset_requests = PasswordResetRequest.objects.filter(
+        status='pending'
+    ).select_related('user', 'user__organization').order_by('-requested_at')[:10]
+    
     # Stats
     total_orgs = Organization.objects.count()
     enterprises = Organization.objects.filter(type='enterprise').count()
@@ -188,6 +194,7 @@ def admin_org_dashboard(request):
         'startups': startups,
         'pending_count': pending_count,
         'recent_resets': recent_resets,
+        'pending_reset_requests': pending_reset_requests,
     }
     
     return render(request, 'admin/org_dashboard.html', context)
@@ -667,3 +674,27 @@ def admin_reset_user_password(request):
             messages.error(request, f"Error resetting password: {str(e)}")
     
     return redirect("admin_org_dashboard")
+
+
+@staff_member_required
+def mark_password_request_handled(request, request_id):
+    """Mark a password reset request as handled"""
+    from django.http import JsonResponse
+    
+    if request.method == "POST":
+        try:
+            from apps.users.models import PasswordResetRequest
+            reset_request = PasswordResetRequest.objects.get(id=request_id)
+            
+            reset_request.status = 'completed'
+            reset_request.handled_by = request.user
+            reset_request.handled_at = timezone.now()
+            reset_request.save()
+            
+            return JsonResponse({'success': True})
+        except PasswordResetRequest.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Request not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid method'})

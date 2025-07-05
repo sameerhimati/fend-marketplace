@@ -58,6 +58,12 @@
                         Don't have an account? Register here
                     </a>
                     
+                    <button type="button" 
+                            onclick="showForgotPasswordModal()"
+                            class="font-medium text-indigo-600 hover:text-indigo-500 block w-full text-center">
+                        Forgot your password?
+                    </button>
+                    
                     <!-- Admin Login Button -->
                     <div class="pt-4 border-t border-gray-200">
                         <div class="text-xs text-gray-500 mb-2">Operations Team?</div>
@@ -72,4 +78,92 @@
         </div>
     </div>
 </div>
+
+<!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+        
+        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div class="sm:flex sm:items-start">
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2h-6m6 0v6a2 2 0 11-4 0v-6a2 2 0 114 0z"/>
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">
+                        Forgot Your Password?
+                    </h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500 mb-4">
+                            Please enter your email address and we'll have the Fend team reset your password for you.
+                        </p>
+                        
+                        <form id="forgotPasswordForm" method="post" action="{% url 'organizations:forgot_password' %}">
+                            {% csrf_token %}
+                            <div class="mb-4">
+                                <label for="forgot_email" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address
+                                </label>
+                                <input type="email" 
+                                       name="email" 
+                                       id="forgot_email" 
+                                       required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                       placeholder="Enter your email address">
+                            </div>
+                        </form>
+                        
+                        <div class="bg-blue-50 border border-blue-200 rounded-md p-3 mt-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        The Fend team will receive your request and reset your password manually. You'll receive an email with your new temporary password within 24 hours.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button type="submit" form="forgotPasswordForm"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Request Password Reset
+                </button>
+                <button type="button" onclick="hideForgotPasswordModal()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').classList.remove('hidden');
+    document.getElementById('forgot_email').focus();
+}
+
+function hideForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').classList.add('hidden');
+    document.getElementById('forgotPasswordForm').reset();
+}
+
+// Close modal when clicking outside
+document.getElementById('forgotPasswordModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideForgotPasswordModal();
+    }
+});
+</script>
 {% endblock %}
