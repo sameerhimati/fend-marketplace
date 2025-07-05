@@ -8,6 +8,13 @@ from fend.storage_backends import get_organization_logo_storage
 import phonenumbers
 from django.core.exceptions import ValidationError
 from datetime import datetime
+import os
+
+
+def organization_logo_path(instance, filename):
+    """Generate simple path for organization logos"""
+    ext = os.path.splitext(filename)[1]
+    return f'logos/org-{instance.pk or "temp"}{ext}'
 
 # Onboarding model will be defined below
 
@@ -69,7 +76,7 @@ class Organization(models.Model):
 
     description = models.TextField(blank=True, null=True, help_text="Company description")
     logo = models.ImageField(
-        upload_to='logos/', 
+        upload_to=organization_logo_path, 
         storage=get_organization_logo_storage,
         blank=True, 
         null=True
