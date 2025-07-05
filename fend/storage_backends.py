@@ -72,3 +72,12 @@ class PilotDocumentStorageCallable:
 class OrganizationLogoStorageCallable:
     def __call__(self):
         return OrganizationLogoStorage()
+
+
+# Helper functions that return storage instances
+def get_pilot_document_storage():
+    return PilotDocumentStorage()
+
+
+def get_organization_logo_storage():
+    return OrganizationLogoStorage()

@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 from apps.payments.models import Subscription
 from django.conf import settings
 from django.dispatch import receiver
+from fend.storage_backends import get_organization_logo_storage
 import phonenumbers
 from django.core.exceptions import ValidationError
 from datetime import datetime
@@ -69,7 +70,7 @@ class Organization(models.Model):
     description = models.TextField(blank=True, null=True, help_text="Company description")
     logo = models.ImageField(
         upload_to='logos/', 
-        storage='fend.storage_backends.OrganizationLogoStorageCallable',
+        storage=get_organization_logo_storage,
         blank=True, 
         null=True
     )

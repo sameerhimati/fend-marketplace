@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone as timezone
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
+from fend.storage_backends import get_pilot_document_storage
 import os
 import decimal
 
@@ -103,7 +104,7 @@ class Pilot(models.Model):
     
     technical_specs_doc = models.FileField(
         upload_to=pilot_technical_doc_path,
-        storage='fend.storage_backends.PilotDocumentStorageCallable',
+        storage=get_pilot_document_storage,
         null=True,
         blank=True
     )
@@ -112,7 +113,7 @@ class Pilot(models.Model):
 
     performance_metrics_doc = models.FileField(
         upload_to=pilot_performance_doc_path,
-        storage='fend.storage_backends.PilotDocumentStorageCallable',
+        storage=get_pilot_document_storage,
         null=True,
         blank=True
     )
@@ -121,7 +122,7 @@ class Pilot(models.Model):
 
     compliance_requirements_doc = models.FileField(
         upload_to=pilot_compliance_doc_path,
-        storage='fend.storage_backends.PilotDocumentStorageCallable',
+        storage=get_pilot_document_storage,
         null=True,
         blank=True
     )
@@ -426,7 +427,7 @@ class PilotBid(models.Model):
     proposal = models.TextField()
     proposal_doc = models.FileField(
         upload_to=pilot_bid_doc_path,
-        storage='fend.storage_backends.PilotDocumentStorageCallable',
+        storage=get_pilot_document_storage,
         null=True,
         blank=True,
         help_text="Optional: Upload a document to supplement your proposal"
