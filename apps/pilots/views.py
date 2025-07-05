@@ -169,12 +169,13 @@ class StatusAwarePilotDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self, queryset=None):
         pilot = super().get_object(queryset)
-        user_org = self.request.user.organization
         
-        # Basic permission check - allow if user has any valid relationship
+        # Strict permission check - only allow specific authorized relationships
         relationship = pilot.get_user_relationship(self.request.user)
-        if relationship['type'] == 'none':
-            raise PermissionDenied("You don't have permission to view this pilot")
+        allowed_types = ['owner', 'bidder', 'available', 'admin']
+        
+        if relationship['type'] not in allowed_types:
+            raise Http404("Pilot not found")  # Return 404 instead of revealing existence
         
         return pilot
 

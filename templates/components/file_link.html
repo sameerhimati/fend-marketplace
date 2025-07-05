@@ -1,7 +1,7 @@
 {% load pilot_tags %}
 <!-- 
-Reusable file link component with fallback for permission issues
-Usage: {% include "components/file_link.html" with file=pilot.technical_specs_doc pilot_id=pilot.id file_type="technical" label="Technical Specifications" %}
+Simple file link component
+Usage: {% include "components/file_link.html" with file=pilot.technical_specs_doc label="Technical Specifications" %}
 -->
 
 {% if file %}
@@ -10,57 +10,16 @@ Usage: {% include "components/file_link.html" with file=pilot.technical_specs_do
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
     </svg>
     
-    <!-- Primary link (direct to S3/Spaces) -->
+    <!-- Direct file link -->
     <a href="{{ file.url }}" 
        target="_blank" 
-       class="text-blue-600 hover:text-blue-800 font-medium"
-       onclick="handleFileAccess(event, this)">
+       class="text-blue-600 hover:text-blue-800 font-medium">
         {{ file.name|friendly_filename|default:label }}
     </a>
-    
-    <!-- Fallback link (served through Django) - initially hidden -->
-    {% if pilot_id and file_type %}
-    <a href="{% url 'pilots:serve_pilot_file' pilot_id=pilot_id file_type=file_type %}" 
-       target="_blank" 
-       class="text-gray-500 hover:text-gray-700 text-sm ml-2 hidden"
-       id="fallback-{{ pilot_id }}-{{ file_type }}">
-        (Alternative link)
-    </a>
-    {% elif bid_id %}
-    <a href="{% url 'pilots:serve_bid_file' bid_id=bid_id %}" 
-       target="_blank" 
-       class="text-gray-500 hover:text-gray-700 text-sm ml-2 hidden"
-       id="fallback-bid-{{ bid_id }}">
-        (Alternative link)
-    </a>
-    {% endif %}
     
     <!-- File size indicator -->
     {% if file|file_size_mb %}
     <span class="text-xs text-gray-500">({{ file|file_size_mb }})</span>
     {% endif %}
 </div>
-
-<script>
-function handleFileAccess(event, primaryLink) {
-    // If the primary link fails, show the fallback
-    const fallbackId = primaryLink.getAttribute('data-fallback') || 
-                      `fallback-{{ pilot_id|default:'' }}-{{ file_type|default:'' }}{{ bid_id|default:'' }}`;
-    
-    // Set up error handling for the primary link
-    setTimeout(() => {
-        // Check if we got redirected to an error page
-        const newWindow = window.open(primaryLink.href, '_blank');
-        
-        // Show fallback after a short delay if needed
-        setTimeout(() => {
-            const fallbackLink = document.getElementById(fallbackId);
-            if (fallbackLink) {
-                fallbackLink.classList.remove('hidden');
-                fallbackLink.innerHTML = '(Try this link if the file won\'t open)';
-            }
-        }, 2000);
-    }, 100);
-}
-</script>
 {% endif %}

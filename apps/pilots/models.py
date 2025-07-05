@@ -307,13 +307,11 @@ class Pilot(models.Model):
                         'can_bid': True,
                     }
                 else:
-                    return {
-                        'type': 'unavailable',
-                        'can_bid': False,
-                        'reason': 'Already has approved bid' if self.bids.filter(status__in=['approved', 'live', 'completion_pending', 'completed']).exists() else 'Not available'
-                    }
+                    # Startup has no relationship to this pilot and can't access it
+                    return {'type': 'none'}
         
-        return {'type': 'viewer'}
+        # No other relationship type allowed
+        return {'type': 'none'}
 
     def get_display_summary(self, user):
         """
