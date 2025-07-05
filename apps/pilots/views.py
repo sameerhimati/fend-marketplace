@@ -1145,3 +1145,150 @@ def admin_manage_featured_pilots(request):
     }
     
     return render(request, 'admin/pilots/manage_featured_pilots.html', context)
+
+
+@login_required
+def serve_pilot_file(request, pilot_id, file_type):
+    """
+    Secure file serving view that checks permissions before serving files
+    Fallback for when direct S3/Spaces URLs fail due to permission issues
+    """
+    pilot = get_object_or_404(Pilot, id=pilot_id)
+    
+    # Check permissions
+    user_org = request.user.organization
+    if not user_org:
+        raise PermissionDenied("You must be part of an organization to access files")
+    
+    # Allow access if:
+    # 1. User owns the pilot (enterprise)
+    # 2. User has submitted a bid (startup)
+    # 3. User is staff
+    can_access = (
+        pilot.organization == user_org or  # Pilot owner
+        PilotBid.objects.filter(pilot=pilot, startup=user_org).exists() or  # Has bid
+        request.user.is_staff  # Staff access
+    )
+    
+    if not can_access:
+        raise PermissionDenied("You don't have permission to access this file")
+    
+    # Get the appropriate file field
+    file_field = None
+    if file_type == 'technical':
+        file_field = pilot.technical_specs_doc
+    elif file_type == 'performance':
+        file_field = pilot.performance_metrics_doc
+    elif file_type == 'compliance':
+        file_field = pilot.compliance_requirements_doc
+    else:
+        raise Http404("Invalid file type")
+    
+    if not file_field:
+        raise Http404("File not found")
+    
+    # Try to serve the file
+    try:
+        # If we're using S3/Spaces, generate a signed URL
+        if hasattr(settings, 'USE_S3') and settings.USE_S3:
+            try:
+                # Create S3 client
+                import boto3
+                from botocore.exceptions import ClientError
+                
+                session = boto3.session.Session()
+                client = session.client(
+                    's3',
+                    region_name=settings.AWS_S3_REGION_NAME,
+                    endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+                )
+                
+                # Generate a signed URL (valid for 1 hour)
+                signed_url = client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                        'Key': file_field.name
+                    },
+                    ExpiresIn=3600  # 1 hour
+                )
+                
+                return redirect(signed_url)
+                
+            except Exception as e:
+                # If S3 fails, try to serve directly
+                messages.error(request, f"Error accessing file: {e}")
+                raise Http404("File temporarily unavailable")
+        else:
+            # Local file serving
+            return redirect(file_field.url)
+            
+    except Exception as e:
+        messages.error(request, "Error accessing file. Please try again later.")
+        raise Http404("File not available")
+
+
+@login_required 
+def serve_bid_file(request, bid_id):
+    """
+    Secure file serving for bid proposal documents
+    """
+    bid = get_object_or_404(PilotBid, id=bid_id)
+    user_org = request.user.organization
+    
+    if not user_org:
+        raise PermissionDenied("You must be part of an organization to access files")
+    
+    # Allow access if:
+    # 1. User owns the bid (startup)
+    # 2. User owns the pilot (enterprise) 
+    # 3. User is staff
+    can_access = (
+        bid.startup == user_org or  # Bid owner
+        bid.pilot.organization == user_org or  # Pilot owner
+        request.user.is_staff  # Staff access
+    )
+    
+    if not can_access:
+        raise PermissionDenied("You don't have permission to access this file")
+    
+    if not bid.proposal_doc:
+        raise Http404("File not found")
+    
+    # Try to serve the file (same logic as pilot files)
+    try:
+        if hasattr(settings, 'USE_S3') and settings.USE_S3:
+            try:
+                import boto3
+                
+                session = boto3.session.Session()
+                client = session.client(
+                    's3',
+                    region_name=settings.AWS_S3_REGION_NAME,
+                    endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+                )
+                
+                signed_url = client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                        'Key': bid.proposal_doc.name
+                    },
+                    ExpiresIn=3600  # 1 hour
+                )
+                
+                return redirect(signed_url)
+                
+            except Exception as e:
+                messages.error(request, f"Error accessing file: {e}")
+                raise Http404("File temporarily unavailable")
+        else:
+            return redirect(bid.proposal_doc.url)
+            
+    except Exception as e:
+        messages.error(request, "Error accessing file. Please try again later.")
+        raise Http404("File not available")

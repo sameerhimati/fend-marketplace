@@ -88,6 +88,7 @@ if USE_S3:
     AWS_DEFAULT_ACL = os.getenv('AWS_DEFAULT_ACL', 'public-read')
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',
+        'ACL': 'public-read',  # Ensure all files are publicly readable
     }
     AWS_QUERYSTRING_AUTH = False  # Don't add auth to public URLs
     AWS_S3_FILE_OVERWRITE = True  # For static files

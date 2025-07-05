@@ -15,10 +15,14 @@ class PublicMediaStorage(S3Boto3Storage):
     default_acl = 'public-read'
     file_overwrite = False
     custom_domain = False  # Use endpoint URL for media files
+    querystring_auth = False  # Don't require authentication for public files
     
     def get_object_parameters(self, name):
         """Set cache control headers for media files"""
         params = super().get_object_parameters(name)
+        # Ensure ACL is set for each file
+        params['ACL'] = 'public-read'
+        
         # Different cache times for different file types
         if name.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
             params['CacheControl'] = 'max-age=2592000'  # 30 days for images
@@ -35,9 +39,11 @@ class OrganizationLogoStorage(S3Boto3Storage):
     default_acl = 'public-read'
     file_overwrite = False
     custom_domain = False
+    querystring_auth = False  # Don't require authentication for public files
     
     def get_object_parameters(self, name):
         params = super().get_object_parameters(name)
+        params['ACL'] = 'public-read'  # Ensure ACL is set for each file
         params['CacheControl'] = 'max-age=2592000'  # 30 days for logos
         return params
 
@@ -48,8 +54,10 @@ class PilotDocumentStorage(S3Boto3Storage):
     default_acl = 'public-read'
     file_overwrite = False
     custom_domain = False
+    querystring_auth = False  # Don't require authentication for public files
     
     def get_object_parameters(self, name):
         params = super().get_object_parameters(name)
+        params['ACL'] = 'public-read'  # Ensure ACL is set for each file
         params['CacheControl'] = 'max-age=604800'  # 7 days for documents
         return params

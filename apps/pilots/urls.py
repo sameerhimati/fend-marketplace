@@ -58,4 +58,18 @@ urlpatterns = [
     path('admin/bid/<int:pk>/mark-as-live/', 
          views.admin_mark_bid_as_live, 
          name='admin_mark_bid_as_live'),
+    
+    # =============================================================================
+    # SECURE FILE SERVING - Fallback for permission issues
+    # =============================================================================
+    
+    # Secure pilot file serving
+    path('files/pilot/<int:pilot_id>/<str:file_type>/', 
+         views.serve_pilot_file, 
+         name='serve_pilot_file'),
+    
+    # Secure bid file serving  
+    path('files/bid/<int:bid_id>/', 
+         views.serve_bid_file, 
+         name='serve_bid_file'),
 ]
