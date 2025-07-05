@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
 import secrets
 from django.db.models.signals import pre_save, post_save
