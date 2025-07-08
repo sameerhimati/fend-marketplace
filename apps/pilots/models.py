@@ -304,7 +304,7 @@ class Pilot(models.Model):
                     not self.bids.filter(status__in=['approved', 'live', 'completion_pending', 'completed']).exists()):
                     return {
                         'type': 'available',
-                        'can_bid': True,
+                        'can_bid': user_org.approval_status == 'approved',  # Only approved startups can bid
                     }
                 else:
                     # Startup has no relationship to this pilot and can't access it

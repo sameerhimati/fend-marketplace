@@ -57,7 +57,7 @@ class AuthenticationFlowMiddleware:
                     # Set UI state for templates
                     request.ui_state = 'pending_approval'
                     
-                    # Allow access to dashboard, organization directory, and pilot functionality
+                    # Allow access to dashboard, organization directory, pilot functionality, and deals
                     pending_allowed_paths = [
                         '/organizations/pending-approval/',
                         '/payments/', # Allow access to payment processing
@@ -67,12 +67,12 @@ class AuthenticationFlowMiddleware:
                         '/organizations/directory/', # Allow browsing organizations
                         '/organizations/profile/', # Allow viewing organization profiles
                         '/pilots/', # Allow full pilots access
+                        '/organizations/deals/', # Allow deals access for browsing
                     ]
                     
-                    # Block only bid submission and deals for pending users
+                    # Block only bid submission for pending users
                     pending_blocked_paths = [
                         '/pilots/bid/',
-                        '/deals/', # Block deals pages
                     ]
                     
                     is_pending_blocked = any(

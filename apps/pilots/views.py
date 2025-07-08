@@ -554,6 +554,11 @@ def create_bid(request, pilot_id):
         messages.error(request, "Only startups can submit bids")
         return redirect('pilots:detail', pk=pilot_id)
     
+    # Check if startup is approved
+    if user_org.approval_status != 'approved':
+        messages.warning(request, "You must be approved before you can submit bids on Pilots.")
+        return redirect('pilots:detail', pk=pilot_id)
+    
     # Check if startup already has ANY bid for this pilot
     existing_bid = PilotBid.objects.filter(
         pilot=pilot, 

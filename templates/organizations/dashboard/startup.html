@@ -491,7 +491,7 @@
                 
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {% for enterprise in enterprises %|slice:":3" %}
+                        {% for enterprise in enterprises|slice:":3" %}
                         <div class="group cursor-pointer" onclick="window.location.href='{% url 'organizations:profile' enterprise.id %}'">
                             <div class="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:border-gray-300 transition-colors duration-200">
                                 <div class="p-5">
