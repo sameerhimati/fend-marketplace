@@ -381,13 +381,26 @@ def checkout_cancel(request):
 def stripe_webhook(request):
     """Handle Stripe webhook events"""
     payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
     event = None
     
+    # Debug logging
+    print(f"Webhook received. Signature header present: {sig_header is not None}")
+    print(f"Webhook secret configured: {bool(endpoint_secret)}")
+    
     try:
-        event = stripe.Event.construct_from(
-            json.loads(payload), stripe.api_key
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
         )
+        print(f"Webhook signature verification successful for event: {event.type}")
     except ValueError as e:
+        # Invalid payload
+        print(f"Webhook error - Invalid payload: {e}")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        print(f"Webhook error - Invalid signature: {e}")
         return HttpResponse(status=400)
     
     # Handle specific events
@@ -523,6 +536,47 @@ def stripe_webhook(request):
             
         except (Organization.DoesNotExist, Subscription.DoesNotExist) as e:
             print(f"Error processing subscription deletion: {e}")
+    
+    elif event.type == 'customer.subscription.created':
+        # Handle new subscription creation
+        subscription = event.data.object
+        print(f"New subscription created: {subscription.id}")
+        # Additional logic can be added here if needed
+    
+    elif event.type == 'customer.subscription.updated':
+        # Handle subscription updates (plan changes, etc.)
+        subscription = event.data.object
+        stripe_subscription_id = subscription.id
+        
+        try:
+            # Find the subscription in our database
+            our_subscription = Subscription.objects.get(
+                stripe_subscription_id=stripe_subscription_id
+            )
+            
+            # Update subscription details
+            our_subscription.status = subscription.status
+            our_subscription.current_period_start = datetime.fromtimestamp(subscription.current_period_start)
+            our_subscription.current_period_end = datetime.fromtimestamp(subscription.current_period_end)
+            our_subscription.save()
+            
+        except Subscription.DoesNotExist as e:
+            print(f"Subscription not found for update: {stripe_subscription_id}")
+    
+    elif event.type == 'invoice.payment_action_required':
+        # Handle when 3D Secure authentication is required
+        invoice = event.data.object
+        customer_id = invoice.customer
+        
+        try:
+            organization = Organization.objects.get(stripe_customer_id=customer_id)
+            # You might want to notify the organization about required action
+            print(f"Payment action required for organization: {organization.name}")
+        except Organization.DoesNotExist:
+            print(f"Organization not found for payment action required: {customer_id}")
+    
+    else:
+        print(f'Unhandled event type: {event.type}')
     
     return HttpResponse(status=200)
 
