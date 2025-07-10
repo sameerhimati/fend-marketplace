@@ -52,27 +52,31 @@ class AuthenticationFlowMiddleware:
                     request.ui_state = 'payment'
                     return self.get_response(request)
                 
-                # If organization is pending approval
+                # FIRST: Check subscription status (regardless of approval)
+                if hasattr(org, 'has_active_subscription') and callable(org.has_active_subscription):
+                    if not org.has_active_subscription():
+                        # Set subscription UI state for ALL pages when subscription is incomplete
+                        request.ui_state = 'subscription'
+                        
+                        # Only redirect from non-payment pages
+                        if not request.path.startswith('/payments/'):
+                            # Check if user has any subscription at all
+                            if hasattr(org, 'subscription') and org.subscription is not None:
+                                # User has subscription but it's inactive/expired - go to subscription detail
+                                messages.warning(request, "You need an active subscription to access this page.")
+                                return redirect('payments:subscription_detail')
+                            else:
+                                # User has no subscription - go to plan selection
+                                messages.warning(request, "Please select a subscription plan to access this page.")
+                                return redirect('payments:payment_selection')
+                
+                # SECOND: If they have active subscription, check approval for specific restrictions
                 if hasattr(org, 'approval_status') and org.approval_status == 'pending':
-                    # Set UI state for templates
-                    request.ui_state = 'pending_approval'
-                    
-                    # Allow access to dashboard, organization directory, pilot functionality, and deals
-                    pending_allowed_paths = [
-                        '/organizations/pending-approval/',
-                        '/payments/', # Allow access to payment processing
-                        '/organizations/dashboard/', # Allow dashboard access
-                        '/organizations/enterprise-dashboard/', # Allow enterprise dashboard
-                        '/organizations/startup-dashboard/', # Allow startup dashboard
-                        '/organizations/directory/', # Allow browsing organizations
-                        '/organizations/profile/', # Allow viewing organization profiles
-                        '/pilots/', # Allow full pilots access
-                        '/organizations/deals/', # Allow deals access for browsing
-                    ]
-                    
-                    # Block only bid submission for pending users
+                    # Block only pilot creation and bidding for pending users (they can still access dashboard)
                     pending_blocked_paths = [
+                        '/pilots/create/',
                         '/pilots/bid/',
+                        '/pilots/publish/',  # Block publishing if that's a separate action
                     ]
                     
                     is_pending_blocked = any(
@@ -81,15 +85,7 @@ class AuthenticationFlowMiddleware:
                     
                     if is_pending_blocked:
                         messages.warning(request, "You must be approved before you can create pilots or submit bids.")
-                        return redirect('organizations:pending_approval')
-                    
-                    is_pending_allowed = any(
-                        request.path.startswith(path) for path in pending_allowed_paths
-                    )
-                    
-                    if not is_always_accessible and not is_pending_allowed:
-                        # Force redirect to pending approval page
-                        return redirect('organizations:pending_approval')
+                        return redirect('organizations:dashboard')
                 
                 # If organization was rejected
                 elif hasattr(org, 'approval_status') and org.approval_status == 'rejected':
@@ -102,26 +98,6 @@ class AuthenticationFlowMiddleware:
                         # If we're not already on the pending page, redirect there
                         if not request.path.startswith('/organizations/pending-approval/'):
                             return redirect('organizations:pending_approval')
-                
-                # If organization is approved, handle subscription check
-                elif hasattr(org, 'approval_status') and org.approval_status == 'approved':
-                    # Always check subscription status for approved orgs
-                    if hasattr(org, 'has_active_subscription') and callable(org.has_active_subscription):
-                        if not org.has_active_subscription():
-                            # Set subscription UI state for ALL pages when subscription is incomplete
-                            request.ui_state = 'subscription'
-                            
-                            # Only redirect from non-payment pages
-                            if not request.path.startswith('/payments/'):
-                                # Check if user has any subscription at all
-                                if hasattr(org, 'subscription') and org.subscription is not None:
-                                    # User has subscription but it's inactive/expired - go to subscription detail
-                                    messages.warning(request, "You need an active subscription to access this page.")
-                                    return redirect('payments:subscription_detail')
-                                else:
-                                    # User has no subscription - go to plan selection
-                                    messages.warning(request, "Please select a subscription plan to access this page.")
-                                    return redirect('payments:payment_selection')
         else:
             # Unauthenticated - landing UI
             request.ui_state = 'landing'
