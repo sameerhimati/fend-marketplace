@@ -28,6 +28,7 @@ class AuthenticationFlowMiddleware:
             always_accessible_paths = [
                 '/admin/',
                 '/organizations/logout/',
+                '/organizations/profile/',  # Allow profile access for all users
                 '/static/',
                 '/media/',
                 '/legal/',  # Legal documents should be publicly accessible
@@ -58,8 +59,8 @@ class AuthenticationFlowMiddleware:
                         # Set subscription UI state for ALL pages when subscription is incomplete
                         request.ui_state = 'subscription'
                         
-                        # Only redirect from non-payment pages
-                        if not request.path.startswith('/payments/'):
+                        # Only redirect from non-payment pages AND non-always-accessible pages
+                        if not request.path.startswith('/payments/') and not is_always_accessible:
                             # Check if user has any subscription at all
                             if hasattr(org, 'subscription') and org.subscription is not None:
                                 # User has subscription but it's inactive/expired - go to subscription detail
