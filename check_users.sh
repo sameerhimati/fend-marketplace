@@ -3,7 +3,7 @@
 
 echo "=== USER ACCESS INVESTIGATION ==="
 docker compose exec -T web python manage.py shell -c "
-from apps.organizations.models import User
+from apps.users.models import User
 users = User.objects.select_related('organization').all()
 print(f'Total users: {users.count()}')
 print('')
