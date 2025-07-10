@@ -213,8 +213,8 @@ class Organization(models.Model):
             if not hasattr(self, 'subscription'):
                 return False
                 
-            # Check if the subscription exists and is active
-            return self.subscription is not None and self.subscription.status == 'active'
+            # Check if the subscription exists and is truly active (including expiration check)
+            return self.subscription is not None and self.subscription.is_active()
         except Exception:
             # Handle any errors gracefully
             return False

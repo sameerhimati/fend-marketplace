@@ -113,8 +113,15 @@ class AuthenticationFlowMiddleware:
                             
                             # Only redirect from non-payment pages
                             if not request.path.startswith('/payments/'):
-                                messages.warning(request, "You need an active subscription to access this page.")
-                                return redirect('payments:subscription_detail')
+                                # Check if user has any subscription at all
+                                if hasattr(org, 'subscription') and org.subscription is not None:
+                                    # User has subscription but it's inactive/expired - go to subscription detail
+                                    messages.warning(request, "You need an active subscription to access this page.")
+                                    return redirect('payments:subscription_detail')
+                                else:
+                                    # User has no subscription - go to plan selection
+                                    messages.warning(request, "Please select a subscription plan to access this page.")
+                                    return redirect('payments:payment_selection')
         else:
             # Unauthenticated - landing UI
             request.ui_state = 'landing'
