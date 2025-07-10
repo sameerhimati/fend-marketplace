@@ -105,25 +105,16 @@ class AuthenticationFlowMiddleware:
                 
                 # If organization is approved, handle subscription check
                 elif hasattr(org, 'approval_status') and org.approval_status == 'approved':
-                    # Check subscription status
-                    subscription_exempt_paths = [
-                        '/payments/',
-                    ]
-                    
-                    is_subscription_exempt = any(
-                        request.path.startswith(path) for path in subscription_exempt_paths
-                    ) or is_always_accessible
-                    
-                    if not is_subscription_exempt:
-                        # Only check subscription if the method is available
-                        if hasattr(org, 'has_active_subscription') and callable(org.has_active_subscription):
-                            if not org.has_active_subscription():
-                                request.ui_state = 'subscription'
-                                
-                                # Redirect from ANY non-payment page to subscription detail
-                                if not request.path.startswith('/payments/'):
-                                    messages.warning(request, "You need an active subscription to access this page.")
-                                    return redirect('payments:subscription_detail')
+                    # Always check subscription status for approved orgs
+                    if hasattr(org, 'has_active_subscription') and callable(org.has_active_subscription):
+                        if not org.has_active_subscription():
+                            # Set subscription UI state for ALL pages when subscription is incomplete
+                            request.ui_state = 'subscription'
+                            
+                            # Only redirect from non-payment pages
+                            if not request.path.startswith('/payments/'):
+                                messages.warning(request, "You need an active subscription to access this page.")
+                                return redirect('payments:subscription_detail')
         else:
             # Unauthenticated - landing UI
             request.ui_state = 'landing'
