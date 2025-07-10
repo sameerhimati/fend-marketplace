@@ -120,9 +120,9 @@ class AuthenticationFlowMiddleware:
                             if not org.has_active_subscription():
                                 request.ui_state = 'subscription'
                                 
-                                if request.path == '/organizations/dashboard/' or request.path == '/':
-                                    message_text = "You need an active subscription to access the dashboard."
-                                    messages.warning(request, message_text)
+                                # Redirect from ANY non-payment page to subscription detail
+                                if not request.path.startswith('/payments/'):
+                                    messages.warning(request, "You need an active subscription to access this page.")
                                     return redirect('payments:subscription_detail')
         else:
             # Unauthenticated - landing UI

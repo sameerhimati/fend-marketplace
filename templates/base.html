@@ -148,7 +148,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-indigo-600">Fend Marketplace</span>
+                        <span class="text-2xl font-bold text-indigo-600 cursor-default">Fend Marketplace</span>
                     </div>
                     
                     <!-- Logout option -->
@@ -170,6 +170,14 @@
                                     </button>
                                     <div id="user-menu" class="hidden origin-top-left absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none text-center" 
                                         style="transform: translateX(-50%); right: auto; left: 50%;" role="menu">
+                                        {% if user.organization %}
+                                            <a href="{% url 'organizations:profile' user.organization.id %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                Profile
+                                            </a>
+                                            <a href="{% url 'payments:subscription_detail' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                Manage Subscription
+                                            </a>
+                                        {% endif %}
                                         <form method="post" action="{% url 'organizations:logout' %}" class="block w-full text-left">
                                             {% csrf_token %}
                                             <button type="submit" class="block w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
