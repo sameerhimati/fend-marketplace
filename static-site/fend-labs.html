@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fend Labs - Experimental Innovation. Early Access.</title>
+    <meta name="description" content="Our innovation laboratory where we build, test, and launch experimental solutions. Get early access to cutting-edge tools and provide feedback that shapes the future of enterprise technology.">
+    <meta property="og:title" content="Fend Labs - Experimental Innovation. Early Access.">
+    <meta property="og:description" content="Beta access to experimental technologies and early adopter competitive advantages with direct feedback loops.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fend.ai/fend-labs">
+    <link rel="icon" href="https://marketplace.fend.ai/static/images/fend/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Analytics: Using Cloudflare's built-in analytics - no code needed! -->
+    <!-- View analytics at: dash.cloudflare.com → fend.ai → Analytics & Logs -->
+    
+    <style>
+        /* Fix anchor link scroll offset for sticky header */
+        html {
+            scroll-padding-top: 80px; /* Account for 64px header + 16px buffer */
+        }
+        
+        /* Custom gradient for hero text */
+        .gradient-text {
+            background: linear-gradient(135deg, #6366F1 0%, #7C3AED 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Custom hover animations */
+        .hover-lift:hover {
+            transform: translateY(-8px);
+        }
+        
+        /* Mobile menu toggle */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <a href="https://fend.ai" class="text-2xl font-bold text-indigo-600">Fend Labs</a>
+            
+            <!-- Desktop Menu -->
+            <ul class="nav-links hidden md:flex space-x-8 items-center">
+                <li><a href="https://fend.ai" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Main Site</a></li>
+                <li><a href="https://marketplace.fend.ai/" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Marketplace</a></li>
+                <li><a href="#products" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Products</a></li>
+                <li><a href="#contact" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Contact</a></li>
+            </ul>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </nav>
+        
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100">
+            <div class="px-4 py-3 space-y-2">
+                <a href="https://fend.ai" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Main Site</a>
+                <a href="https://marketplace.fend.ai/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Marketplace</a>
+                <a href="#products" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Products</a>
+                <a href="#contact" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Contact</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="bg-gradient-to-b from-gray-50 to-white py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-4xl">
+                    <h1 class="text-5xl md:text-7xl font-bold text-gray-900 leading-tight mb-2">Experimental Innovation.</h1>
+                    <h2 class="text-5xl md:text-7xl font-bold gradient-text leading-tight mb-8">Early Access.</h2>
+                    <p class="text-xl text-gray-600 mb-8 max-w-3xl leading-relaxed">Our innovation laboratory where we build, test, and launch experimental solutions. Get early access to cutting-edge tools and provide feedback that shapes the future of enterprise technology.</p>
+                    
+                    <div class="text-gray-600 mb-8">
+                        Already a beta tester? <a href="#contact" class="text-indigo-600 hover:text-indigo-700 font-medium">Access your dashboard</a>
+                    </div>
+                    
+                    <a href="#products" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">Explore Beta Products</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="py-20 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-purple-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <h4 class="text-xl font-bold text-gray-900 mb-4">✓ Beta access to experimental technologies</h4>
+                            <p class="text-gray-600 leading-relaxed">Be among the first to try breakthrough solutions before they hit the market. Get exclusive access to cutting-edge tools that give you a competitive advantage.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-purple-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <h4 class="text-xl font-bold text-gray-900 mb-4">✓ Early adopter competitive advantages</h4>
+                            <p class="text-gray-600 leading-relaxed">Stay ahead of the curve with access to innovation that your competitors won't see for months. Shape your strategy around emerging technology trends.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-purple-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <h4 class="text-xl font-bold text-gray-900 mb-4">✓ Direct feedback loops with product teams</h4>
+                            <p class="text-gray-600 leading-relaxed">Your input directly influences product development. Work closely with our engineering teams to ensure solutions meet real enterprise needs.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center text-gray-400 text-sm font-semibold tracking-widest uppercase">
+                    TRUSTED BY INNOVATION LEADERS WORLDWIDE
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section class="py-20" id="products">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-4xl font-bold text-center text-gray-900 mb-4">How Fend Labs Works</h2>
+                <p class="text-center text-gray-600 text-xl mb-16">From experimental concept to enterprise deployment in three phases</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                    <div class="text-center">
+                        <h4 class="text-2xl font-bold text-gray-900 mb-4">Apply & Access</h4>
+                        <p class="text-gray-600 leading-relaxed">Join our beta program. Get early access to experimental solutions. Test cutting-edge technology before general release.</p>
+                    </div>
+                    <div class="text-center">
+                        <h4 class="text-2xl font-bold text-gray-900 mb-4">Test & Feedback</h4>
+                        <p class="text-gray-600 leading-relaxed">Use products in real environments. Provide feedback on functionality. Help shape development with direct input to engineering teams.</p>
+                    </div>
+                    <div class="text-center">
+                        <h4 class="text-2xl font-bold text-gray-900 mb-4">Deploy & Scale</h4>
+                        <p class="text-gray-600 leading-relaxed">Graduate successful solutions to production. Scale across your organization. Maintain competitive advantage with proven technology.</p>
+                    </div>
+                </div>
+                
+                <!-- Featured Beta Highlight -->
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-8 mb-16">
+                    <h3 class="text-3xl font-bold text-gray-900 mb-6 text-center">Featured Beta: AdMute</h3>
+                    <p class="text-gray-600 text-xl mb-8 text-center max-w-4xl mx-auto">Revolutionary ad detection technology that works where traditional blockers fail. Now in public beta with 1M+ users providing feedback.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="text-center">
+                            <h4 class="text-lg font-bold text-gray-900 mb-3">Real-time Detection</h4>
+                            <p class="text-gray-600">250ms response time across 10+ streaming platforms.</p>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="text-lg font-bold text-gray-900 mb-3">Enterprise Ready</h4>
+                            <p class="text-gray-600">Scalable architecture tested by beta enterprise users.</p>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="text-lg font-bold text-gray-900 mb-3">Active Development</h4>
+                            <p class="text-gray-600">Weekly updates based on user feedback and testing.</p>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="text-lg font-bold text-gray-900 mb-3">Beta Feedback</h4>
+                            <p class="text-gray-600">Direct influence on feature development and roadmap.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4 justify-center">
+                        <a href="https://admute.io" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg">Try AdMute Beta</a>
+                        <a href="#contact" class="border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300">Enterprise Beta Access</a>
+                    </div>
+                </div>
+                
+                <!-- Experimental Pipeline -->
+                <div class="bg-gray-50 rounded-xl p-8 text-center">
+                    <h3 class="text-3xl font-bold text-gray-900 mb-8">Experimental Pipeline</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-white rounded-lg p-6 shadow-lg">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">Credit Freeze Pro</h4>
+                            <p class="text-yellow-600 text-sm font-bold mb-3 uppercase tracking-wide">Alpha Testing</p>
+                            <p class="text-gray-600">Enterprise credit monitoring with automated freeze management. Limited alpha testers only.</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-6 shadow-lg">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">Identity Shield</h4>
+                            <p class="text-gray-500 text-sm font-bold mb-3 uppercase tracking-wide">Research Phase</p>
+                            <p class="text-gray-600">Advanced identity protection for remote workforces. Early research and development.</p>
+                        </div>
+                        <div class="bg-white rounded-lg p-6 shadow-lg">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">Custom Innovation</h4>
+                            <p class="text-green-600 text-sm font-bold mb-3 uppercase tracking-wide">Available Now</p>
+                            <p class="text-gray-600">Partner with our labs for custom experimental development tailored to your needs.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats & Testimonials Section -->
+        <section class="py-20 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">Why Innovation Leaders Choose Fend Labs</h2>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                    <div class="text-center">
+                        <h3 class="text-4xl font-bold text-indigo-600 mb-2">1M+</h3>
+                        <p class="text-gray-600 font-medium">Beta Users</p>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-4xl font-bold text-indigo-600 mb-2">50+</h3>
+                        <p class="text-gray-600 font-medium">Enterprise Testers</p>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-4xl font-bold text-indigo-600 mb-2">6mo</h3>
+                        <p class="text-gray-600 font-medium">Average Head Start</p>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-4xl font-bold text-indigo-600 mb-2">24/7</h3>
+                        <p class="text-gray-600 font-medium">Beta Support</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-xl shadow-lg p-8 border-l-4 border-indigo-600">
+                        <p class="text-lg text-gray-900 italic mb-6">"Fend Labs gives us access to solutions 6 months before our competitors. The direct feedback loop with engineering teams is invaluable."</p>
+                        <div class="font-bold text-gray-900">Sarah Chen</div>
+                        <div class="text-gray-600 text-sm">VP Innovation, Fortune 500</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-8 border-l-4 border-indigo-600">
+                        <p class="text-lg text-gray-900 italic mb-6">"Being in the beta program shaped AdMute into exactly what we needed. Our input directly influenced the enterprise features."</p>
+                        <div class="font-bold text-gray-900">Michael Rodriguez</div>
+                        <div class="text-gray-600 text-sm">CTO, Tech Startup</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Beta Access Programs Section -->
+        <section class="py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-4xl font-bold text-center text-gray-900 mb-4">Beta Access Programs</h2>
+                <p class="text-center text-gray-600 mb-16">Join our innovation community. Early access included.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-4">Individual Beta</h3>
+                        <div class="text-4xl font-bold text-indigo-600 mb-2">Free</div>
+                        <p class="text-gray-600 mb-8">Early access to public beta releases</p>
+                        <ul class="space-y-3 mb-8">
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Access to public beta products</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Community feedback forums</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Beta release notifications</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Standard support</span>
+                            </li>
+                        </ul>
+                        <a href="#contact" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-8 rounded-lg transition-all duration-300 hover:shadow-lg inline-block text-center">Join Beta Program</a>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-4">Enterprise Beta</h3>
+                        <div class="text-4xl font-bold text-indigo-600 mb-2">Custom</div>
+                        <p class="text-gray-600 mb-8">Private beta access + direct engineering contact</p>
+                        <ul class="space-y-3 mb-8">
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Private alpha/beta access</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Direct engineering feedback loops</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Custom feature development</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-600 font-bold mr-3">✓</span>
+                                <span class="text-gray-600">Dedicated support team</span>
+                            </li>
+                        </ul>
+                        <a href="#contact" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-8 rounded-lg transition-all duration-300 hover:shadow-lg inline-block text-center">Apply for Enterprise Beta</a>
+                    </div>
+                </div>
+                
+                <p class="text-center text-gray-600 text-sm mt-12">All beta programs include early access and direct feedback opportunities. No commitment required.</p>
+            </div>
+        </section>
+
+        <!-- Contact CTA Section -->
+        <section class="py-20 bg-gradient-to-b from-white to-gray-50" id="contact">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Ready to Shape the Future of Enterprise Technology?</h2>
+                <p class="text-xl text-gray-600 mb-8">Join innovation leaders already testing tomorrow's solutions today.</p>
+                <a href="mailto:labs@fend.ai" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-8 rounded-lg transition-all duration-300 hover:shadow-lg inline-block mb-8">Apply for Beta Access</a>
+                <p class="text-gray-600">Early access. Direct feedback. Competitive advantage.</p>
+                
+                <div class="mt-8">
+                    <p class="text-gray-600">Or email us directly at <a href="mailto:labs@fend.ai" class="text-indigo-600 hover:text-indigo-700 font-medium">labs@fend.ai</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-400 mb-4">Fend Labs</h3>
+                    <p class="text-gray-300 leading-relaxed">Experimental innovation and early access to cutting-edge enterprise technology solutions.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Platform</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://fend.ai" class="text-gray-300 hover:text-indigo-400 transition-colors">Main Site</a></li>
+                        <li><a href="https://marketplace.fend.ai/" class="text-gray-300 hover:text-indigo-400 transition-colors">Pilot Marketplace</a></li>
+                        <li><a href="#products" class="text-gray-300 hover:text-indigo-400 transition-colors">Beta Products</a></li>
+                        <li><a href="#contact" class="text-gray-300 hover:text-indigo-400 transition-colors">Apply for Beta</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Company</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://marketplace.fend.ai/legal/" class="text-gray-300 hover:text-indigo-400 transition-colors">About & Legal</a></li>
+                        <li><a href="mailto:labs@fend.ai" class="text-gray-300 hover:text-indigo-400 transition-colors">Contact Labs Team</a></li>
+                        <li><a href="mailto:legal@thefend.com" class="text-gray-300 hover:text-indigo-400 transition-colors">Legal Inquiries</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Legal</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://marketplace.fend.ai/legal/terms-of-service/" class="text-gray-300 hover:text-indigo-400 transition-colors">Terms of Service</a></li>
+                        <li><a href="https://marketplace.fend.ai/legal/privacy-policy/" class="text-gray-300 hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
+                        <li><a href="https://marketplace.fend.ai/legal/user-agreement/" class="text-gray-300 hover:text-indigo-400 transition-colors">User Agreement</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-8">
+                <p class="text-center text-gray-300">&copy; 2025 Fend.ai. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Mobile Menu Toggle Script -->
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Close mobile menu when clicking on a link
+        const mobileMenuLinks = mobileMenu.querySelectorAll('a');
+        mobileMenuLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
