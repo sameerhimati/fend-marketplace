@@ -62,57 +62,48 @@
     
     {% if request.ui_state == 'minimal' %}
         <!-- Minimal header for pending approval -->
-        <div class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-center h-16">
-                    <div class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-indigo-600">Fend Marketplace</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-center items-center">
+                <span class="text-2xl font-bold text-indigo-600">Fend Marketplace</span>
+            </nav>
+        </header>
     
     {% elif request.ui_state == 'admin' %}
     <!-- Admin navigation -->
-    <nav class="bg-white shadow">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <a href="{% url 'admin:index' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace Admin</a>
-                    </div>
-                    <div class="hidden md:ml-6 md:flex md:space-x-8">
-                        <a href="{% url 'admin:index' %}" 
-                            class="{% if request.resolver_match.url_name == 'index' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Dashboard
-                        </a>
-                        <a href="{% url 'admin:pending_approvals' %}" 
-                            class="{% if 'approval' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Organizations
-                            {% if pending_approvals_count > 0 %}
-                                <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ pending_approvals_count }}</span>
-                            {% endif %}
-                        </a>
-                        <a href="{% url 'pilots:admin_verify_pilots' %}" 
-                            class="{% if 'pilot' in request.resolver_match.url_name and 'verify' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Pilots
-                            {% if pilot_count_pending > 0 %}
-                                <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ pilot_count_pending }}</span>
-                            {% endif %}
-                        </a>
-                        <a href="{% url 'payments:admin_payment_dashboard' %}" 
-                            class="{% if 'payment' in request.resolver_match.url_name %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                            Payments
-                            {% if payment_stats.pending_count > 0 %}
-                                <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ payment_stats.pending_count }}</span>
-                            {% endif %}
-                        </a>
-                    </div>
-                </div>
-                <div class="flex items-center">
-                    <div class="ml-3 relative">
-                        <div class="flex items-center space-x-4">
-                            <div class="relative">
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <a href="{% url 'admin:index' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace Admin</a>
+                
+                <ul class="nav-links hidden md:flex space-x-8 items-center">
+                    <li><a href="{% url 'admin:index' %}" 
+                        class="{% if request.resolver_match.url_name == 'index' %}text-indigo-600{% else %}text-gray-900 hover:text-indigo-600{% endif %} font-medium transition-colors">
+                        Dashboard
+                    </a></li>
+                    <li><a href="{% url 'admin:pending_approvals' %}" 
+                        class="{% if 'approval' in request.resolver_match.url_name %}text-indigo-600{% else %}text-gray-900 hover:text-indigo-600{% endif %} font-medium transition-colors">
+                        Organizations
+                        {% if pending_approvals_count > 0 %}
+                            <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ pending_approvals_count }}</span>
+                        {% endif %}
+                    </a></li>
+                    <li><a href="{% url 'pilots:admin_verify_pilots' %}" 
+                        class="{% if 'pilot' in request.resolver_match.url_name and 'verify' in request.resolver_match.url_name %}text-indigo-600{% else %}text-gray-900 hover:text-indigo-600{% endif %} font-medium transition-colors">
+                        Pilots
+                        {% if pilot_count_pending > 0 %}
+                            <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ pilot_count_pending }}</span>
+                        {% endif %}
+                    </a></li>
+                    <li><a href="{% url 'payments:admin_payment_dashboard' %}" 
+                        class="{% if 'payment' in request.resolver_match.url_name %}text-indigo-600{% else %}text-gray-900 hover:text-indigo-600{% endif %} font-medium transition-colors">
+                        Payments
+                        {% if payment_stats.pending_count > 0 %}
+                            <span class="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">{{ payment_stats.pending_count }}</span>
+                        {% endif %}
+                    </a></li>
+                </ul>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
                                 <button type="button" id="user-menu-button" class="text-gray-700 flex items-center space-x-2">
                                     <span class="text-gray-500">{{ user.get_full_name|default:user.username }} (Admin)</span>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -138,24 +129,18 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </nav>
+            </nav>
+        </header>
 
     {% elif request.ui_state == 'subscription' %}
         <!-- Header for subscription pages -->
-        <nav class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex-shrink-0 flex items-center">
-                        <span class="text-2xl font-bold text-indigo-600 cursor-default">Fend Marketplace</span>
-                    </div>
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <span class="text-2xl font-bold text-indigo-600 cursor-default">Fend Marketplace</span>
                     
-                    <!-- Logout option -->
-                    <div class="flex items-center">
-                        <div class="ml-3 relative">
-                            <div class="flex items-center space-x-4">
-                                <div class="relative">
+                <!-- Logout option -->
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
                                     <button type="button" id="user-menu-button" class="text-gray-700 flex items-center space-x-2">
                                         <span class="text-gray-500">
                                             {% if user.organization %}
@@ -190,63 +175,52 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     {% elif request.ui_state == 'landing' %}
         <!-- Landing page or unauthenticated user gets minimal header -->
-        <nav class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
-                    </div>
-                    
-                    <!-- Desktop Menu -->
-                    <div class="hidden md:flex items-center space-x-8">
-                        <a href="https://fend.ai/" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Home</a>
-                        <a href="https://labs.fend.ai" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Labs</a>
-                        <a href="{% url 'organizations:login' %}" class="text-gray-500 hover:text-gray-700">Sign in</a>
-                        <a href="{% url 'organizations:register' %}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                            Register
-                        </a>
-                    </div>
-                    
-                    <!-- Mobile Menu Button -->
-                    <button type="button" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="mobile-menu-button-landing">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                        </svg>
-                    </button>
-                </div>
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <a href="/" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
                 
-                <!-- Mobile Menu Dropdown -->
-                <div id="mobile-menu-landing" class="hidden md:hidden border-t border-gray-200">
-                    <div class="px-4 py-3 space-y-2">
-                        <a href="https://fend.ai/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Home</a>
-                        <a href="https://labs.fend.ai" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Labs</a>
-                        <div class="pt-2 border-t border-gray-200">
-                            <a href="{% url 'organizations:login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Sign in</a>
-                            <a href="{% url 'organizations:register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 text-center">Register</a>
-                        </div>
+                <!-- Desktop Menu -->
+                <ul class="nav-links hidden md:flex space-x-8 items-center">
+                    <li><a href="https://fend.ai/" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Home</a></li>
+                    <li><a href="https://labs.fend.ai" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Labs</a></li>
+                    <li><a href="{% url 'organizations:login' %}" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Sign in</a></li>
+                    <li><a href="{% url 'organizations:register' %}" class="text-indigo-600 font-medium hover:text-indigo-700">Register</a></li>
+                </ul>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-button-landing" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </nav>
+            
+            <!-- Mobile Menu Dropdown -->
+            <div id="mobile-menu-landing" class="hidden md:hidden bg-white border-t border-gray-100">
+                <div class="px-4 py-3 space-y-2">
+                    <a href="https://fend.ai/" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Home</a>
+                    <a href="https://labs.fend.ai" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Labs</a>
+                    <div class="pt-2 border-t border-gray-200">
+                        <a href="{% url 'organizations:login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50">Sign in</a>
+                        <a href="{% url 'organizations:register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50">Register</a>
                     </div>
                 </div>
             </div>
-        </nav>
+        </header>
     {% elif request.ui_state == 'payment' %}
         <!-- Minimal header for payment/registration pages -->
-        <nav class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex-shrink-0 flex items-center">
-                        <a href="{% url 'payments:subscription_detail' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
-                    </div>
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <a href="{% url 'payments:subscription_detail' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
                     
-                    <!-- Always show user menu on payment/registration pages if logged in -->
-                    {% if user.is_authenticated %}
-                    <div class="flex items-center">
-                        <div class="ml-3 relative">
-                            <div class="flex items-center space-x-4">
-                                <div class="relative">
+                <!-- Always show user menu on payment/registration pages if logged in -->
+                {% if user.is_authenticated %}
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
                                     <button type="button" id="user-menu-button" class="text-gray-700 flex items-center space-x-2">
                                         <span class="text-gray-500">
                                             {% if user.organization %}
@@ -274,36 +248,34 @@
                     </div>
                     {% endif %}
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     {% else %}
         <!-- Full navigation for authenticated users with active subscription -->
-        <nav class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex">
-                        <div class="flex-shrink-0 flex items-center">
-                            <a href="{% url 'organizations:dashboard' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
-                        </div>
-                        <div class="hidden md:ml-6 md:flex md:space-x-8">
-                            <a href="{% url 'organizations:dashboard' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'enterprise_dashboard' or request.resolver_match.url_name == 'startup_dashboard' %}active{% endif %}">
-                                Dashboard
-                            </a>
-                            <a href="{% url 'pilots:list' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %}">
-                                Pilots
-                            </a>
-                            <a href="{% url 'organizations:deals' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'deals' %}active{% endif %}">
-                                Deals
-                            </a>
-                            <a href="{% url 'organizations:directory' %}" 
-                            class="nav-link {% if request.resolver_match.url_name == 'directory' %}active{% endif %}">
-                                Organizations
-                            </a>
-                        </div>
-                    </div>
+        <header class="bg-white shadow-sm sticky top-0 z-50">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+                <a href="{% url 'organizations:dashboard' %}" class="text-2xl font-bold text-indigo-600">Fend Marketplace</a>
+                
+                <ul class="nav-links hidden md:flex space-x-8 items-center">
+                    <li><a href="{% url 'organizations:dashboard' %}" 
+                        class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'enterprise_dashboard' or request.resolver_match.url_name == 'startup_dashboard' %}active{% endif %} text-gray-900 hover:text-indigo-600 font-medium transition-colors">
+                        Dashboard
+                    </a></li>
+                    <li><a href="{% url 'pilots:list' %}" 
+                        class="nav-link {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'pilots' %}active{% endif %} text-gray-900 hover:text-indigo-600 font-medium transition-colors">
+                        Pilots
+                    </a></li>
+                    <li><a href="{% url 'organizations:deals' %}" 
+                        class="nav-link {% if request.resolver_match.url_name == 'deals' %}active{% endif %} text-gray-900 hover:text-indigo-600 font-medium transition-colors">
+                        Deals
+                    </a></li>
+                    <li><a href="{% url 'organizations:directory' %}" 
+                        class="nav-link {% if request.resolver_match.url_name == 'directory' %}active{% endif %} text-gray-900 hover:text-indigo-600 font-medium transition-colors">
+                        Organizations
+                    </a></li>
+                </ul>
+                
+                <div class="flex items-center space-x-4">
                     <div class="flex items-center">
                         {% if user.is_authenticated and user.organization.type == 'enterprise' %}
                         <div class="hidden md:block mr-4">
@@ -365,17 +337,17 @@
                             </div>
                         </div>
                         
-                        <!-- Mobile Menu Button -->
-                        <button type="button" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="mobile-menu-button-authenticated">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
-                        </button>
-                    </div>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-button-authenticated" class="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
                 </div>
-                
-                <!-- Mobile Menu Dropdown for Authenticated Users -->
-                <div id="mobile-menu-authenticated" class="hidden md:hidden border-t border-gray-200">
+            
+            <!-- Mobile Menu Dropdown for Authenticated Users -->
+            <div id="mobile-menu-authenticated" class="hidden md:hidden bg-white border-t border-gray-100">
                     <div class="px-4 py-3 space-y-2">
                         <a href="{% url 'organizations:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Dashboard</a>
                         <a href="{% url 'pilots:list' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Pilots</a>
@@ -406,8 +378,8 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     {% endif %}
 
     <main class="flex-1">
