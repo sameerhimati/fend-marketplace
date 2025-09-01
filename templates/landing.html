@@ -77,38 +77,30 @@
 <!-- Hero Section with Trust Indicators -->
 <section class="relative bg-gradient-to-b from-gray-50 to-white overflow-hidden">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20">
-        <div class="text-center">
+        <div class="max-w-4xl">
             <!-- Main Headline -->
-            <h1 class="text-5xl md:text-7xl font-bold text-gray-900 tracking-tight">
+            <h1 class="text-5xl md:text-7xl font-bold text-gray-900 leading-tight mb-2">
                 Where Innovation<br class="hidden sm:block">
                 <span class="text-indigo-600">Meets Execution.</span>
             </h1>
             
             <!-- Subheadline -->
-            <p class="mt-6 text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
+            <p class="text-xl text-gray-600 mb-8 max-w-3xl leading-relaxed">
                 Connect with the right partners for breakthrough pilot programs. 
                 Enterprises find proven solutions. Startups access decision-makers. 
             </p>
             
             <!-- Single CTA -->
-            <div class="mt-10 flex justify-center">
+            <div class="mb-8">
                 <a href="{% url 'organizations:register' %}" 
-                   class="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl">
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">
                     Get Started Today
-                    <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                    </svg>
                 </a>
             </div>
             
             <!-- Login Section for Existing Users -->
-            <div class="mt-8 text-center">
-                <p class="text-gray-600">
-                    Already have an account? 
-                    <a href="{% url 'organizations:login' %}" class="font-semibold text-indigo-600 hover:text-indigo-500">
-                        Login here
-                    </a>
-                </p>
+            <div class="text-gray-600 mb-8">
+                Already have an account? <a href="{% url 'organizations:login' %}" class="text-indigo-600 hover:text-indigo-700 font-medium">Login here</a>
             </div>
 
             <!-- Trust Badge -->
