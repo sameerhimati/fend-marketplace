@@ -11,16 +11,26 @@
     <meta property="og:url" content="https://fend.ai/legal/">
     <link rel="icon" href="https://marketplace.fend.ai/static/images/fend/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <style>
         /* Fix anchor link scroll offset for sticky header */
         html {
             scroll-padding-top: 80px;
+            scroll-behavior: smooth;
         }
-        
+
         /* Custom hover animations */
         .hover-lift:hover {
             transform: translateY(-8px);
+        }
+
+        .decision-card {
+            transition: all 0.3s ease;
+        }
+
+        .decision-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -29,7 +39,7 @@
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
             <a href="https://fend.ai" class="text-2xl font-bold text-indigo-600">Fend Legal</a>
-            
+
             <!-- Desktop Menu -->
             <ul class="hidden md:flex space-x-8 items-center">
                 <li><a href="https://fend.ai" class="text-gray-900 hover:text-indigo-600 font-medium transition-colors">Home</a></li>
@@ -46,42 +56,74 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h1 class="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">Legal Portal</h1>
                 <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-                    Access all legal documents, terms of service, privacy policies, and user agreements for the Fend.ai platform. 
+                    Access all legal documents, terms of service, privacy policies, and user agreements for the Fend.ai platform.
                     All documents are publicly accessible and available for review.
                 </p>
             </div>
         </section>
 
-        <!-- Legal Documents Section -->
-        <section class="py-16">
+        <!-- Decision Navigation Section -->
+        <section class="py-12 bg-gradient-to-r from-indigo-600 to-purple-600">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-                    <!-- Terms of Service -->
+                <div class="text-center text-white mb-8">
+                    <h2 class="text-3xl font-bold mb-4">What applies to you?</h2>
+                    <p class="text-lg opacity-95">Choose your path to see the most relevant legal documents:</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    <a href="#marketplace" class="decision-card bg-white rounded-xl p-6 text-center cursor-pointer">
+                        <div class="text-indigo-600 text-4xl mb-3">🛒</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Pilot Marketplace</h3>
+                        <p class="text-gray-600">Looking for pilot programs? See Marketplace Documents</p>
+                    </a>
+
+                    <a href="#labs" class="decision-card bg-white rounded-xl p-6 text-center cursor-pointer">
+                        <div class="text-indigo-600 text-4xl mb-3">🔬</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Fend AI Labs</h3>
+                        <p class="text-gray-600">Need custom prototypes built? See Labs Documents</p>
+                    </a>
+
+                    <a href="#privacy" class="decision-card bg-white rounded-xl p-6 text-center cursor-pointer">
+                        <div class="text-indigo-600 text-4xl mb-3">🛡️</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Privacy & Compliance</h3>
+                        <p class="text-gray-600">Data protection and privacy terms for all services</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Master Terms Section -->
+        <section class="py-16 bg-gray-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-8 text-center">Master Terms of Service</h2>
+                <div class="max-w-3xl mx-auto">
                     <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
-                        <div class="border-t-4 border-indigo-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                        <div class="border-l-4 border-indigo-600 pl-6">
                             <div class="flex items-center justify-between mb-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v1.40</span>
-                                <span class="text-sm text-gray-500">June 24, 2025</span>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v2.0</span>
+                                <span class="text-sm text-gray-500">September 14, 2025</span>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Terms of Service</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">Legal terms governing your use of the FEND AI Platform</p>
-                            <a href="terms-of-service.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Master Terms of Service</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">
+                                Master terms governing your use of all Fend.ai services including Marketplace, Labs, and Admute.
+                                This is the foundational agreement that applies to all users.
+                            </p>
+                            <a href="terms-of-service.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Full Document →</a>
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
 
-                    <!-- Privacy Policy -->
-                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
-                        <div class="border-t-4 border-indigo-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v1.7</span>
-                                <span class="text-sm text-gray-500">June 24, 2025</span>
-                            </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Privacy Policy</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">How we collect, use, and protect your business information</p>
-                            <a href="privacy-policy.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
-                        </div>
-                    </div>
+        <!-- Marketplace Documents Section -->
+        <section class="py-16" id="marketplace">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Marketplace Documents</h2>
+                    <p class="text-lg text-gray-600">For enterprises seeking startup innovation partners and startups looking to complete pilot programs</p>
+                </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <!-- User Agreement -->
                     <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
                         <div class="border-t-4 border-indigo-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
@@ -90,21 +132,8 @@
                                 <span class="text-sm text-gray-500">June 24, 2025</span>
                             </div>
                             <h3 class="text-2xl font-bold text-gray-900 mb-4">User Agreement</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">Category-specific requirements for Startup and Enterprise users</p>
-                            <a href="user-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
-                        </div>
-                    </div>
-
-                    <!-- Payment Terms -->
-                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
-                        <div class="border-t-4 border-indigo-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v1.12</span>
-                                <span class="text-sm text-gray-500">June 24, 2025</span>
-                            </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Payment Terms</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">Payment structure, fees, and billing terms for Platform services</p>
-                            <a href="payment-terms.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
+                            <p class="text-gray-600 mb-6 leading-relaxed">Category-specific requirements for Startup and Enterprise users participating in pilot programs</p>
+                            <a href="user-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
                         </div>
                     </div>
 
@@ -115,22 +144,9 @@
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v2.0</span>
                                 <span class="text-sm text-gray-500">June 24, 2025</span>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Payment Holding Service Agreement</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">Terms governing secure payment holding for Pilot projects</p>
-                            <a href="payment-holding-service-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
-                        </div>
-                    </div>
-
-                    <!-- Data Processing Agreement -->
-                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
-                        <div class="border-t-4 border-indigo-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
-                            <div class="flex items-center justify-between mb-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v1.5</span>
-                                <span class="text-sm text-gray-500">June 24, 2025</span>
-                            </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Data Processing Agreement</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">GDPR compliance and data protection for EU-based customers</p>
-                            <a href="data-processing-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Payment Holding Service</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">Terms governing secure payment holding for Pilot projects, ensuring protected transactions</p>
+                            <a href="payment-holding-service-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
                         </div>
                     </div>
 
@@ -141,9 +157,98 @@
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">v1.0</span>
                                 <span class="text-sm text-gray-500">June 24, 2025</span>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Product Listing and Commission Agreement</h3>
-                            <p class="text-gray-600 mb-6 leading-relaxed">Terms for promoting and selling products through FEND Deals page</p>
-                            <a href="product-listing-commission-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">📄 View Full Document</a>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Product Listing & Commission</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">Terms for promoting and selling products through FEND Deals page and marketplace features</p>
+                            <a href="product-listing-commission-agreement.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Labs Documents Section -->
+        <section class="py-16 bg-gray-50" id="labs">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Fend Labs Documents</h2>
+                    <p class="text-lg text-gray-600">For organizations wanting Fend.ai to build custom prototypes and innovation solutions</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <!-- Labs Service Agreement -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-purple-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">v1.0</span>
+                                <span class="text-sm text-gray-500">September 14, 2025</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Labs Service Agreement</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">Terms for custom prototype development projects, SOW-based billing, IP ownership, and support services</p>
+                            <a href="labs-service-agreement.html" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
+                        </div>
+                    </div>
+
+                    <!-- Admute Terms of Service -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-purple-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">v1.0</span>
+                                <span class="text-sm text-gray-500">September 14, 2025</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Admute Terms of Service</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">Terms for the Admute ad-muting technology, including browser extension usage, premium subscriptions, and API licensing</p>
+                            <a href="admute-terms.html" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Privacy & Compliance Section -->
+        <section class="py-16" id="privacy">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Privacy & Compliance</h2>
+                    <p class="text-lg text-gray-600">Universal privacy, data protection, and payment terms that apply across all Fend.ai services</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Privacy Policy -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-green-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">v1.7</span>
+                                <span class="text-sm text-gray-500">June 24, 2025</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Privacy Policy</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">How we collect, use, and protect your business information across all Fend.ai services</p>
+                            <a href="privacy-policy.html" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
+                        </div>
+                    </div>
+
+                    <!-- Data Processing Agreement -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-green-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">v1.5</span>
+                                <span class="text-sm text-gray-500">June 24, 2025</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Data Processing Agreement</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">GDPR compliance and data protection terms for EU-based customers and partners</p>
+                            <a href="data-processing-agreement.html" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
+                        </div>
+                    </div>
+
+                    <!-- Payment Terms -->
+                    <div class="bg-white rounded-xl shadow-lg p-8 hover-lift transition-all duration-300 hover:shadow-2xl">
+                        <div class="border-t-4 border-green-600 rounded-t-lg -mt-8 -mx-8 pt-8 px-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">v1.12</span>
+                                <span class="text-sm text-gray-500">June 24, 2025</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-4">Payment Terms</h3>
+                            <p class="text-gray-600 mb-6 leading-relaxed">Payment structure, fees, and billing terms for all Platform services including subscriptions and SOW billing</p>
+                            <a href="payment-terms.html" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg inline-block">View Document →</a>
                         </div>
                     </div>
                 </div>
@@ -158,27 +263,39 @@
                     <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">
                         Our legal team is available to answer any questions about these agreements and how they apply to your use of the Fend.ai platform.
                     </p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                         <!-- Legal Contact -->
                         <div class="text-center">
-                            <h3 class="text-xl font-bold text-gray-900 mb-4">Legal Department</h3>
-                            <p class="text-gray-600">
-                                📧 <a href="mailto:legal@thefend.com" class="text-indigo-600 hover:text-indigo-800 font-medium">legal@thefend.com</a><br>
-                                📞 <a href="tel:+16507352255" class="text-indigo-600 hover:text-indigo-800 font-medium">(650) 735-2255</a>
-                            </p>
+                            <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">⚖️</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">Legal Department</h3>
+                            <p class="text-gray-600 mb-2">General legal inquiries</p>
+                            <p><a href="mailto:legal@thefend.com" class="text-indigo-600 hover:text-indigo-800 font-medium">legal@thefend.com</a></p>
                         </div>
-                        
+
                         <!-- Privacy Contact -->
                         <div class="text-center">
-                            <h3 class="text-xl font-bold text-gray-900 mb-4">Privacy & Data Protection</h3>
-                            <p class="text-gray-600">
-                                📧 <a href="mailto:privacy@thefend.com" class="text-indigo-600 hover:text-indigo-800 font-medium">privacy@thefend.com</a><br>
-                                <span class="text-sm text-gray-500">EU Data Protection Officer</span>
-                            </p>
+                            <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">📞</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">General Support</h3>
+                            <p class="text-gray-600 mb-2">General inquiries and support</p>
+                            <p><a href="mailto:support@thefend.com" class="text-indigo-600 hover:text-indigo-800 font-medium">support@thefend.com</a></p>
+                        </div>
+
+                        <!-- Labs Contact -->
+                        <div class="text-center">
+                            <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🔬</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">Labs Services</h3>
+                            <p class="text-gray-600 mb-2">Custom development and Labs inquiries</p>
+                            <p><a href="mailto:labs@thefend.com" class="text-indigo-600 hover:text-indigo-800 font-medium">labs@thefend.com</a></p>
                         </div>
                     </div>
-                    
+
                     <!-- Company Address -->
                     <div class="text-center pt-6 border-t border-gray-200">
                         <p class="text-gray-600">
@@ -201,7 +318,7 @@
             </div>
         </section>
     </main>
-    
+
     <!-- Footer -->
     <footer class="bg-gray-800 text-white py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -216,25 +333,24 @@
                         <li><a href="https://fend.ai" class="text-gray-300 hover:text-indigo-400 transition-colors">Main Site</a></li>
                         <li><a href="https://marketplace.fend.ai/" class="text-gray-300 hover:text-indigo-400 transition-colors">Marketplace</a></li>
                         <li><a href="https://labs.fend.ai" class="text-gray-300 hover:text-indigo-400 transition-colors">Labs</a></li>
+                        <li><a href="https://admute.io" class="text-gray-300 hover:text-indigo-400 transition-colors">Admute</a></li>
                     </ul>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-4">Legal Documents</h3>
                     <ul class="space-y-2">
-                        <li><a href="terms-of-service.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Terms of Service</a></li>
+                        <li><a href="terms-of-service.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Master Terms of Service</a></li>
                         <li><a href="privacy-policy.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
-                        <li><a href="user-agreement.html" class="text-gray-300 hover:text-indigo-400 transition-colors">User Agreement</a></li>
-                        <li><a href="payment-terms.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Payment Terms</a></li>
-                        <li><a href="payment-holding-service-agreement.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Payment Holding Service</a></li>
-                        <li><a href="data-processing-agreement.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Data Processing Agreement</a></li>
-                        <li><a href="product-listing-commission-agreement.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Product Listing Agreement</a></li>
+                        <li><a href="labs-service-agreement.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Labs Service Agreement</a></li>
+                        <li><a href="admute-terms.html" class="text-gray-300 hover:text-indigo-400 transition-colors">Admute Terms</a></li>
                     </ul>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-4">Contact</h3>
                     <ul class="space-y-2">
                         <li><a href="mailto:legal@thefend.com" class="text-gray-300 hover:text-indigo-400 transition-colors">Legal Department</a></li>
-                        <li><a href="mailto:privacy@thefend.com" class="text-gray-300 hover:text-indigo-400 transition-colors">Privacy Team</a></li>
+                        <li><a href="mailto:support@thefend.com" class="text-gray-300 hover:text-indigo-400 transition-colors">Support Team</a></li>
+                        <li><a href="mailto:labs@thefend.com" class="text-gray-300 hover:text-indigo-400 transition-colors">Labs Team</a></li>
                     </ul>
                 </div>
             </div>
