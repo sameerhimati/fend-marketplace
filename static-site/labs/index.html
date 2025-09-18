@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fend Labs - Experimental Innovation. Early Access.</title>
-    <meta name="description" content="Our innovation laboratory where we build, test, and launch experimental solutions. Get early access to cutting-edge tools and provide feedback that shapes the future of enterprise technology.">
-    <meta property="og:title" content="Fend Labs - Experimental Innovation. Early Access.">
-    <meta property="og:description" content="Beta access to experimental technologies and early adopter competitive advantages with direct feedback loops.">
+    <title>Fend Labs - AI Innovation. Early Access.</title>
+    <meta name="description" content="Our AI innovation laboratory where we build, test, and launch AI-powered solutions. Get early access to cutting-edge AI tools and provide feedback that shapes the future of enterprise technology.">
+    <meta property="og:title" content="Fend Labs - AI Innovation. Early Access.">
+    <meta property="og:description" content="Beta access to AI technologies and early adopter competitive advantages with direct feedback loops.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://labs.fend.ai">
     <link rel="icon" href="https://marketplace.fend.ai/static/images/fend/favicon.ico">
@@ -18,7 +18,14 @@
     <style>
         /* Fix anchor link scroll offset for sticky header */
         html {
-            scroll-padding-top: 80px; /* Account for 64px header + 16px buffer */
+            scroll-padding-top: 64px; /* Exact header height */
+        }
+
+        /* Ensure consistent nav height - CRITICAL FOR CONSISTENCY */
+        header nav {
+            height: 64px !important; /* Force exact 64px height */
+            min-height: 64px !important;
+            max-height: 64px !important;
         }
         
         /* Custom gradient for hero text */
@@ -80,9 +87,9 @@
         <section class="bg-gradient-to-b from-gray-50 to-white py-20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <div class="max-w-4xl mx-auto">
-                    <h1 class="text-5xl md:text-7xl font-bold text-gray-900 leading-tight mb-2">Experimental Innovation.</h1>
+                    <h1 class="text-5xl md:text-7xl font-bold text-gray-900 leading-tight mb-2">AI Innovation.</h1>
                     <h2 class="text-5xl md:text-7xl font-bold gradient-text leading-tight mb-8">Early Access.</h2>
-                    <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">Our innovation laboratory where we build, test, and launch experimental solutions. Get early access to cutting-edge tools and provide feedback that shapes the future of enterprise technology.</p>
+                    <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">Our AI innovation laboratory where we build, test, and launch AI-powered solutions. Get early access to cutting-edge AI tools and provide feedback that shapes the future of enterprise technology.</p>
                     
                     <div class="text-gray-600 mb-8">
                         Already a beta tester? <a href="#contact" class="text-purple-600 hover:text-purple-700 font-medium">Access your dashboard</a>
@@ -97,7 +104,7 @@
         <section class="py-20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 class="text-4xl font-bold text-center text-gray-900 mb-4">How Fend Labs Works</h2>
-                <p class="text-center text-gray-600 text-xl mb-16">From experimental concept to enterprise deployment in three phases</p>
+                <p class="text-center text-gray-600 text-xl mb-16">From AI concept to enterprise deployment in three phases</p>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                     <div class="text-center">
@@ -259,7 +266,7 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                 <div>
                     <h3 class="text-xl font-bold text-purple-400 mb-4">Fend Labs</h3>
-                    <p class="text-gray-300 leading-relaxed">Experimental innovation and early access to cutting-edge enterprise technology solutions.</p>
+                    <p class="text-gray-300 leading-relaxed">AI innovation and early access to cutting-edge enterprise technology solutions.</p>
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-4">Platform</h3>
@@ -273,7 +280,7 @@
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-4">Company</h3>
                     <ul class="space-y-2">
-                        <li><a href="https://fend.ai/legal/" class="text-gray-300 hover:text-purple-400 transition-colors">About & Legal</a></li>
+                        <li><a href="https://fend.ai/legal/" class="text-gray-300 hover:text-purple-400 transition-colors">Legal</a></li>
                         <li><a href="mailto:info@thefend.com" class="text-gray-300 hover:text-purple-400 transition-colors">Contact Labs Team</a></li>
                         <li><a href="mailto:legal@thefend.com" class="text-gray-300 hover:text-purple-400 transition-colors">Legal Inquiries</a></li>
                     </ul>

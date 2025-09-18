@@ -18,9 +18,16 @@
     <style>
         /* Fix anchor link scroll offset for sticky header */
         html {
-            scroll-padding-top: 80px; /* Account for 64px header + 16px buffer */
+            scroll-padding-top: 64px; /* Exact header height */
         }
-        
+
+        /* Ensure consistent nav height - CRITICAL FOR CONSISTENCY */
+        header nav {
+            height: 64px !important; /* Force exact 64px height */
+            min-height: 64px !important;
+            max-height: 64px !important;
+        }
+
         /* Custom gradient for hero text */
         .gradient-text {
             background: linear-gradient(135deg, #6366F1 0%, #7C3AED 100%);
@@ -28,12 +35,12 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         /* Custom hover animations */
         .hover-lift:hover {
             transform: translateY(-8px);
         }
-        
+
         /* Mobile menu toggle */
         @media (max-width: 768px) {
             .nav-links {
@@ -232,7 +239,7 @@
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-4">Company</h3>
                     <ul class="space-y-2">
-                        <li><a href="https://fend.ai/legal/" class="text-gray-300 hover:text-indigo-400 transition-colors">About & Legal</a></li>
+                        <li><a href="https://fend.ai/legal/" class="text-gray-300 hover:text-indigo-400 transition-colors">Legal</a></li>
                         <li><a href="mailto:legal@thefend.com" class="text-gray-300 hover:text-indigo-400 transition-colors">Contact Us</a></li>
                     </ul>
                 </div>
